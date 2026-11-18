@@ -26,6 +26,7 @@ public sealed class DuanYuCharacter : PlaceholderCharacterModel
     public override int StartingHp => 72;
     public override int StartingGold => 99;
     public override int MaxEnergy => 3;
+    public override bool ShouldAlwaysShowStarCounter => true;
     public override float DeathAnimTime => 0.7f;
 
     public override IEnumerable<CardModel> StartingDeck =>

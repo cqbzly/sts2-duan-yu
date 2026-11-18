@@ -25,8 +25,8 @@ internal static class CompendiumSelfTests
         EngineSelfTests.Equal(true, ModelDb.AllCardPools.Contains(pool), "compendium card pool registered");
         EngineSelfTests.Equal(false, character.HideInCompendium, "compendium character filter enabled");
         EngineSelfTests.Equal(character.Id, character.DefaultCompendiumOpenModelId, "compendium opens current character");
-        EngineSelfTests.Equal(88, cards.Length, "compendium contains all 88 card designs");
-        EngineSelfTests.Equal(88, cards.Select(card => card.Id).Distinct().Count(), "compendium card IDs unique");
+        EngineSelfTests.Equal(96, cards.Length, "compendium contains all 96 card designs");
+        EngineSelfTests.Equal(96, cards.Select(card => card.Id).Distinct().Count(), "compendium card IDs unique");
         EngineSelfTests.Equal(2, cards.Count(card => card.Type == CardType.Status), "compendium includes both exclusive statuses");
         EngineSelfTests.Equal(true, cards.All(card => card is DuanYuCard && card.ShouldShowInCardLibrary), "compendium includes playable and token cards");
         EngineSelfTests.Equal(true, character.IconTexture.GetWidth() > 0, "compendium filter icon loads");

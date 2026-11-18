@@ -1,7 +1,8 @@
 param(
     [string]$Sts2Path,
     [string]$PreviewPath,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [ValidateSet('private', 'public', 'unlisted', 'friends_only')][string]$Visibility = 'public'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,7 +45,7 @@ try {
 }
 finally { $previewStream.Dispose() }
 $metadata = Get-Content -LiteralPath (Join-Path $repositoryRoot 'workshop/workshop.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-if ($metadata.visibility -ne 'private') { throw 'The initial testing workspace must have private visibility.' }
+$metadata.visibility = $Visibility
 if (@($metadata.dependencies).Count -ne 1 -or $metadata.dependencies[0] -ne 3737335127) {
     throw 'Workshop dependencies must contain the BaseLib Workshop item 3737335127.'
 }
@@ -79,6 +80,6 @@ if (Test-Path -LiteralPath $modIdPath) {
     if ($modId -notmatch '^[1-9][0-9]*$') { throw 'Existing mod_id.txt is invalid; it has been preserved for inspection.' }
     Write-Output "Preserved existing Workshop item ID $modId."
 }
-Write-Output "Prepared private Workshop workspace: $workspace"
+Write-Output "Prepared $Visibility Workshop workspace: $workspace"
 Write-Output 'Only CQBZLY_DUAN_YU.dll and DuanYu.json will be included as mod content.'
 Write-Output "Upload command: .\.tools\mod-uploader\ModUploader.exe upload -w `"$workspace`""

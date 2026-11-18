@@ -1,5 +1,6 @@
 using BaseLib.Abstracts;
 using BaseLib.Utils.Attributes;
+using DuanYu.Cards;
 using DuanYu.Assets;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -72,7 +73,8 @@ public abstract class DuanYuEffectPower : DuanYuPower
         ["DY_U28"] = typeof(PeacefulHeartPower), ["DY_R01"] = typeof(BeimingPower),
         ["DY_R02"] = typeof(LingboFootworkPower), ["DY_R07"] = typeof(InvisibleSwordArrayPower),
         ["DY_R08"] = typeof(SixPulseUnityPower), ["DY_R12"] = typeof(YijingPower),
-        ["DY_R15"] = typeof(GuardSimplicityPower), ["DY_R18"] = typeof(FormlessPower)
+        ["DY_R15"] = typeof(GuardSimplicityPower), ["DY_R18"] = typeof(FormlessPower),
+        ["DY_R22"] = typeof(MeridianUnityPower)
     };
     protected abstract new string Title { get; }
     protected abstract string Rule { get; }
@@ -109,11 +111,15 @@ public sealed class WindWithoutTracePower : DuanYuEffectPower
 public sealed class PeacefulHeartPower : DuanYuEffectPower
 {
     protected override string Title => "百脉归炉";
-    protected override string Rule => "每当你消耗一张牌时，获得{Amount}点格挡。";
+    protected override string Rule => "每当你消耗一张牌时，获得{Amount}点格挡；消耗气滞或异种真气时，额外获得1点真气。";
     public override async Task AfterCardExhausted(PlayerChoiceContext choiceContext, CardModel card, bool causedByEthereal)
     {
         if (Owner.Player is { } player && card.Owner == player && DuanYuState.CanAct(player))
+        {
             await CreatureCmd.GainBlock(Owner, Amount, ValueProp.Move, null);
+            if (DuanYuState.CardId(card) is "DY_S01" or "DY_S02")
+                await DuanYuState.GainQi(player, 1, card);
+        }
     }
 }
 [CustomID("CQBZLY_DY_POWER_R01")]
@@ -157,4 +163,24 @@ public sealed class FormlessPower : DuanYuEffectPower
 {
     protected override string Title => "无相之境";
     protected override string Rule => "每回合前3张剑气结算后，获得{Amount}点格挡（每份无相之境提供5点，升级后提供7点）。";
+}
+
+[CustomID("CQBZLY_DY_POWER_R22")]
+public sealed class MeridianUnityPower : DuanYuEffectPower
+{
+    protected override string Title => "经脉归一";
+    protected override string Rule => "打出时及每回合开始生成异种真气；每回合前2次消耗状态牌后，获得{Amount}点格挡、运气1，并随机生成1张未升级剑气。";
+
+    public override async Task AfterCardExhausted(PlayerChoiceContext choiceContext, CardModel card, bool causedByEthereal)
+    {
+        if (Owner.Player is not { } player || card.Owner != player || card.Type != CardType.Status || !DuanYuState.CanAct(player)) return;
+        var state = DuanYuState.Get(player);
+        if (state.StatusExhaustTriggers >= 2) return;
+        state.StatusExhaustTriggers++;
+        var copies = state.Effects.Where(effect => effect.CardId == "DY_R22").Sum(effect => effect.SecondaryAmount);
+        await DuanYuState.GainQi(player, copies, card);
+        await CreatureCmd.GainBlock(Owner, Amount, ValueProp.Move, null);
+        for (var index = 0; index < copies && DuanYuState.CanAct(player); index++)
+            await DuanYuCardExecutor.GenerateSword(player, player.RunState.Rng.CombatCardGeneration.NextInt(1, 7), false);
+    }
 }

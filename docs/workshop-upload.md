@@ -1,6 +1,6 @@
 # Steam 创意工坊工作区与上传
 
-本项目使用 Mega Crit 官方 [sts2-mod-uploader](https://github.com/megacrit/sts2-mod-uploader) 上传《杀戮尖塔2》模组。默认创建 **private** 测试条目；上传使用本机 Steam 客户端的当前登录账号，与 GitHub 的 `cqbzly` 账号独立。
+本项目使用 Mega Crit 官方 [sts2-mod-uploader](https://github.com/megacrit/sts2-mod-uploader) 上传《杀戮尖塔2》模组。当前默认发布为 **public**；上传使用本机 Steam 客户端的当前登录账号，与 GitHub 的 `cqbzly` 账号独立。
 
 ## 准备工作区
 
@@ -42,7 +42,7 @@ dist/workshop/
 
 `workshop.json`显式声明工坊依赖`3737335127`（BaseLib），与模组清单中`BaseLib >= 3.4.8`配套。Compatibility Helper由BaseLib工坊包提供。`minBranch`和`maxBranch`均设置为`public-beta`；官方模板提示该API可能有异常行为，因此上传后仍需在条目页面核对支持分支。项目只声明已验证的游戏版本，未验证正式分支和其他模组组合。
 
-官方工具如报告仍需接受 Steam Workshop 协议，须由账号持有人处理该账号步骤；上传退出码0不等于条目已经可以公开显示。私有条目上传后还需要订阅回装与加载验证，再决定是否改变可见性。
+官方工具如报告仍需接受 Steam Workshop 协议，须由账号持有人处理该账号步骤；上传退出码0后仍需打开公开条目核对可见性、订阅回装和加载结果。
 
 ## 已下载工具的来源
 

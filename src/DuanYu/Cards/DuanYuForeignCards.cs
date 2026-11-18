@@ -13,8 +13,13 @@ public static class DuanYuForeignCards
     private static readonly Type[] AttackTypes =
     [
         typeof(Bash), typeof(IronWave), typeof(PommelStrike), typeof(TwinStrike),
+        typeof(Bludgeon),
         typeof(DaggerSpray), typeof(DaggerThrow), typeof(Slice), typeof(PoisonedStab),
-        typeof(BeamCell), typeof(GoForTheEyes), typeof(SweepingBeam), typeof(RipAndTear)
+        typeof(BeamCell), typeof(GoForTheEyes), typeof(SweepingBeam), typeof(RipAndTear),
+        typeof(KinglyKick), typeof(KinglyPunch),
+        typeof(DeathMarch), typeof(Defile), typeof(Graveblast),
+        typeof(Eradicate),
+        typeof(SorrowfulStrike), typeof(BowSmack), typeof(PunchOfJoy), typeof(KiWhip)
     ];
 
     public static async Task GenerateAttacks(Player player, PlayerChoiceContext context, int count, bool upgraded)

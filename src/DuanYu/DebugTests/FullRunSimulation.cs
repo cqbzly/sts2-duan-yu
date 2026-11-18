@@ -356,7 +356,7 @@ internal static class FullRunSimulation
             if (cards.Length == 0) return Task.FromResult<IEnumerable<CardModel>>([]);
             var player = currentPlayer ?? cards.First().Owner;
             var purpose = FullRunSelectionContext.Purpose ?? FullRunRooms.SelectionPurpose;
-            var exhaust = purpose == "exhaust" || activeCard is "DY_U06" or "DY_U35";
+            var exhaust = purpose == "exhaust" || activeCard is "DY_U06" or "DY_U35" or "DY_C21";
             var remove = purpose is "remove" or "transform" or "discard" or "absorb";
             var source = PileType.Play.GetPile(player).Cards.OfType<DuanYuCard>().LastOrDefault(card => card.DesignId == activeCard);
             double SelectionValue(CardModel card) => exhaust ? FullRunPolicy.ExhaustPriority(card, player, source) : remove ? FullRunPolicy.RemovalValue(card, player) : FullRunPolicy.CardValue(card, player);

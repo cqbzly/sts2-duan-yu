@@ -152,6 +152,24 @@ public sealed class DY_C20 : DuanYuCard
     public DY_C20() : base("DY_C20") { }
 }
 
+[CustomID("CQBZLY_DY_C21")]
+public sealed class DY_C21 : DuanYuCard
+{
+    public DY_C21() : base("DY_C21") { }
+}
+
+[CustomID("CQBZLY_DY_C22")]
+public sealed class DY_C22 : DuanYuCard
+{
+    public DY_C22() : base("DY_C22") { }
+}
+
+[CustomID("CQBZLY_DY_C23")]
+public sealed class DY_C23 : DuanYuCard
+{
+    public DY_C23() : base("DY_C23") { }
+}
+
 [CustomID("CQBZLY_DY_U01")]
 public sealed class DY_U01 : DuanYuCard
 {
@@ -362,6 +380,24 @@ public sealed class DY_U35 : DuanYuCard
     public DY_U35() : base("DY_U35") { }
 }
 
+[CustomID("CQBZLY_DY_U36")]
+public sealed class DY_U36 : DuanYuCard
+{
+    public DY_U36() : base("DY_U36") { }
+}
+
+[CustomID("CQBZLY_DY_U37")]
+public sealed class DY_U37 : DuanYuCard
+{
+    public DY_U37() : base("DY_U37") { }
+}
+
+[CustomID("CQBZLY_DY_U38")]
+public sealed class DY_U38 : DuanYuCard
+{
+    public DY_U38() : base("DY_U38") { }
+}
+
 [CustomID("CQBZLY_DY_R01")]
 public sealed class DY_R01 : DuanYuCard
 {
@@ -480,6 +516,18 @@ public sealed class DY_R19 : DuanYuCard
 public sealed class DY_R20 : DuanYuCard
 {
     public DY_R20() : base("DY_R20") { }
+}
+
+[CustomID("CQBZLY_DY_R21")]
+public sealed class DY_R21 : DuanYuCard
+{
+    public DY_R21() : base("DY_R21") { }
+}
+
+[CustomID("CQBZLY_DY_R22")]
+public sealed class DY_R22 : DuanYuCard
+{
+    public DY_R22() : base("DY_R22") { }
 }
 
 [CustomID("CQBZLY_DY_T01")]

@@ -18,7 +18,7 @@ using MegaCrit.Sts2.Core.ValueProps;
 namespace DuanYu.Cards;
 
 public sealed record CardUpgrade(int Cost, string Text);
-public sealed record CardDefinition(string Id, string Name, string Rarity, string Type, int Cost, string Text, CardUpgrade Upgrade);
+public sealed record CardDefinition(string Id, string Name, string Rarity, string Type, int Cost, string Text, CardUpgrade Upgrade, bool CostX = false);
 public sealed record CardDesign(CardDefinition[] Cards);
 
 [Pool(typeof(DuanYuCardPool))]
@@ -35,18 +35,24 @@ public abstract class DuanYuCard : CustomCardModel
         "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06" => 1,
         "DY_C17" => 1,
         "DY_B05" or "DY_C02" or "DY_C15" or "DY_U32" or "DY_R06" => 2,
-        "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R03" or "DY_R05" or "DY_R20" => 3,
+        "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R03" or "DY_R05" or "DY_R20" or "DY_R21" => 3,
         "DY_R13" => 5, _ => 0
     };
     public int Value(int normal, int upgraded) => IsUpgraded ? upgraded : normal;
+
+    public override CardMultiplayerConstraint MultiplayerConstraint => DesignId is "DY_U29" or "DY_U30" or "DY_R17"
+        ? CardMultiplayerConstraint.MultiplayerOnly
+        : CardMultiplayerConstraint.None;
 
     protected DuanYuCard(string id) : base(Definitions[id].Cost, TypeOf(Definitions[id].Type), RarityOf(Definitions[id].Rarity), TargetOf(id, Definitions[id].Type))
     {
         DesignId = id;
     }
 
+    protected override bool HasEnergyCostX => Definition.CostX;
+
     public override string CustomPortraitPath => DuanYuAssets.CardPortrait(DesignId);
-    public override bool GainsBlock => Numbers.Block > 0;
+    public override bool GainsBlock => Numbers.Block > 0 || DesignId == "DY_U37";
     protected override bool IsPlayable => base.IsPlayable && (RequiredQi == 0 || Owner == null || DuanYuState.Get(Owner).Qi >= RequiredQi);
     protected override IEnumerable<DynamicVar> CanonicalVars
     {
@@ -54,7 +60,7 @@ public abstract class DuanYuCard : CustomCardModel
         {
             if (DesignId == "DY_U08")
             {
-                foreach (var variable in MakeCalculatedDamage(20, (source, _) => source.IsCanonical || source.Owner == null ? 0 : DuanYuState.Get(source.Owner).Qi, 2)) yield return variable;
+                foreach (var variable in MakeCalculatedDamage(16, (source, _) => source.IsCanonical || source.Owner == null ? 0 : DuanYuState.Get(source.Owner).Qi, 1)) yield return variable;
             }
             else if (Numbers.Damage > 0) yield return new DamageVar(Numbers.Damage, ValueProp.Move);
             if (Numbers.ExtraDamage > 0) yield return new DamageVar("ExtraDamage", Numbers.ExtraDamage, ValueProp.Move);
@@ -68,7 +74,7 @@ public abstract class DuanYuCard : CustomCardModel
     public override IEnumerable<CardKeyword> CanonicalKeywords => DesignId == "DY_S01"
         ? [CardKeyword.Unplayable, CardKeyword.Ethereal]
         : DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? [CardKeyword.Exhaust, CardKeyword.Ethereal]
-        : DesignId is "DY_C10" or "DY_C17" or "DY_U02" or "DY_U04" or "DY_U09" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U25" or "DY_U27" or "DY_U35" or "DY_R04" or "DY_R09" or "DY_R10" or "DY_R11" or "DY_R14" or "DY_R16" or "DY_R17" or "DY_S02" ? [CardKeyword.Exhaust] : [];
+        : DesignId is "DY_C22" or "DY_C10" or "DY_C17" or "DY_U02" or "DY_U04" or "DY_U09" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U25" or "DY_U27" or "DY_U35" or "DY_U36" or "DY_U37" or "DY_U38" or "DY_R04" or "DY_R09" or "DY_R10" or "DY_R11" or "DY_R14" or "DY_R16" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
     public override List<(string, string)> Localization => new CardLoc(Definition.Name,
         "{IfUpgraded:show:" + DescriptionText(true) + "|" + DescriptionText(false) + "}",
         ("selectionScreenPrompt", "选择卡牌"), ("qiTipTitle", "真气与耗气"), ("lingboTipTitle", "凌波"), ("swordTipTitle", "六脉剑气"), ("statusTipTitle", "专属状态牌"), ("foreignTipTitle", "外门招式"));
@@ -86,14 +92,14 @@ public abstract class DuanYuCard : CustomCardModel
             if (Definition.Text.Contains("易伤", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<VulnerablePower>();
             if (Definition.Text.Contains("气滞", StringComparison.Ordinal) || Definition.Text.Contains("异种真气", StringComparison.Ordinal) || Type == CardType.Status)
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".statusTipTitle"), "气滞：不可打出、虚无；留在手牌直到回合结束时失去2点真气，不算发动耗气。异种真气：1费、消耗；运气3，获得2层剑势，抽1张牌。两者均不能升级。");
-            if (DesignId == "DY_U27")
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "从战士、静默猎手和故障机器人的12种原生攻击牌中等概率生成2张不同招式。生成的牌本回合免费并具有消耗；升级北冥借招生成升级招式。");
+            if (DesignId is "DY_U27" or "DY_U36")
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "从战士、静默猎手、故障机器人、君主、亡灵使者和愚者的23种原生攻击牌中等概率生成招式；同一次生成不重复。生成的牌本回合免费并具有消耗，X费牌仍支付全部剩余能量。升级借招牌生成升级招式。");
         }
     }
     protected override void OnUpgrade()
     {
         EnergyCost.UpgradeBy(Definition.Upgrade.Cost - Definition.Cost);
-        if (DesignId == "DY_U08") DynamicVars.CalculationBase.UpgradeValueBy(8);
+        if (DesignId == "DY_U08") DynamicVars.CalculationBase.UpgradeValueBy(7);
         else if (Numbers.Damage > 0) DynamicVars.Damage.UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
         if (Numbers.ExtraDamage > 0) DynamicVars["ExtraDamage"].UpgradeValueBy(Numbers.ExtraDamageUp - Numbers.ExtraDamage);
         if (Numbers.Block > 0) DynamicVars.Block.UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
@@ -112,7 +118,7 @@ public abstract class DuanYuCard : CustomCardModel
     }
     private string DescriptionText(bool upgraded)
     {
-        if (DesignId == "DY_U08") return "造成{CalculatedDamage:diff()}点伤害（基础伤害加当前真气的2倍）。将1张气滞加入弃牌堆。";
+        if (DesignId == "DY_U08") return "造成{CalculatedDamage:diff()}点伤害（基础伤害加当前真气）。将1张气滞加入弃牌堆。";
         string result = Clean(upgraded ? Definition.Upgrade.Text : Definition.Text);
         if (Numbers.Damage > 0) result = result.Replace($"造成{(upgraded ? Numbers.DamageUp : Numbers.Damage)}点伤害", "造成{Damage:diff()}点伤害");
         if (Numbers.ExtraDamage > 0) result = result.Replace($"造成{(upgraded ? Numbers.ExtraDamageUp : Numbers.ExtraDamage)}点伤害", "造成{ExtraDamage:diff()}点伤害");
@@ -129,7 +135,7 @@ public abstract class DuanYuCard : CustomCardModel
     {
         "DY_S01" or "DY_S02" => TargetType.None,
         "DY_U29" or "DY_U30" or "DY_R17" => TargetType.AnyPlayer,
-        "DY_C04" or "DY_U10" or "DY_U17" or "DY_R09" or "DY_R20" or "DY_T03" => TargetType.AllEnemies,
+        "DY_C04" or "DY_U10" or "DY_U17" or "DY_R09" or "DY_R20" or "DY_R21" or "DY_T03" => TargetType.AllEnemies,
         "DY_U20" => TargetType.AnyEnemy,
         _ => type == "攻击" ? TargetType.AnyEnemy : TargetType.Self
     };

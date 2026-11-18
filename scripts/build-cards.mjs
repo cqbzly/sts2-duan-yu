@@ -64,7 +64,7 @@ export function renderCards(design) {
         '',
         '| 编号 | 类型 | 基础费用 | 升级费用 | 标签 |',
         '| --- | --- | --- | --- | --- |',
-        `| ${card.id} | ${card.type} | ${card.cost === -1 ? '不可打出' : card.cost} | ${isStatus ? '不可升级' : card.upgrade.cost} | ${card.tags.map(inlineText).join('、')} |`,
+        `| ${card.id} | ${card.type} | ${card.costX ? 'X' : card.cost === -1 ? '不可打出' : card.cost} | ${isStatus ? '不可升级' : card.costX ? 'X' : card.upgrade.cost} | ${card.tags.map(inlineText).join('、')} |`,
         '',
         `**基础效果：** ${inlineText(card.text)}`,
         '',

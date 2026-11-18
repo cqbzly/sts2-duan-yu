@@ -44,7 +44,7 @@ public static class DuanYuAssets
             _ = MerchantScene;
             _ = IconScene;
             _ = CharacterSelectScene;
-            foreach ((string prefix, int count) in new[] { ("B", 5), ("C", 20), ("U", 35), ("R", 20), ("T", 6), ("S", 2) })
+            foreach ((string prefix, int count) in new[] { ("B", 5), ("C", 23), ("U", 38), ("R", 22), ("T", 6), ("S", 2) })
             {
                 for (int number = 1; number <= count; number++)
                 {

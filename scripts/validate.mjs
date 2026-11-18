@@ -4,9 +4,9 @@ import { renderCards } from './build-cards.mjs';
 
 const rarityDefinitions = [
   { rarity: '基础', prefix: 'B', count: 5 },
-  { rarity: '普通', prefix: 'C', count: 20 },
-  { rarity: '罕见', prefix: 'U', count: 35 },
-  { rarity: '稀有', prefix: 'R', count: 20 },
+  { rarity: '普通', prefix: 'C', count: 23 },
+  { rarity: '罕见', prefix: 'U', count: 38 },
+  { rarity: '稀有', prefix: 'R', count: 22 },
   { rarity: '衍生', prefix: 'T', count: 6 },
   { rarity: '状态', prefix: 'S', count: 2 },
 ];
@@ -85,7 +85,7 @@ function validateCards(design) {
     const actualCount = design.cards.filter((card) => isObject(card) && card.rarity === definition.rarity).length;
     requireCondition(actualCount === definition.count, `${definition.rarity}牌应有${definition.count}种，实际为${actualCount}种。`);
   }
-  requireCondition(design.cards.length === 88, `卡牌总数应为88种，实际为${design.cards.length}种。`);
+  requireCondition(design.cards.length === 96, `卡牌总数应为96种，实际为${design.cards.length}种。`);
 
   for (const [index, card] of design.cards.entries()) {
     const label = isObject(card) && isNonemptyText(card.id) ? card.id : `cards[${index}]`;
@@ -100,6 +100,9 @@ function validateCards(design) {
     names.add(card.name);
     requireCondition(allowedTypes.has(card.type), `${label}的类型必须为攻击、技能、能力或状态。`);
     requireCondition(isCost(card.cost, card.id), `${label}的费用必须是0至3的整数，只有气滞允许-1。`);
+    requireCondition(card.costX === undefined || typeof card.costX === 'boolean', `${label}.costX必须为布尔值。`);
+    requireCondition(Boolean(card.costX) === ['DY_U37', 'DY_R21'].includes(card.id), `${label}的X费用配置不正确。`);
+    if (card.costX) requireCondition(card.cost === 0 && card.upgrade?.cost === 0, `${label}的X费用占位值必须为0。`);
     validateEffect(card.text, `${label}基础效果`, design.character?.qiCap ?? 9);
     requireCondition(isObject(card.upgrade), `${label}必须有upgrade对象。`);
     if (isObject(card.upgrade)) {
@@ -169,7 +172,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log('设计数据校验通过：88种卡牌（基础5、普通20、罕见35、稀有20、衍生6、状态2），10张初始牌组，生成引用及卡牌文档一致。');
+  console.log('设计数据校验通过：96种卡牌（基础5、普通23、罕见38、稀有22、衍生6、状态2），10张初始牌组，生成引用及卡牌文档一致。');
   console.log('本校验仅检查设计数据结构及文档一致性，不代表实战平衡或游戏模组兼容性通过。');
 }
 
