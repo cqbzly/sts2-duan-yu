@@ -1,0 +1,14 @@
+{
+  "id": "CQBZLY_DUAN_YU",
+  "name": "大理世子·段誉",
+  "author": "cqbzly",
+  "description": "以真气、凌波与六脉剑气为核心的完整自定义角色，包含 86 张卡牌、8 件遗物与 2 个事件。",
+  "version": "0.1.1",
+  "min_game_version": "0.113.1",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [
+    { "id": "BaseLib", "min_version": "3.4.8" }
+  ],
+  "affects_gameplay": true
+}

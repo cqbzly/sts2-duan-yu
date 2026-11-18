@@ -1,0 +1,34 @@
+<Project Sdk="Godot.NET.Sdk/4.5.1" InitialTargets="CheckGameReferences">
+  <Import Project="Sts2PathDiscovery.props" />
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>CQBZLY_DUAN_YU</AssemblyName>
+    <Version>0.1.1</Version>
+    <RootNamespace>DuanYu</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>13.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <GodotDisabledSourceGenerators>GodotPluginsInitializer</GodotDisabledSourceGenerators>
+    <NoWarn>$(NoWarn);MSB3270</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="src/DuanYu/**/*.cs" />
+    <EmbeddedResource Include="data/cards.json" LogicalName="DuanYu.cards.json" />
+    <Reference Include="sts2">
+      <HintPath>$(Sts2DataDir)/sts2.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(Sts2DataDir)/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <PackageReference Include="Alchyr.Sts2.BaseLib" Version="3.4.8" PrivateAssets="all" />
+    <None Update="DuanYu.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="CheckGameReferences">
+    <Error Condition="!Exists('$(Sts2DataDir)/sts2.dll')" Text="Set Sts2Path in Directory.Build.props.local or pass -p:Sts2Path=... to the installed Slay the Spire 2 directory." />
+  </Target>
+</Project>

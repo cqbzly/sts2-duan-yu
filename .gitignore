@@ -1,0 +1,10 @@
+.tools/
+.reference/
+.godot/
+**/bin/
+**/obj/
+dist/
+artifacts/
+Directory.Build.props.local
+*.user
+*.suo

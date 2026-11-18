@@ -1,0 +1,13 @@
+<Project Sdk="Godot.NET.Sdk/4.5.1">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="SmokeTest.cs" />
+    <Compile Include="ExportGallery.cs" />
+    <Compile Include="../../src/DuanYu/Assets/*.cs" Link="Assets/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

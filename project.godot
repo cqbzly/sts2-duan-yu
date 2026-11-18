@@ -1,0 +1,11 @@
+config_version=5
+
+[application]
+config/name="Duan Yu"
+config/features=PackedStringArray("4.5", "C#")
+
+[dotnet]
+project/assembly_name="CQBZLY_DUAN_YU"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
