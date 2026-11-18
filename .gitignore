@@ -8,3 +8,4 @@ artifacts/
 Directory.Build.props.local
 *.user
 *.suo
+mod-uploader.log

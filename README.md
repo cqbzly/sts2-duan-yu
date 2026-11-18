@@ -10,6 +10,8 @@
 
 v0.1.1为全部86种卡牌接入1000×760原创矢量插画，使用18类语义场景，区分北冥、凌波、六脉与书生主题。图片为画册排版示意，游戏中沿用原生卡框和文本。详见[卡面设计与导出](docs/card-art.md)。
 
+下载：[GitHub v0.1.1安装包](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.1.1)。[Steam创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)目前为private，仅发布账号可见；尚未完成工坊订阅回装验证。
+
 ## 安装与开发
 
 玩家安装步骤见[安装说明](docs/installation.md)。模组只依赖 BaseLib，安装包包含 `CQBZLY_DUAN_YU.dll` 和对应JSON清单；图像与场景在本地生成并缓存，不需要额外下载资源或PCK。
