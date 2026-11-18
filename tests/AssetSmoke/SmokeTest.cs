@@ -9,7 +9,7 @@ public partial class SmokeTest : Node
         {
             DuanYuAssets.Initialize();
             int loaded = 0;
-            foreach ((string prefix, int count) in new[] { ("B", 5), ("C", 20), ("U", 35), ("R", 20), ("T", 6) })
+            foreach ((string prefix, int count) in new[] { ("B", 5), ("C", 20), ("U", 35), ("R", 20), ("T", 6), ("S", 2) })
             {
                 for (int number = 1; number <= count; number++)
                 {
@@ -25,7 +25,7 @@ public partial class SmokeTest : Node
                 loaded++;
             }
             foreach (string path in Enumerable.Range(1, 8).Select(number => DuanYuAssets.RelicIcon($"CQBZLY_DY_RELIC{number:00}"))
-                .Concat(new[] { "CQBZLY_DY_QI", "CQBZLY_DY_LINGBO", "CQBZLY_DY_QI_BLADE", "CQBZLY_DY_VERMILION_WARD" }.Select(DuanYuAssets.PowerIcon))
+                .Concat(new[] { "CQBZLY_DY_QI", "CQBZLY_DY_LINGBO", "CQBZLY_DY_QI_BLADE", "CQBZLY_DY_SWORD_MOMENTUM", "CQBZLY_DY_VERMILION_WARD" }.Select(DuanYuAssets.PowerIcon))
                 .Concat(new[] { "CQBZLY_DY_EVENT01", "CQBZLY_DY_EVENT02" }.Select(DuanYuAssets.EventPortrait)))
             {
                 var texture = DuanYuAssets.Texture(path);

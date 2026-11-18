@@ -13,7 +13,7 @@ using MegaCrit.Sts2.Core.ValueProps;
 
 namespace DuanYu.Runtime;
 
-public sealed record DuanYuEffect(string CardId, int Amount, int SecondaryAmount, CardModel? Source);
+public sealed record DuanYuEffect(string CardId, int Amount, int SecondaryAmount, CardModel? Source, int EnergyAmount = 0);
 public sealed record DuanYuDelayedEffect(string Kind, int Amount);
 
 public sealed class PlayerRuntimeState : DuanYuCombatLedger
@@ -35,6 +35,8 @@ internal sealed class DuanYuPlayRecord
     internal int SkillOrdinal { get; init; }
     internal int SwordOrdinal { get; init; }
     internal bool ThirdSwordKind { get; init; }
+    internal bool SixthSwordKind { get; init; }
+    internal bool PendantActive { get; init; }
     internal List<DuanYuEffect> Effects { get; init; } = [];
     internal int SpendOrdinal { get; set; }
     internal int Spent { get; set; }
@@ -47,11 +49,12 @@ public static class DuanYuState
     public const int QiCap = 9;
     public const int LingboCap = 3;
     public const int LingboReduction = 3;
+    public const int SwordMomentumCap = DuanYuCombatLedger.SwordMomentumCap;
     private static readonly ConditionalWeakTable<Player, PlayerRuntimeState> States = new();
     private static readonly ConditionalWeakTable<Player, DuanYuRunHistory> Histories = new();
     private static bool initialized;
 
-    public static Func<Player, PlayerChoiceContext, int, Task>? GenerateSwordChoice { get; set; }
+    public static Func<Player, PlayerChoiceContext, int, bool, Task>? GenerateSwordChoice { get; set; }
     public static PlayerRuntimeState Get(Player player) => States.GetOrCreateValue(player);
     public static bool CanAct(Player player) => player.Creature.IsAlive && player.Creature.CombatState != null && !CombatManager.Instance.IsEnding;
     public static string CardId(CardModel card) => card.Id.Entry.StartsWith("CQBZLY_", StringComparison.Ordinal) ? card.Id.Entry[7..] : card.Id.Entry;
@@ -84,6 +87,14 @@ public static class DuanYuState
         if (amount <= 0 || !CanAct(player)) return;
         var state = Get(player);
         state.GainQi(amount);
+        await SyncPower<QiPower>(player, state.Qi, source);
+    }
+
+    public static async Task LoseQi(Player player, int amount, CardModel? source = null)
+    {
+        if (amount <= 0 || !CanAct(player)) return;
+        var state = Get(player);
+        state.Qi -= Math.Min(state.Qi, amount);
         await SyncPower<QiPower>(player, state.Qi, source);
     }
 
@@ -121,14 +132,18 @@ public static class DuanYuState
             effects = record.Effects;
             ordinal = record.SpendOrdinal;
         }
-        if (ordinal <= 0) return;
+        if (!state.TryProcessSpend(ordinal)) return;
         foreach (var effect in effects)
         {
             if (!CanAct(player)) break;
             if (effect.CardId == "DY_U01" && ordinal == 1)
                 await CardPileCmd.Draw(context, effect.Amount, player);
             else if (effect.CardId == "DY_R01" && ordinal <= 2)
+            {
                 await GainQi(player, effect.Amount, source);
+                if (ordinal == 1 && effect.EnergyAmount > 0 && CanAct(player))
+                    await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
+            }
         }
     }
 
@@ -140,7 +155,15 @@ public static class DuanYuState
         await SyncPower<LingboPower>(player, state.Lingbo, source);
     }
 
-    public static async Task AddEffect(Player player, string cardId, int amount = 1, int secondaryAmount = 0, CardModel? source = null)
+    public static async Task GainSwordMomentum(Player player, int amount, CardModel? source = null)
+    {
+        if (amount <= 0 || !CanAct(player)) return;
+        var state = Get(player);
+        state.GainSwordMomentum(amount);
+        await SyncPower<SwordMomentumPower>(player, state.SwordMomentum, source);
+    }
+
+    public static async Task AddEffect(Player player, string cardId, int amount = 1, int secondaryAmount = 0, CardModel? source = null, int energyAmount = 0)
     {
         if (!CanAct(player)) return;
         if (!DuanYuEffectPower.Types.TryGetValue(cardId, out var powerType))
@@ -148,11 +171,16 @@ public static class DuanYuState
         var state = Get(player);
         var existingIndex = state.Effects.FindIndex(effect => effect.CardId == cardId);
         if (existingIndex < 0)
-            state.Effects.Add(new DuanYuEffect(cardId, amount, secondaryAmount, source));
+            state.Effects.Add(new DuanYuEffect(cardId, amount, secondaryAmount, source, energyAmount));
         else
         {
             var previous = state.Effects[existingIndex];
-            state.Effects[existingIndex] = previous with { Amount = previous.Amount + amount, SecondaryAmount = previous.SecondaryAmount + secondaryAmount };
+            state.Effects[existingIndex] = previous with
+            {
+                Amount = previous.Amount + amount,
+                SecondaryAmount = previous.SecondaryAmount + secondaryAmount,
+                EnergyAmount = previous.EnergyAmount + energyAmount
+            };
         }
         var canonical = ModelDb.GetById<PowerModel>(ModelDb.GetId(powerType));
         await PowerCmd.Apply(new ThrowingPlayerChoiceContext(), canonical.ToMutable(), player.Creature, amount, player.Creature, source);
@@ -177,6 +205,7 @@ public static class DuanYuState
         foreach (var player in combatState.Players)
         {
             States.Remove(player);
+            player.Creature.GetPower<SwordMomentumPower>()?.RemoveInternal();
             var state = Get(player);
             state.Combat = combatState;
             foreach (var relic in player.Relics) RecordRelic(player, relic.Id.Entry);
@@ -185,7 +214,7 @@ public static class DuanYuState
 
     public static async Task StartRelicCombat(Player player, int relicNumber)
     {
-        if (relicNumber == 1) await GainQi(player, 2);
+        if (relicNumber == 1 && HasRelic(player, "CQBZLY_DY_RELIC01")) await GainQi(player, 3);
         if (relicNumber == 8)
             await PowerCmd.Apply<VermilionWardPower>(new ThrowingPlayerChoiceContext(), player.Creature, 1, player.Creature, null);
     }
@@ -193,7 +222,11 @@ public static class DuanYuState
     internal static void EndCombat(ICombatState? combatState)
     {
         if (combatState == null) return;
-        foreach (var player in combatState.Players) States.Remove(player);
+        foreach (var player in combatState.Players)
+        {
+            States.Remove(player);
+            player.Creature.GetPower<SwordMomentumPower>()?.RemoveInternal();
+        }
     }
 
     internal static void PrepareTurn(Player player)
@@ -239,8 +272,12 @@ public static class DuanYuState
             else if (effect.CardId == "DY_R07")
             {
                 if (GenerateSwordChoice == null) throw new InvalidOperationException("Duan Yu sword choice executor is not registered.");
-                await GenerateSwordChoice(player, context, effect.Amount);
+                var ordinarySwords = effect.Amount - effect.SecondaryAmount;
+                if (ordinarySwords > 0) await GenerateSwordChoice(player, context, ordinarySwords, false);
+                if (effect.SecondaryAmount > 0 && CanAct(player)) await GenerateSwordChoice(player, context, effect.SecondaryAmount, true);
             }
+            else if (effect.CardId == "DY_R15")
+                await GainQi(player, effect.Amount);
         }
     }
 
@@ -253,14 +290,8 @@ public static class DuanYuState
             if (!CanAct(player)) break;
             switch (effect.CardId)
             {
-                case "DY_R15" when player.PlayerCombatState?.Energy >= 1:
-                    await GainQi(player, effect.Amount);
-                    break;
                 case "DY_U05":
                     await GainBlock(player, state.Qi / 2 * effect.Amount + effect.SecondaryAmount);
-                    break;
-                case "DY_U28" when state.AttacksPlayed == 0:
-                    await GainBlock(player, effect.Amount);
                     break;
             }
         }
@@ -278,6 +309,8 @@ public static class DuanYuState
             SkillOrdinal = ordinal.Skill,
             SwordOrdinal = ordinal.Sword,
             ThirdSwordKind = ordinal.ThirdSwordKind,
+            SixthSwordKind = ordinal.SixthSwordKind,
+            PendantActive = HasRelic(play.Player, "CQBZLY_DY_RELIC01"),
             Effects = state.Effects.ToList()
         });
         state.ActivePlays.Push(play);
@@ -290,12 +323,30 @@ public static class DuanYuState
         if (!state.Plays.Remove(play, out var record)) return;
         if (state.ActivePlays.TryPeek(out var top) && ReferenceEquals(top, play)) state.ActivePlays.Pop();
         if (!CanAct(player)) return;
+        if (record.SwordOrdinal > 0)
+            await GainSwordMomentum(player, 1 + (record.ThirdSwordKind ? 1 : 0) + (record.SixthSwordKind ? 2 : 0), play.Card);
         foreach (var relic in player.Relics.Where(relic => !relic.IsMelted).ToArray())
         {
             if (!CanAct(player)) return;
             switch (relic.Id.Entry)
             {
-                case "CQBZLY_DY_RELIC01" when record.SkillOrdinal == 1: await GainQi(player, 1); break;
+                case "CQBZLY_DY_RELIC01" when record.PendantActive:
+                    if (record.SkillOrdinal == 1)
+                    {
+                        await GainQi(player, 2, play.Card);
+                        if (CanAct(player)) await PlayerCmd.GainEnergy(1, player);
+                    }
+                    if (record.ThirdSwordKind)
+                    {
+                        await CardPileCmd.Draw(context, 1, player);
+                        await GainQi(player, 2, play.Card);
+                    }
+                    if (record.SixthSwordKind)
+                    {
+                        if (CanAct(player)) await PlayerCmd.GainEnergy(1, player);
+                        await GainQi(player, 3, play.Card);
+                    }
+                    break;
                 case "CQBZLY_DY_RELIC03" when record.SkillOrdinal == 3: await GainBlock(player, 4); break;
                 case "CQBZLY_DY_RELIC04" when record.GrantsPrayerBlock: await GainBlock(player, 4); break;
                 case "CQBZLY_DY_RELIC05" when record.ThirdSwordKind: await PlayerCmd.GainEnergy(1, player); break;
@@ -309,9 +360,14 @@ public static class DuanYuState
             {
                 case "DY_R02" when record.SkillOrdinal is > 0 and <= 2:
                     await GainLingbo(player, effect.Amount); break;
-                case "DY_R08" when record.ThirdSwordKind:
+                case "DY_R08" when record.ThirdSwordKind || record.SixthSwordKind:
                     await CardPileCmd.Draw(context, effect.Amount, player);
-                    await GainQi(player, effect.SecondaryAmount); break;
+                    await GainQi(player, effect.SecondaryAmount);
+                    if (effect.EnergyAmount > 0 && CanAct(player)) await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
+                    break;
+                case "DY_R15" when record.SwordOrdinal == 1:
+                    if (effect.EnergyAmount > 0) await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
+                    break;
                 case "DY_R18" when record.SwordOrdinal is > 0 and <= 3:
                     await GainBlock(player, effect.Amount); break;
             }
@@ -329,7 +385,7 @@ public static class DuanYuState
             ordinal = record.SwordOrdinal;
             effects = record.Effects;
         }
-        return ordinal is > 0 and <= 2 ? effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount) : 0;
+        return ordinal is > 0 and <= 3 ? effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount) : 0;
     }
 
     internal static async Task ConsumeLingbo(Player player)

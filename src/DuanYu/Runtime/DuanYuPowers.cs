@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Powers;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.ValueProps;
@@ -54,6 +55,14 @@ public sealed class VermilionWardPower : DuanYuPower
     public override Task AfterModifyingPowerAmountReceived(PowerModel power) => PowerCmd.Remove(this);
 }
 
+[CustomID("CQBZLY_DY_SWORD_MOMENTUM")]
+public sealed class SwordMomentumPower : DuanYuPower
+{
+    public override List<(string, string)> Localization => new PowerLoc("剑势", "六种剑气的每段攻击伤害增加{Amount}点。最多12层，跨回合保留，战斗结束清除。每次剑气结算后获得1层；每回合第3种不同剑气额外获得1层，第6种额外获得2层。", "六种剑气的每段攻击伤害增加{Amount}点。最多12层，跨回合保留，战斗结束清除。每次剑气结算后获得1层；每回合第3种不同剑气额外获得1层，第6种额外获得2层。");
+    public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
+        dealer == Owner && props.IsPoweredAttack() && cardSource != null && DuanYuState.IsSword(cardSource) ? Amount : 0;
+}
+
 public abstract class DuanYuEffectPower : DuanYuPower
 {
     public static readonly IReadOnlyDictionary<string, Type> Types = new Dictionary<string, Type>
@@ -86,7 +95,7 @@ public sealed class QiGuardPower : DuanYuEffectPower
 public sealed class SwordProficiencyPower : DuanYuEffectPower
 {
     protected override string Title => "指法纯熟";
-    protected override string Rule => "每回合打出的前2张剑气伤害增加{Amount}点。";
+    protected override string Rule => "每回合打出的前3张剑气伤害增加{Amount}点。";
     public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
         dealer == Owner && props.IsPoweredAttack() && cardSource != null ? DuanYuState.SwordBonus(cardSource, cardPlay) : 0;
 }
@@ -99,14 +108,19 @@ public sealed class WindWithoutTracePower : DuanYuEffectPower
 [CustomID("CQBZLY_DY_POWER_U28")]
 public sealed class PeacefulHeartPower : DuanYuEffectPower
 {
-    protected override string Title => "不争之心";
-    protected override string Rule => "若本回合没有打出攻击牌，回合结束时获得{Amount}点格挡。";
+    protected override string Title => "百脉归炉";
+    protected override string Rule => "每当你消耗一张牌时，获得{Amount}点格挡。";
+    public override async Task AfterCardExhausted(PlayerChoiceContext choiceContext, CardModel card, bool causedByEthereal)
+    {
+        if (Owner.Player is { } player && card.Owner == player && DuanYuState.CanAct(player))
+            await CreatureCmd.GainBlock(Owner, Amount, ValueProp.Move, null);
+    }
 }
 [CustomID("CQBZLY_DY_POWER_R01")]
 public sealed class BeimingPower : DuanYuEffectPower
 {
     protected override string Title => "北冥神功";
-    protected override string Rule => "每回合前2次成功发动耗气效果后，运气{Amount}。";
+    protected override string Rule => "每回合前2次成功发动耗气效果后，运气{Amount}（每份北冥神功运气2）；首次另按每份已打出的北冥神功获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R02")]
 public sealed class LingboFootworkPower : DuanYuEffectPower
@@ -118,29 +132,29 @@ public sealed class LingboFootworkPower : DuanYuEffectPower
 public sealed class InvisibleSwordArrayPower : DuanYuEffectPower
 {
     protected override string Title => "无形剑阵";
-    protected override string Rule => "回合开始时，选择并生成{Amount}张剑气。";
+    protected override string Rule => "每份无形剑阵打出时，选择并生成2种不同剑气。回合开始时，选择并生成{Amount}张剑气。来自升级无形剑阵的剑气也升级。";
 }
 [CustomID("CQBZLY_DY_POWER_R08")]
 public sealed class SixPulseUnityPower : DuanYuEffectPower
 {
     protected override string Title => "六脉贯通";
-    protected override string Rule => "每回合打出第3种不同剑气后抽{Amount}张牌，并按已获得的层数运气。";
+    protected override string Rule => "每回合打出第3和第6种不同剑气后，各抽{Amount}张牌；每份已打出的六脉贯通另运气2并获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R12")]
 public sealed class YijingPower : DuanYuEffectPower
 {
     protected override string Title => "易经心法";
-    protected override string Rule => "回合开始时获得{Amount}点格挡；至少有5点真气时再按层数获得凌波。";
+    protected override string Rule => "回合开始时获得{Amount}点格挡；至少有5点真气时，每份已打出的易经心法再获得1层凌波。";
 }
 [CustomID("CQBZLY_DY_POWER_R15")]
 public sealed class GuardSimplicityPower : DuanYuEffectPower
 {
     protected override string Title => "守拙";
-    protected override string Rule => "回合结束时，若至少剩余1点能量，运气{Amount}。";
+    protected override string Rule => "回合开始时运气{Amount}（每份守拙运气3）；每回合首张剑气结算后，每份已打出的守拙获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R18")]
 public sealed class FormlessPower : DuanYuEffectPower
 {
     protected override string Title => "无相之境";
-    protected override string Rule => "每回合前3张剑气结算后，获得{Amount}点格挡。";
+    protected override string Rule => "每回合前3张剑气结算后，获得{Amount}点格挡（每份无相之境提供5点，升级后提供7点）。";
 }

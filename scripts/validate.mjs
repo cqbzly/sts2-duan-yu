@@ -8,8 +8,9 @@ const rarityDefinitions = [
   { rarity: '罕见', prefix: 'U', count: 35 },
   { rarity: '稀有', prefix: 'R', count: 20 },
   { rarity: '衍生', prefix: 'T', count: 6 },
+  { rarity: '状态', prefix: 'S', count: 2 },
 ];
-const allowedTypes = new Set(['攻击', '技能', '能力']);
+const allowedTypes = new Set(['攻击', '技能', '能力', '状态']);
 const allowedTags = new Set(['北冥', '凌波', '六脉', '通用']);
 const errors = [];
 
@@ -25,8 +26,8 @@ function isNonemptyText(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isCost(value) {
-  return Number.isInteger(value) && value >= 0 && value <= 3;
+function isCost(value, cardId) {
+  return Number.isInteger(value) && (value >= 0 && value <= 3 || cardId === 'DY_S01' && value === -1);
 }
 
 function validateEffect(text, label, qiCap) {
@@ -84,7 +85,7 @@ function validateCards(design) {
     const actualCount = design.cards.filter((card) => isObject(card) && card.rarity === definition.rarity).length;
     requireCondition(actualCount === definition.count, `${definition.rarity}牌应有${definition.count}种，实际为${actualCount}种。`);
   }
-  requireCondition(design.cards.length === 86, `卡牌总数应为86种，实际为${design.cards.length}种。`);
+  requireCondition(design.cards.length === 88, `卡牌总数应为88种，实际为${design.cards.length}种。`);
 
   for (const [index, card] of design.cards.entries()) {
     const label = isObject(card) && isNonemptyText(card.id) ? card.id : `cards[${index}]`;
@@ -97,12 +98,12 @@ function validateCards(design) {
     requireCondition(isNonemptyText(card.name) && card.name === card.name.trim(), `${label}必须有无首尾空白的名称。`);
     requireCondition(!names.has(card.name), `${label}的名称“${card.name}”重复。`);
     names.add(card.name);
-    requireCondition(allowedTypes.has(card.type), `${label}的类型必须为攻击、技能或能力。`);
-    requireCondition(isCost(card.cost), `${label}的费用必须是0至3的整数。`);
+    requireCondition(allowedTypes.has(card.type), `${label}的类型必须为攻击、技能、能力或状态。`);
+    requireCondition(isCost(card.cost, card.id), `${label}的费用必须是0至3的整数，只有气滞允许-1。`);
     validateEffect(card.text, `${label}基础效果`, design.character?.qiCap ?? 9);
     requireCondition(isObject(card.upgrade), `${label}必须有upgrade对象。`);
     if (isObject(card.upgrade)) {
-      requireCondition(isCost(card.upgrade.cost), `${label}的升级费用必须是0至3的整数。`);
+      requireCondition(isCost(card.upgrade.cost, card.id), `${label}的升级费用必须是0至3的整数，只有气滞允许-1。`);
       validateEffect(card.upgrade.text, `${label}升级效果`, design.character?.qiCap ?? 9);
     }
     requireCondition(Array.isArray(card.tags) && card.tags.length >= 1 && card.tags.length <= 2, `${label}必须有1至2个标签。`);
@@ -122,6 +123,12 @@ function validateCards(design) {
         requireCondition(typeof text === 'string' && text.includes('消耗') && text.includes('虚无'), `${label}${variant}文本必须包含消耗和虚无。`);
       }
     }
+    requireCondition((card.rarity === '状态') === (card.type === '状态'), `${label}的状态类型必须与状态分类对应。`);
+    if (card.rarity === '状态') {
+      requireCondition(card.upgrade?.cost === card.cost && card.upgrade?.text === card.text, `${label}不可升级，upgrade必须重复基础费用与文本。`);
+      requireCondition(card.cost === (card.id === 'DY_S01' ? -1 : 1), `${label}状态牌费用不正确。`);
+      requireCondition(typeof card.text === 'string' && card.text.includes(card.id === 'DY_S01' ? '虚无' : '消耗'), `${label}缺少状态牌离场关键词。`);
+    }
   }
 
   for (const expectedId of expectedRarities.keys()) {
@@ -130,7 +137,7 @@ function validateCards(design) {
   for (const card of cardsById.values()) {
     if (!Array.isArray(card.generates)) continue;
     for (const generatedId of card.generates) {
-      requireCondition(cardsById.get(generatedId)?.rarity === '衍生', `${card.id}.generates的${generatedId}必须指向存在的衍生牌。`);
+      requireCondition(['衍生', '状态'].includes(cardsById.get(generatedId)?.rarity), `${card.id}.generates的${generatedId}必须指向存在的衍生剑气或状态牌。`);
     }
   }
   validateCharacter(design.character, cardsById);
@@ -162,7 +169,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log('设计数据校验通过：86种卡牌（基础5、普通20、罕见35、稀有20、衍生6），10张初始牌组，衍生引用及卡牌文档一致。');
+  console.log('设计数据校验通过：88种卡牌（基础5、普通20、罕见35、稀有20、衍生6、状态2），10张初始牌组，生成引用及卡牌文档一致。');
   console.log('本校验仅检查设计数据结构及文档一致性，不代表实战平衡或游戏模组兼容性通过。');
 }
 

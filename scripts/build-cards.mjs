@@ -8,6 +8,7 @@ const rarityGroups = [
   { rarity: '罕见', label: '罕见牌', anchor: 'uncommon-cards' },
   { rarity: '稀有', label: '稀有牌', anchor: 'rare-cards' },
   { rarity: '衍生', label: '衍生剑气', anchor: 'generated-cards' },
+  { rarity: '状态', label: '专属状态牌', anchor: 'status-cards' },
 ];
 
 function inlineText(value) {
@@ -32,7 +33,7 @@ export function renderCards(design) {
     '',
     '本文由 [data/cards.json](../data/cards.json) 自动生成。修改数据后运行 `node scripts/build-cards.mjs`；运行 `node scripts/validate.mjs` 检查数据及文档一致性。',
     '',
-    '每张牌均提供完整基础效果和完整升级效果；升级栏是升级后整张牌的文本。费用均为能量费用。衍生关联只描述该牌能够生成的卡种，不代表数量、升级状态或实际生成顺序，这些以效果文本为准。',
+    '可升级牌均提供完整基础效果和完整升级效果；升级栏是升级后整张牌的文本。两种专属状态牌不可升级，不进入常规奖励。费用均为能量费用，“不可打出”对应气滞的数据费用-1。生成关联只描述该牌能够生成的模组卡种，不代表数量、升级状态或实际生成顺序，这些以效果文本为准；原生跨角色招式另按牌面说明。',
     '',
     '## 目录',
     '',
@@ -51,6 +52,7 @@ export function renderCards(design) {
     );
 
     for (const card of group.cards) {
+      const isStatus = card.type === '状态';
       const generatedLinks = (card.generates ?? []).map((generatedId) => {
         const generatedCard = cardsById.get(generatedId);
         return `[${generatedCard?.name ?? generatedId}（${generatedId}）](#${generatedId.toLowerCase()})`;
@@ -62,13 +64,13 @@ export function renderCards(design) {
         '',
         '| 编号 | 类型 | 基础费用 | 升级费用 | 标签 |',
         '| --- | --- | --- | --- | --- |',
-        `| ${card.id} | ${card.type} | ${card.cost} | ${card.upgrade.cost} | ${card.tags.map(inlineText).join('、')} |`,
+        `| ${card.id} | ${card.type} | ${card.cost === -1 ? '不可打出' : card.cost} | ${isStatus ? '不可升级' : card.upgrade.cost} | ${card.tags.map(inlineText).join('、')} |`,
         '',
         `**基础效果：** ${inlineText(card.text)}`,
         '',
-        `**完整升级效果：** ${inlineText(card.upgrade.text)}`,
+        isStatus ? '**升级：** 此状态牌不可升级。' : `**完整升级效果：** ${inlineText(card.upgrade.text)}`,
         '',
-        `**衍生关联：** ${generatedLinks.length > 0 ? generatedLinks.join('、') : '无。'}`,
+        `**生成关联：** ${generatedLinks.length > 0 ? generatedLinks.join('、') : '无。'}`,
         '',
       );
     }

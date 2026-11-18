@@ -41,7 +41,7 @@ public sealed class LanghuanPendant : DuanYuRelic
     public override int RelicNumber => 1;
     protected override string LocalizationId => "DY_RELIC01";
     protected override string TitleText => "琅嬛玉佩";
-    protected override string DescriptionText => "战斗开始时，运气2。每回合首次打出的技能牌结算后，运气1。";
+    protected override string DescriptionText => "战斗开始时，运气3。每回合首次打出的技能牌结算后，运气2并获得1能量。每回合打出第3种不同剑气后，抽1张牌并运气2；打出第6种不同剑气后，获得1能量并运气3。";
     protected override string FlavorText => "玉声清越，似有无数旧卷在其中翻动。";
     public override RelicRarity Rarity => RelicRarity.Starter;
 }
@@ -52,7 +52,7 @@ public sealed class ScrollFragment : DuanYuRelic
     public override int RelicNumber => 2;
     protected override string LocalizationId => "DY_RELIC02";
     protected override string TitleText => "帛卷残页";
-    protected override string DescriptionText => "从你的第二回合开始，若回合开始时真气为0，运气1。";
+    protected override string DescriptionText => "从你的第二回合开始，若回合开始时真气为0，运气2。";
     protected override string FlavorText => "残字未完，行气之法却自成一脉。";
     public override RelicRarity Rarity => RelicRarity.Common;
 }

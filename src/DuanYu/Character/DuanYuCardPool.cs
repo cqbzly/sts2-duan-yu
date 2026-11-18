@@ -13,6 +13,7 @@ public sealed class DuanYuCardPool : CustomCardPoolModel
     public override Color DeckEntryCardColor => DuanYuCharacter.JadeColor;
     public override Color EnergyOutlineColor => new("173E46");
     public override bool IsColorless => false;
+    public override bool SeenByDefault => true;
     public override string BigEnergyIconPath => DuanYuAssets.BigEnergy;
     public override string TextEnergyIconPath => DuanYuAssets.TextEnergy;
 }

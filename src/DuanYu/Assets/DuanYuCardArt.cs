@@ -9,8 +9,8 @@ internal static class DuanYuCardArt
     private const string Paper = "#F4EDDA";
     private const string Gold = "#E9C882";
 
-    private enum Theme { Qi, Step, Sword, Scholar }
-    private enum Scene { Finger, Ward, Vortex, Footwork, Meridian, Palm, Book, Rivers, Meditation, Temple, Sword, Lotus, Stars, Aid, Sleeve, Shockwave, Awakening, Renewal }
+    private enum Theme { Qi, Step, Sword, Scholar, Blocked, Foreign }
+    private enum Scene { Finger, Ward, Vortex, Footwork, Meridian, Palm, Book, Rivers, Meditation, Temple, Sword, Lotus, Stars, Aid, Sleeve, Shockwave, Awakening, Renewal, Obstruction, BorrowedQi, Furnace }
     private readonly record struct Design(Scene Scene, Theme Theme, int Variant);
     private readonly record struct Palette(string Sky, string Horizon, string Mountain, string Accent, string Light);
 
@@ -67,8 +67,8 @@ internal static class DuanYuCardArt
         ["DY_U24"] = new(Scene.Footwork, Theme.Step, 10),
         ["DY_U25"] = new(Scene.Footwork, Theme.Step, 11),
         ["DY_U26"] = new(Scene.Book, Theme.Scholar, 3),
-        ["DY_U27"] = new(Scene.Meditation, Theme.Qi, 3),
-        ["DY_U28"] = new(Scene.Lotus, Theme.Step, 2),
+        ["DY_U27"] = new(Scene.BorrowedQi, Theme.Foreign, 1),
+        ["DY_U28"] = new(Scene.Furnace, Theme.Qi, 1),
         ["DY_U29"] = new(Scene.Aid, Theme.Qi, 1),
         ["DY_U30"] = new(Scene.Aid, Theme.Scholar, 2),
         ["DY_U31"] = new(Scene.Finger, Theme.Qi, 7),
@@ -101,7 +101,9 @@ internal static class DuanYuCardArt
         ["DY_T03"] = new(Scene.Sword, Theme.Sword, 23),
         ["DY_T04"] = new(Scene.Sword, Theme.Sword, 24),
         ["DY_T05"] = new(Scene.Sword, Theme.Sword, 25),
-        ["DY_T06"] = new(Scene.Sword, Theme.Sword, 26)
+        ["DY_T06"] = new(Scene.Sword, Theme.Sword, 26),
+        ["DY_S01"] = new(Scene.Obstruction, Theme.Blocked, 1),
+        ["DY_S02"] = new(Scene.BorrowedQi, Theme.Foreign, 2)
     };
 
     public static string Render(string designId)
@@ -112,6 +114,8 @@ internal static class DuanYuCardArt
             Theme.Qi => new Palette("#0C2533", "#2C6866", "#235153", "#76D7BA", "#D7F6DA"),
             Theme.Step => new Palette("#142B47", "#3F8296", "#315B75", "#9BDFEA", "#E1F7F6"),
             Theme.Sword => new Palette("#202B40", "#526D76", "#2A485B", "#E5C17A", "#FFF0C1"),
+            Theme.Blocked => new Palette("#301D31", "#71434C", "#472E40", "#DF8278", "#FFD4AD"),
+            Theme.Foreign => new Palette("#242445", "#57618B", "#343A61", "#BA9CE8", "#EEE0FF"),
             _ => new Palette("#313A3A", "#85918A", "#4A686A", "#D3B785", "#FFF3D6")
         };
         bool rare = designId.StartsWith("DY_R", StringComparison.Ordinal);
@@ -147,6 +151,9 @@ internal static class DuanYuCardArt
             Scene.Shockwave => Shockwave(design.Variant, palette),
             Scene.Awakening => Awakening(palette),
             Scene.Renewal => Renewal(design.Variant, palette),
+            Scene.Obstruction => Obstruction(palette),
+            Scene.BorrowedQi => BorrowedQi(design.Variant, palette),
+            Scene.Furnace => Furnace(palette),
             _ => throw new InvalidOperationException("Unknown card art scene.")
         });
         body.Append(Foreground(design, palette, rare));
@@ -584,6 +591,39 @@ internal static class DuanYuCardArt
         <path d="M207 78L223 83L215 99M314 281L299 296L321 298" fill="none" stroke="{palette.Light}" stroke-width="2"/>
         <path d="M118 303L146 267L193 279L170 320Z" fill="url(#scroll)" stroke="{Gold}" stroke-width="1.5"/>
         {(variant == 1 ? "<path d=\"M337 289L363 273L389 303L370 322Z\" fill=\"#7B8D85\"/><path d=\"M350 264L358 253M383 282L395 269\" stroke=\"#C9D0AB\" stroke-width=\"2\"/>" : Birds(palette.Light))}
+        """;
+
+    private static string Obstruction(Palette palette) => $"""
+        {Figure("sit", 140, 123, 1.08)}
+        <ellipse cx="250" cy="229" rx="133" ry="96" fill="{Ink}" opacity=".28"/>
+        <path d="M148 121C95 174 127 278 220 289M351 121C405 176 373 278 280 289" fill="none" stroke="{palette.Accent}" stroke-width="7" opacity=".78"/>
+        <path d="M188 126L218 168L242 181M312 126L282 168L258 181M250 211V282" fill="none" stroke="{Gold}" stroke-width="4"/>
+        <path d="M214 180L236 154L266 160L287 188L269 219L233 224L211 204Z" fill="#643847" stroke="{palette.Light}" stroke-width="2"/>
+        <path d="M232 170L267 210M270 171L231 210" stroke="{palette.Accent}" stroke-width="7"/>
+        <path d="M129 152L147 120L155 152M345 152L351 120L369 152" fill="none" stroke="{palette.Light}" stroke-width="3"/>
+        <path d="M176 302L194 310M207 316L224 320M279 320L297 316M310 310L328 302" stroke="{Gold}" stroke-width="2" opacity=".7"/>
+        """;
+
+    private static string BorrowedQi(int variant, Palette palette) => $"""
+        <circle cx="268" cy="190" r="110" fill="{Ink}" opacity=".25" stroke="{Gold}" stroke-width="1.3"/>
+        <path d="M135 99C70 221 195 310 288 228C372 156 307 74 239 125" fill="none" stroke="#E7A483" stroke-width="17" opacity=".78"/>
+        <path d="M406 286C470 160 343 76 250 156C164 231 231 310 298 257" fill="none" stroke="#8DDCC2" stroke-width="17" opacity=".82"/>
+        <path d="M140 102C92 213 194 285 279 220M401 282C450 170 344 100 259 165" fill="none" stroke="{palette.Light}" stroke-width="3"/>
+        <circle cx="269" cy="192" r="35" fill="{palette.Light}" stroke="{Gold}" stroke-width="3"/>
+        <path d="M269 165L280 190L269 218L258 190Z" fill="{palette.Accent}"/>
+        {(variant == 1 ? $"<path d=\"M38 267L109 246L164 288L91 315Z\" fill=\"url(#scroll)\" stroke=\"{Gold}\" stroke-width=\"2\"/><path d=\"M62 272L104 261M76 285L122 274M92 297L136 286\" stroke=\"{Ink}\" stroke-width=\"2\"/>" : $"<path d=\"M188 313L217 283L249 307L278 280L315 308L342 284\" fill=\"none\" stroke=\"{Gold}\" stroke-width=\"3\"/><circle cx=\"106\" cy=\"184\" r=\"8\" fill=\"#E7A483\"/><circle cx=\"426\" cy=\"205\" r=\"8\" fill=\"#8DDCC2\"/>")}
+        """;
+
+    private static string Furnace(Palette palette) => $"""
+        <ellipse cx="255" cy="308" rx="128" ry="29" fill="{Ink}" opacity=".55"/>
+        <path d="M169 189H339L317 298H191Z" fill="#426461" stroke="{Gold}" stroke-width="3"/>
+        <path d="M182 205L155 181L140 206L177 241M326 205L353 181L368 206L332 241" fill="none" stroke="{Gold}" stroke-width="9"/>
+        <ellipse cx="254" cy="189" rx="86" ry="23" fill="{Ink}" stroke="{Gold}" stroke-width="3"/>
+        <path d="M202 184Q175 142 225 118Q214 83 258 60Q252 121 281 132Q313 94 315 127Q335 162 296 184Z" fill="{palette.Accent}" opacity=".9"/>
+        <path d="M230 180Q218 148 254 126Q247 164 278 179Z" fill="{palette.Light}"/>
+        <path d="M105 91L144 74L180 110L139 130ZM349 95L385 72L417 113L376 132Z" fill="url(#scroll)" stroke="{Gold}" stroke-width="2"/>
+        <path d="M160 123L184 145M353 131L331 151M227 220L254 242L282 219M254 242V275" fill="none" stroke="{Gold}" stroke-width="3"/>
+        <path d="M196 299L189 323M312 299L319 323" stroke="{Gold}" stroke-width="8"/>
         """;
 
     private static string MeridianDots(int horizontal, int vertical, Palette palette) => $"""

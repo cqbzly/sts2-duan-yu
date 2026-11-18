@@ -2,6 +2,14 @@
 
 本文记录段誉模组在本机环境中的实际证据、兼容边界和发布前条件。它不把“能编译”或“能启动”扩大解释为所有第三方模组组合都兼容。
 
+## 当前版本入口
+
+v0.3.0 开发预览版已通过23项规则、283组最终引擎回归、118项资源检查与88张卡牌数据校验，Debug/Release均0警告0错误。完整A10种子 `DUANYUFULLA10-048` 两次新进程从头胜利，击败Kin、Insatiable、Queen与Aeonglass，最后首领战后72/72生命；两次原生结束标志与胜利选项完成情况均确认。详见[当前验证](runtime-verification.md)与[完整 A10 证据](full-run-validation.md)。
+
+主动消耗、状态牌与外门借招的回归不扩大为多人或任意第三方组合兼容。日志仍保留Godot RID/ObjectDB/resources退出告警及非致命 `Invalid Task ID`；283组用例无失败、完整流程两次胜利，不代表日志没有告警或已排除资源泄漏。
+
+版本下载见 [GitHub v0.3.0](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.3.0)；[Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)沿用 private 可见性。v0.3.0本地安装、备份及包哈希以[v0.3.0版本说明](releases/v0.3.0.md)为准，本地验证不替代工坊订阅回装验证。下文保留 v0.1.1 环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
+
 ## 已验证环境
 
 目标环境为 Windows Steam 版《杀戮尖塔2》`v0.113.1 public-beta`，release commit `d09d48e5`，Steam App ID `2868840`。段誉清单要求 BaseLib `3.4.8`，模组 ID 为 `CQBZLY_DUAN_YU`，程序集文件名必须是 `CQBZLY_DUAN_YU.dll`。

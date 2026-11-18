@@ -84,8 +84,7 @@ internal static class DuanYuDamageHook
     private static void Postfix(Creature? target, ValueProp props, ref IEnumerable<AbstractModel> modifiers, ref decimal __result)
     {
         if (target?.Player == null || target.GetPower<LingboPower>() is not { } lingbo) return;
-        var directHpLoss = props.HasFlag(ValueProp.Unblockable) && props.HasFlag(ValueProp.Unpowered);
-        var reduction = DuanYuCombatLedger.ReduceAttack(__result, props.HasFlag(ValueProp.Move) && !directHpLoss, lingbo.Amount);
+        var reduction = DuanYuCombatLedger.ReduceAttack(__result, props.IsPoweredAttack(), lingbo.Amount);
         if (!reduction.ConsumesLingbo) return;
         __result = reduction.Damage;
         modifiers = modifiers.Append(lingbo).Distinct().ToArray();

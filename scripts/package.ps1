@@ -23,6 +23,8 @@ Copy-Item -LiteralPath $assemblyPath -Destination (Join-Path $modDirectory 'CQBZ
 Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $modDirectory 'DuanYu.json') -Force
 $readmePath = Join-Path $repositoryRoot 'docs/installation.md'
 Copy-Item -LiteralPath $readmePath -Destination (Join-Path $packageRoot 'README.md') -Force
+$cheatSheetPath = Join-Path $packageRoot 'CHEAT-SHEET.md'
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'docs/cheat-sheet.md') -Destination $cheatSheetPath -Force
 $archivePath = Join-Path $repositoryRoot "dist/DuanYu-$($manifest.version).zip"
-Compress-Archive -LiteralPath $modDirectory, (Join-Path $packageRoot 'README.md') -DestinationPath $archivePath -Force
+Compress-Archive -LiteralPath $modDirectory, (Join-Path $packageRoot 'README.md'), $cheatSheetPath -DestinationPath $archivePath -Force
 Write-Output $archivePath

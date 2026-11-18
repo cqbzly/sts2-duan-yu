@@ -1,6 +1,6 @@
 namespace DuanYu.Runtime;
 
-public readonly record struct DuanYuPlayOrdinal(int Skill, int Sword, bool ThirdSwordKind);
+public readonly record struct DuanYuPlayOrdinal(int Skill, int Sword, bool ThirdSwordKind, bool SixthSwordKind);
 public readonly record struct DuanYuAttackReduction(decimal Damage, bool ConsumesLingbo);
 
 public sealed class DuanYuRunHistory
@@ -11,6 +11,8 @@ public sealed class DuanYuRunHistory
 
 public class DuanYuCombatLedger
 {
+    public const int SwordMomentumCap = 12;
+    private readonly HashSet<int> processedSpendOrdinals = [];
     public int Qi { get; internal set; }
     public int Lingbo { get; internal set; }
     public int SkillsPlayed { get; internal set; }
@@ -21,6 +23,12 @@ public class DuanYuCombatLedger
     public int LingboTriggers { get; internal set; }
     public int TurnNumber { get; internal set; }
     public int SwordDamage { get; internal set; }
+    public int SwordMomentum { get; internal set; }
+
+    public void GainSwordMomentum(int amount)
+    {
+        if (amount > 0) SwordMomentum = (int)Math.Min(SwordMomentumCap, (long)SwordMomentum + amount);
+    }
 
     public void GainQi(int amount)
     {
@@ -34,6 +42,8 @@ public class DuanYuCombatLedger
         SpendingCount += 1;
         return true;
     }
+
+    public bool TryProcessSpend(int ordinal) => ordinal > 0 && ordinal <= SpendingCount && processedSpendOrdinals.Add(ordinal);
 
     public void GainLingbo(int amount)
     {
@@ -59,6 +69,7 @@ public class DuanYuCombatLedger
         SpendingCount = 0;
         LingboTriggers = 0;
         DistinctSwords.Clear();
+        processedSpendOrdinals.Clear();
         return hadSkillWithoutAttack;
     }
 
@@ -67,14 +78,16 @@ public class DuanYuCombatLedger
         if (skill) SkillsPlayed += 1;
         if (attack) AttacksPlayed += 1;
         var thirdKind = false;
+        var sixthKind = false;
         if (swordId != null)
         {
             SwordPlays += 1;
             var previousCount = DistinctSwords.Count;
             DistinctSwords.Add(swordId);
             thirdKind = previousCount == 2 && DistinctSwords.Count == 3;
+            sixthKind = previousCount == 5 && DistinctSwords.Count == 6;
         }
-        return new DuanYuPlayOrdinal(skill ? SkillsPlayed : 0, swordId == null ? 0 : SwordPlays, thirdKind);
+        return new DuanYuPlayOrdinal(skill ? SkillsPlayed : 0, swordId == null ? 0 : SwordPlays, thirdKind, sixthKind);
     }
 
     public static DuanYuAttackReduction ReduceAttack(decimal damage, bool attack, int lingbo)
