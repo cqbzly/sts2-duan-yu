@@ -1,6 +1,6 @@
-# 段誉模组 v0.3.0 开发预览版安装说明
+# 段誉模组 v0.4.0 安装说明
 
-这是 v0.3.0 开发预览版的安装与构建说明，版本下载见 [GitHub v0.3.0](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.3.0)。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta、BaseLib 3.4.8。新版增加两种状态牌、跨角色借招与主动消耗，完整A10已通关并复现，Release已安装到本机现有工坊目录；其他游戏版本和全部第三方模组组合尚未验证。
+这是 v0.4.0 的安装与构建说明。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta、BaseLib 3.4.8；其他游戏版本和全部第三方模组组合尚未验证。
 
 ## 玩家安装
 
@@ -22,7 +22,7 @@
 .\scripts\package.ps1 -Sts2Path 'D:\steam\steamapps\common\Slay the Spire 2'
 ```
 
-输出：`dist/DuanYu-0.3.0.zip`。构建与打包不会改动游戏目录。
+输出：`dist/DuanYu-0.4.0.zip`。构建与打包不会改动游戏目录。
 
 若需要直接安装本地构建：
 
@@ -42,8 +42,8 @@
 
 ## 发布状态
 
-版本下载见 [GitHub v0.3.0](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.3.0)，测试与安装证据见[运行验证记录](runtime-verification.md)。[Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)沿用 private 可见性。v0.3.0的 `DUANYUFULLA10-048` 已完成headless原生A10沙漏路线及同种子新进程复现，最后首领战后72/72生命，见[完整 A10 验证](full-run-validation.md)。多人、第三方模组组合和订阅回装验证仍需完成。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。
+版本下载见 GitHub v0.4.0，测试与安装证据见[运行验证记录](runtime-verification.md)。[Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)将更新为 v0.4.0 private 条目。连续A10采样20局为6胜、14负、0异常；多人、第三方模组组合和订阅回装验证仍需完成。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。
 
-本机已确认游戏进程退出，并将Release v0.3.0替换到 `D:\steam\steamapps\workshop\content\2868840\3841781260`；替换前备份为 `artifacts/install-backups/20261118-164444-before-v030`。DLL SHA256为 `7F371489CE5DD93A92C84EA69EB5386AA87E4ECE12B5073A433424697AF67B72`，IL检查确认没有 `DebugTests`，包含气滞和异种真气模型。不要再安装第二份到 `mods`；本地替换不等于重新上传Steam。
+本地工坊目录曾安装 v0.3.0；v0.4.0 发布前应关闭游戏并由工坊更新同一条目。不要再安装第二份到 `mods`；本地替换不等于重新上传 Steam。
 
 历史v0.2.1安装DLL的SHA256为 `6C5390A760B4FAB96E1F270C9BB4D89DFA0E7FF4E502DC80F840FCA1D43BF37A`，其替换前备份为 `artifacts/install-backups/20261118-161142-before-v021`；当前安装以v0.3.0段落的版本和哈希为准。

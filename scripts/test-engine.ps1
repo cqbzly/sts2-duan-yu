@@ -1,6 +1,7 @@
 param(
     [switch]$Simulation,
     [switch]$FullRun,
+    [switch]$Sample,
     [ValidateRange(1, 100)][int]$Samples = 12,
     [ValidateRange(1, 1000)][int]$Attempts = 20,
     [ValidateRange(1, 1000)][int]$StartSeed = 1,
@@ -11,6 +12,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if ($Simulation -and $FullRun) { throw 'Choose either Simulation or FullRun.' }
+if ($Sample -and -not $FullRun) { throw 'Sample requires FullRun.' }
+if ($Sample -and $Seed) { throw 'Sample uses StartSeed and Attempts; do not pass Seed.' }
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
 $artifactDirectory = Join-Path $repositoryRoot 'artifacts'
 $hostDirectory = Join-Path $artifactDirectory 'game-selftest'
@@ -87,6 +90,7 @@ $gameArguments = @('--headless', '--force-steam=off', '--')
 if ($FullRun) {
     $gameArguments += @('--duanyu-full-run', "--duanyu-run-attempts=$Attempts", "--duanyu-run-start=$StartSeed")
     if ($Seed) { $gameArguments += "--duanyu-run-seed=$Seed" }
+    if ($Sample) { $gameArguments += '--duanyu-run-sample' }
 }
 elseif ($Simulation) {
     $gameArguments += @('--duanyu-a10-sim', "--duanyu-sim-samples=$Samples")
@@ -139,3 +143,14 @@ if ($null -eq $engineReport.passed -or $null -eq $engineReport.failed -or $engin
     throw 'Engine test report does not confirm a successful test run.'
 }
 Write-Output "Engine tests passed: $($engineReport.passed)."
+if ($Sample) {
+    $sampleReport = Get-Content -LiteralPath $reportCopies[2].Destination -Raw | ConvertFrom-Json
+    if ($sampleReport.outcome -ne 'sample' -or $sampleReport.sample -ne $true -or
+        $sampleReport.summary.requested -ne $Attempts -or $sampleReport.summary.attempted -ne $Attempts) {
+        throw 'Full run sample did not complete the requested number of attempts.'
+    }
+    if ($sampleReport.summary.errors -gt 0) {
+        throw "Full run sample contains $($sampleReport.summary.errors) harness errors; inspect the report before assessing balance."
+    }
+    Write-Output "A10 sample completed: $($sampleReport.summary.victories) victories, $($sampleReport.summary.defeats) defeats, $($sampleReport.summary.errors) errors; win rate $([math]::Round($sampleReport.summary.winRate * 100, 1))%."
+}

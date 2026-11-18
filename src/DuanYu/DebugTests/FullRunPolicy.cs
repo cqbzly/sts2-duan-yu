@@ -44,7 +44,7 @@ internal static class FullRunPolicy
 
     private static bool CanPrioritizeEnergyCard(CardModel card, Player player, CombatState state)
     {
-        if (card is not DuanYuCard { DesignId: "DY_U02" or "DY_R04" or "DY_U26" } energyCard || !player.Creature.IsAlive) return false;
+        if (card is not DuanYuCard { DesignId: "DY_U02" or "DY_R04" } energyCard || !player.Creature.IsAlive) return false;
         var cost = Math.Max(0, card.EnergyCost.GetAmountToSpend());
         var gain = EnergyGain(energyCard, DuanYuState.Get(player));
         if (Hook.ModifyEnergyGain(state, player, gain, out _) <= cost) return false;
@@ -78,14 +78,14 @@ internal static class FullRunPolicy
             "DY_C16" => 24, "DY_C17" => 17, "DY_C18" => 26, "DY_C19" => 17, "DY_C20" => 22,
             "DY_U01" => 13, "DY_U02" => 24, "DY_U03" => 17, "DY_U04" => 16, "DY_U05" => 17,
             "DY_U06" => 29, "DY_U07" => 30, "DY_U08" => 35, "DY_U09" => 13, "DY_U10" => 31,
-            "DY_U11" => 27, "DY_U12" => 31, "DY_U13" => 21, "DY_U14" => 18, "DY_U15" => 27,
+            "DY_U11" => 27, "DY_U12" => 31, "DY_U13" => 16, "DY_U14" => 18, "DY_U15" => 21,
             "DY_U16" => 16, "DY_U17" => 23, "DY_U18" => 23, "DY_U19" => 7, "DY_U20" => 23,
             "DY_U21" => 26, "DY_U22" => 24, "DY_U23" => 13, "DY_U24" => 20, "DY_U25" => 13,
-            "DY_U26" => 35, "DY_U27" => 30, "DY_U28" => 20, "DY_U29" => 10, "DY_U30" => 13,
+            "DY_U26" => 23, "DY_U27" => 30, "DY_U28" => 13, "DY_U29" => 10, "DY_U30" => 13,
             "DY_U31" => 24, "DY_U32" => 22, "DY_U33" => 35, "DY_U34" => 20, "DY_U35" => 23,
-            "DY_R01" => 27, "DY_R02" => 25, "DY_R03" => 36, "DY_R04" => 38, "DY_R05" => 32,
-            "DY_R06" => 32, "DY_R07" => 34, "DY_R08" => 23, "DY_R09" => 35, "DY_R10" => 38,
-            "DY_R11" => 22, "DY_R12" => 34, "DY_R13" => 38, "DY_R14" => 38, "DY_R15" => 24,
+            "DY_R01" => 27, "DY_R02" => 25, "DY_R03" => 28, "DY_R04" => 38, "DY_R05" => 32,
+            "DY_R06" => 32, "DY_R07" => 26, "DY_R08" => 23, "DY_R09" => 26, "DY_R10" => 28,
+            "DY_R11" => 22, "DY_R12" => 34, "DY_R13" => 38, "DY_R14" => 25, "DY_R15" => 24,
             "DY_R16" => 23, "DY_R17" => 14, "DY_R18" => 22, "DY_R19" => 30, "DY_R20" => 38,
             "DY_T01" => 14, "DY_T02" => 17, "DY_T03" => 13, "DY_T04" => 16, "DY_T05" => 15, "DY_T06" => 18,
             _ => 8
@@ -116,23 +116,24 @@ internal static class FullRunPolicy
         return rating + (custom.IsUpgraded ? 3 : 0) - duplicates * (custom.Type == CardType.Power ? 7 : 2.5);
     }
 
-    private static double CombatValue(CardModel card, Creature? target, Player player, CombatState combat, int? availableEnergy = null, double additionalBlock = 0)
+    private static double CombatValue(CardModel card, Creature? target, Player player, CombatState combat, int? availableEnergy = null, double additionalBlock = 0, int? availableQi = null)
     {
         if (card is not DuanYuCard duanYuCard) return GenericCombatValue(card, target, player, combat);
         var state = DuanYuState.Get(player);
+        var qi = availableQi ?? state.Qi;
         var exhaustTargets = ExhaustTargets(duanYuCard, player);
         var removedEndTurnDamage = exhaustTargets.Sum(removed => HandEndDamage(removed, player, combat));
         var incoming = Math.Max(0, IncomingDamage(player, combat) - removedEndTurnDamage);
         var incomingAfterFacing = Math.Max(0, IncomingDamage(player, combat, target) - removedEndTurnDamage);
-        var passiveBlock = EndTurnBlock(player, combat, state.Qi);
+        var passiveBlock = EndTurnBlock(player, combat, qi);
         var existingBlock = player.Creature.Block + additionalBlock;
         var neededBlock = Math.Max(0, incoming - existingBlock - passiveBlock);
         var cost = Math.Max(0, card.EnergyCost.GetAmountToSpend());
-        var spendsQi = duanYuCard.QiCost > 0 && state.Qi >= duanYuCard.QiCost;
+        var spendsQi = duanYuCard.QiCost > 0 && qi >= duanYuCard.QiCost;
         var swordCombination = TriggersSwordCombination(duanYuCard, state);
-        var energyGain = EnergyGain(duanYuCard, state);
+        var energyGain = EnergyGain(duanYuCard, state, qi);
         var energyAfter = (availableEnergy ?? player.PlayerCombatState!.Energy) - cost + energyGain;
-        var block = ModifiedBlock(duanYuCard, player, combat, state.Qi, state.Lingbo);
+        var block = ModifiedBlock(duanYuCard, player, combat, qi, state.Lingbo);
         if (duanYuCard.DesignId == "DY_U35") block *= exhaustTargets.Length;
         var exhaustCount = exhaustTargets.Length + (card.Keywords.Contains(CardKeyword.Exhaust) ? 1 : 0);
         block += ExhaustBlock(player, combat) * exhaustCount;
@@ -140,26 +141,26 @@ internal static class FullRunPolicy
             block += ModifiedPassiveBlock(player, combat, state.Effects.Where(effect => effect.CardId == "DY_R18").Sum(effect => effect.Amount));
         var attacks = combat.Enemies.Where(enemy => enemy.IsAlive).Sum(enemy => enemy.Monster!.NextMove.Intents.OfType<AttackIntent>().Sum(intent => intent.Repeats));
         var availableLingbo = Math.Max(0, attacks - state.Lingbo);
-        block += Math.Min(availableLingbo, LingboGain(duanYuCard, state.Lingbo)) * 3;
+        block += Math.Min(availableLingbo, LingboGain(duanYuCard, state.Lingbo)) * DuanYuState.LingboReduction;
         if (card.Type == CardType.Skill && state.SkillsPlayed < 2)
-            block += Math.Min(availableLingbo, state.Effects.Where(effect => effect.CardId == "DY_R02").Sum(effect => effect.Amount)) * 3;
-        var gainQi = QiGain(duanYuCard, state.Qi);
+            block += Math.Min(availableLingbo, state.Effects.Where(effect => effect.CardId == "DY_R02").Sum(effect => effect.Amount)) * DuanYuState.LingboReduction;
+        var gainQi = QiGain(duanYuCard, qi);
         if (duanYuCard.DesignId == "DY_U35") gainQi += exhaustTargets.Length;
         if (duanYuCard.DesignId == "DY_R16") gainQi += exhaustTargets.Length * 2;
         if (spendsQi && state.SpendingCount < 2) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.Amount);
         if (swordCombination) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R08").Sum(effect => effect.SecondaryAmount);
         if (swordCombination && HasPendant(player)) gainQi += state.DistinctSwords.Count == 2 ? 2 : 3;
-        gainQi = Math.Min(9 - state.Qi + (spendsQi ? duanYuCard.QiCost : 0), gainQi);
-        var qiAfter = state.Qi - (spendsQi ? duanYuCard.QiCost : 0) + gainQi;
+        gainQi = Math.Min(9 - qi + (spendsQi ? duanYuCard.QiCost : 0), gainQi);
+        var qiAfter = qi - (spendsQi ? duanYuCard.QiCost : 0) + gainQi;
         if (card.Type == CardType.Skill && state.SkillsPlayed == 0 && HasPendant(player))
             qiAfter = Math.Min(9, qiAfter + 2);
         block += EndTurnBlock(player, combat, qiAfter) - passiveBlock;
         if (duanYuCard.DesignId == "DY_U05") block += ModifiedPassiveBlock(player, combat, qiAfter / 2 + duanYuCard.Value(0, 2));
-        var score = TargetValue(card, target, player, combat);
+        var score = TargetValue(card, target, player, combat, qi);
         var futureSwords = PileType.Hand.GetPile(player).Cards.Count(other => other != card && DuanYuState.IsSword(other));
         if (DuanYuState.IsSword(card) && state.SwordMomentum < DuanYuState.SwordMomentumCap)
-            score += Math.Min(DuanYuState.SwordMomentumCap - state.SwordMomentum, 1 + (swordCombination ? state.DistinctSwords.Count == 2 ? 1 : 2 : 0)) * (1 + Math.Min(4, futureSwords));
-        var momentumGain = duanYuCard.DesignId switch { "DY_U26" => duanYuCard.Value(2, 3), "DY_R14" => duanYuCard.Value(4, 6), "DY_S02" => 2, _ => 0 };
+            score += Math.Min(DuanYuState.SwordMomentumCap - state.SwordMomentum, 1 + (swordCombination ? 1 : 0)) * (1 + Math.Min(4, futureSwords));
+        var momentumGain = duanYuCard.DesignId switch { "DY_U26" => duanYuCard.Value(1, 2), "DY_R14" => duanYuCard.Value(2, 3), "DY_S02" => 2, _ => 0 };
         score += Math.Min(DuanYuState.SwordMomentumCap - state.SwordMomentum, momentumGain) * (1 + Math.Min(4, futureSwords));
         score += exhaustTargets.Sum(removed => ExhaustOpportunity(removed, player));
         var blockWeight = player.Creature.CurrentHp <= neededBlock ? 5 : player.Creature.CurrentHp < player.Creature.MaxHp * 0.35 ? 2.7 : 2;
@@ -172,13 +173,13 @@ internal static class FullRunPolicy
             var rockDamage = rock.Monster!.NextMove.Intents.OfType<AttackIntent>().Sum(intent => intent.GetTotalDamage([player.Creature], rock));
             if (existingBlock < rockDamage && existingBlock + block >= rockDamage) score += 13;
         }
-        var waitingSpender = PileType.Hand.GetPile(player).Cards.OfType<DuanYuCard>().Any(other => other != card && other.QiCost > state.Qi && other.QiCost <= state.Qi + gainQi && other.EnergyCost.GetAmountToSpend() <= energyAfter);
-        score += gainQi * (waitingSpender ? 4.5 : state.Qi < 5 ? 1.5 : 0.35);
-        if (card.Type == CardType.Skill && state.SkillsPlayed == 0 && state.Qi < 9) score += 1.5;
+        var waitingSpender = PileType.Hand.GetPile(player).Cards.OfType<DuanYuCard>().Any(other => other != card && other.QiCost > qi && other.QiCost <= qiAfter && other.EnergyCost.GetAmountToSpend() <= energyAfter);
+        score += gainQi * (waitingSpender ? 4.5 : qi < 5 ? 1.5 : 0.35);
+        if (card.Type == CardType.Skill && state.SkillsPlayed == 0 && qi < 9) score += 1.5;
         var draws = DrawAmount(duanYuCard);
-        if (duanYuCard.DesignId == "DY_C17" && state.Qi < 1 || duanYuCard.DesignId == "DY_U16" && state.SwordPlays == 0) draws = 0;
+        if (duanYuCard.DesignId == "DY_C17" && qi < 1 || duanYuCard.DesignId == "DY_U16" && state.SwordPlays == 0) draws = 0;
         if (duanYuCard.DesignId == "DY_C20" && target?.GetPowerAmount<WeakPower>() > 0) draws = 1;
-        if (duanYuCard.DesignId == "DY_U26" && state.Qi >= 5) draws++;
+        if (duanYuCard.DesignId == "DY_U26" && qi >= 5) draws++;
         if (duanYuCard.DesignId == "DY_R16") draws += exhaustTargets.Length;
         if (spendsQi && state.SpendingCount == 0) draws += state.Effects.Where(effect => effect.CardId == "DY_U01").Sum(effect => effect.Amount);
         if (swordCombination) draws += state.Effects.Where(effect => effect.CardId == "DY_R08").Sum(effect => effect.Amount);
@@ -187,7 +188,7 @@ internal static class FullRunPolicy
         var energyDemand = PileType.Hand.GetPile(player).Cards.Where(other => other != card && !other.Keywords.Contains(CardKeyword.Unplayable)).Sum(other => Math.Max(0, other.EnergyCost.GetAmountToSpend())) + draws;
         var usefulEnergy = Math.Min(energyGain, Math.Max(0, energyDemand - Math.Max(0, energyAfter - energyGain)));
         score += usefulEnergy * 7 + (energyGain - usefulEnergy) * 0.5;
-        score += GeneratedSwordValue(duanYuCard, player, combat, energyAfter, additionalBlock + Math.Max(0, block));
+        score += GeneratedSwordValue(duanYuCard, player, combat, energyAfter, additionalBlock + Math.Max(0, block), qiAfter);
         if (duanYuCard.DesignId == "DY_U27") score += ForeignAttackValue(duanYuCard, player, combat);
         if (duanYuCard.DesignId == "DY_U09") score += duanYuCard.Value(3, 5) * PileType.Hand.GetPile(player).Cards.Count(DuanYuState.IsSword);
         if (card.Type == CardType.Power)
@@ -203,7 +204,7 @@ internal static class FullRunPolicy
                 .Sum(enemy => enemy.Monster!.NextMove.Intents.OfType<AttackIntent>().Sum(intent => intent.GetTotalDamage([player.Creature], enemy)) * 0.25);
             score += Math.Min(Math.Max(0, neededBlock - Math.Max(0, block)), prevented) * blockWeight;
         }
-        if ((duanYuCard.DesignId is "DY_C03" or "DY_T02" || duanYuCard.DesignId is ("DY_U32" or "DY_R06") && state.Qi >= duanYuCard.QiCost) && (target?.GetPowerAmount<VulnerablePower>() ?? 0) == 0 && (target?.GetPowerAmount<ArtifactPower>() ?? 0) == 0)
+        if ((duanYuCard.DesignId is "DY_C03" or "DY_T02" || duanYuCard.DesignId is ("DY_U32" or "DY_R06") && qi >= duanYuCard.QiCost) && (target?.GetPowerAmount<VulnerablePower>() ?? 0) == 0 && (target?.GetPowerAmount<ArtifactPower>() ?? 0) == 0)
             score += PileType.Hand.GetPile(player).Cards.Count(other => other != card && other.Type == CardType.Attack && other.EnergyCost.GetAmountToSpend() <= energyAfter) * 3;
         if (duanYuCard.DesignId == "DY_R14") score -= Math.Min(Math.Max(0, incomingAfterFacing - passiveBlock), player.Creature.Block) * blockWeight;
         if (duanYuCard.DesignId == "DY_U04") score -= duanYuCard.Value(3, 2) * 1.8;
@@ -309,7 +310,7 @@ internal static class FullRunPolicy
                 for (var hit = 0; hit < intent.Repeats; hit++)
                 {
                     var preview = (double)decimal.Floor(damage);
-                    if (reducedByLingbo && lingbo <= 0) preview += 3;
+                    if (reducedByLingbo && lingbo <= 0) preview += DuanYuState.LingboReduction;
                     if (reducedByLingbo && lingbo > 0) lingbo--;
                     total += preview;
                 }
@@ -335,10 +336,10 @@ internal static class FullRunPolicy
         return [null];
     }
 
-    private static double TargetValue(CardModel card, Creature? target, Player player, CombatState state)
+    private static double TargetValue(CardModel card, Creature? target, Player player, CombatState state, int? availableQi = null)
     {
         if (card is not DuanYuCard duanYuCard) return 0;
-        var qi = DuanYuState.Get(player).Qi;
+        var qi = availableQi ?? DuanYuState.Get(player).Qi;
         var segments = DamageSegments(duanYuCard, qi).ToArray();
         if (segments.Length == 0) return 0;
         var score = 0d;
@@ -381,7 +382,7 @@ internal static class FullRunPolicy
     private static IEnumerable<(decimal Damage, bool AllEnemies)> DamageSegments(DuanYuCard card, int qi)
     {
         if (card.Numbers.Damage <= 0) yield break;
-        var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + qi * 4 : card.DynamicVars.Damage.BaseValue;
+        var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + qi * 2 : card.DynamicVars.Damage.BaseValue;
         var allEnemies = card.TargetType == TargetType.AllEnemies;
         yield return (damage, allEnemies);
         if (card.DesignId == "DY_U33") yield return (damage, false);
@@ -397,7 +398,7 @@ internal static class FullRunPolicy
     {
         if (card.Numbers.Block <= 0 || card.DesignId == "DY_C06" && lingbo == 0) return 0;
         var block = (double)decimal.Floor(Hook.ModifyBlock(state, player.Creature, card.DynamicVars.Block.BaseValue, ValueProp.Move, card, null, out _));
-        if (card.DesignId == "DY_C15" && qi >= 2 || card.DesignId == "DY_R20" && qi >= 3 || card.DesignId == "DY_T04" && qi >= 1) block *= 2;
+        if (card.DesignId == "DY_C15" && qi >= 2 || card.DesignId == "DY_R20" && qi >= 3) block *= 2;
         return block;
     }
 
@@ -463,24 +464,24 @@ internal static class FullRunPolicy
 
     private static int GeneratedSwords(DuanYuCard card, int qi) => card.DesignId switch
     {
-        "DY_C07" or "DY_C08" or "DY_C18" or "DY_C19" or "DY_U10" or "DY_U11" or "DY_U12" or "DY_R09" => 1,
-        "DY_U13" or "DY_U15" or "DY_R07" => 2,
+        "DY_C07" or "DY_C08" or "DY_C18" or "DY_C19" or "DY_U10" or "DY_U11" or "DY_U12" or "DY_R07" or "DY_R09" => 1,
+        "DY_U13" or "DY_U15" => 2,
         "DY_R10" or "DY_R19" => 3,
         "DY_R03" when qi >= 3 => 6,
         _ => 0
     };
 
-    private static double GeneratedSwordValue(DuanYuCard card, Player player, CombatState combat, int energyAfter, double additionalBlock)
+    private static double GeneratedSwordValue(DuanYuCard card, Player player, CombatState combat, int energyAfter, double additionalBlock, int qiAfter)
     {
         var state = DuanYuState.Get(player);
         var hand = PileType.Hand.GetPile(player).Cards;
         var exhausted = card.DesignId == "DY_R19" ? hand.Count(other => !ReferenceEquals(other, card)) : 0;
         var availableSlots = Math.Max(0, CardPile.MaxCardsInHand - hand.Count + (hand.Contains(card) ? 1 : 0) + exhausted);
-        var count = Math.Min(card.DesignId == "DY_R19" ? exhausted : GeneratedSwords(card, state.Qi), availableSlots);
+        var count = Math.Min(Math.Min(card.DesignId == "DY_R19" ? exhausted : GeneratedSwords(card, state.Qi), availableSlots), qiAfter);
         if (count == 0) return 0;
         int[] numbers = card.DesignId switch
         {
-            "DY_C07" or "DY_R09" => [1],
+            "DY_C07" => [1],
             "DY_C08" => [2],
             "DY_U10" => [3],
             "DY_C18" => [4],
@@ -496,24 +497,8 @@ internal static class FullRunPolicy
             if (upgraded) sword.UpgradeInternal();
             return sword;
         }).ToList();
-        if (card.DesignId is "DY_U15" or "DY_R19")
-            return count * options.Average(sword => Targets(sword, player, combat).Where(sword.IsValidTarget)
-                .Select(target => Math.Clamp(CombatValue(sword, target, player, combat, energyAfter, additionalBlock), 0, 30)).DefaultIfEmpty(0).Max());
-        var score = 0d;
-        for (var generated = 0; generated < count && options.Count > 0; generated++)
-        {
-            var best = options.Select(sword => new
-            {
-                Sword = sword,
-                Value = Targets(sword, player, combat).Where(sword.IsValidTarget)
-                    .Select(target => CombatValue(sword, target, player, combat, energyAfter, additionalBlock))
-                    .DefaultIfEmpty(0).Max()
-            }).OrderByDescending(option => option.Value).First();
-            score += generated == 0 ? Math.Max(0, best.Value) : Math.Clamp(best.Value, 0, 16);
-            additionalBlock += ModifiedBlock(best.Sword, player, combat, state.Qi, state.Lingbo);
-            options.Remove(best.Sword);
-        }
-        return score;
+        return count * options.Average(sword => Targets(sword, player, combat).Where(sword.IsValidTarget)
+            .Select(target => Math.Clamp(CombatValue(sword, target, player, combat, energyAfter, additionalBlock, qiAfter), 0, 30)).DefaultIfEmpty(0).Max());
     }
 
     private static double ForeignAttackValue(DuanYuCard source, Player player, CombatState combat)
@@ -544,19 +529,19 @@ internal static class FullRunPolicy
 
     private static bool HasPendant(Player player) => player.Relics.Any(relic => !relic.IsMelted && relic.Id.Entry == "CQBZLY_DY_RELIC01");
 
-    private static int EnergyGain(DuanYuCard card, PlayerRuntimeState state)
+    private static int EnergyGain(DuanYuCard card, PlayerRuntimeState state, int? availableQi = null)
     {
+        var qi = availableQi ?? state.Qi;
         var energy = card.DesignId switch
         {
             "DY_U02" => 2,
             "DY_R04" => card.Value(2, 3),
-            "DY_U04" or "DY_U26" => 1,
-            "DY_R14" => 2,
-            "DY_C14" when state.Qi >= 3 => 1,
-            "DY_T06" when state.Qi >= 1 => 1,
+            "DY_U04" => 1,
+            "DY_R14" => 1,
+            "DY_C14" when qi >= 3 => 1,
             _ => 0
         };
-        if (card.QiCost > 0 && state.Qi >= card.QiCost && state.SpendingCount == 0)
+        if (card.QiCost > 0 && qi >= card.QiCost && state.SpendingCount == 0)
             energy += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.EnergyAmount);
         if (DuanYuState.IsSword(card) && state.SwordPlays == 0)
             energy += state.Effects.Where(effect => effect.CardId == "DY_R15").Sum(effect => effect.EnergyAmount);
@@ -572,22 +557,22 @@ internal static class FullRunPolicy
 
     private static int QiGain(DuanYuCard card, int qi) => card.DesignId switch
     {
-        "DY_B03" => Math.Min(9 - qi, card.IsUpgraded ? 5 : 4),
+        "DY_B03" => Math.Min(9 - qi, card.Value(3, 4)),
         "DY_C01" or "DY_U01" => Math.Min(9 - qi, 2),
-        "DY_C09" => Math.Min(9 - qi, 4),
+        "DY_C09" => Math.Min(9 - qi, 3),
         "DY_C19" => Math.Min(9 - qi, 1),
-        "DY_T02" or "DY_T05" => Math.Min(9 - qi, 2),
         "DY_C10" => Math.Min(9 - qi, card.IsUpgraded ? 3 : 2),
         "DY_C16" => 0,
         "DY_U02" => Math.Min(9 - qi, card.IsUpgraded ? 6 : 4),
         "DY_U03" => Math.Min(9 - qi, card.IsUpgraded ? 5 : 4),
         "DY_U04" => Math.Min(9 - qi, card.IsUpgraded ? 4 : 3),
         "DY_U09" => Math.Min(9 - qi, card.IsUpgraded ? 2 : 1),
-        "DY_U22" => Math.Min(9 - qi, 2),
+        "DY_U22" => Math.Min(9 - qi, 1),
         "DY_U06" or "DY_U26" => Math.Min(9 - qi, card.Value(2, 3)),
-        "DY_R14" => Math.Min(9 - qi, card.Value(4, 6)),
+        "DY_R14" => Math.Min(9 - qi, card.Value(3, 4)),
         "DY_S02" => Math.Min(9 - qi, 3),
-        "DY_U10" or "DY_U29" => Math.Min(9 - qi, card.IsUpgraded ? 2 : 1),
+        "DY_U10" => Math.Min(9 - qi, 1),
+        "DY_U29" => Math.Min(9 - qi, card.Value(1, 2)),
         "DY_R04" => Math.Min(9 - qi, card.IsUpgraded ? 8 : 6),
         _ => 0
     };
@@ -626,10 +611,10 @@ internal static class FullRunPolicy
             "DY_R12" => 14,
             "DY_R15" => Math.Min(10, spenders * 2 + swordSources * 3),
             "DY_R18" => Math.Min(18, swordSources * card.Value(5, 7)),
-            "DY_U14" => Math.Min(18, swordSources * card.Value(4, 6)),
+            "DY_U14" => Math.Min(18, swordSources * card.Value(3, 4)),
             "DY_R01" => Math.Min(12, spenders * 3 + swordSources),
             "DY_R07" => card.Value(12, 15),
-            "DY_U28" => Math.Min(24, (swordSources * 2 + deck.Count(existing => existing.Keywords.Contains(CardKeyword.Exhaust) || existing.DesignId is "DY_U06" or "DY_R19")) * card.Value(3, 4)),
+            "DY_U28" => Math.Min(24, (swordSources * 2 + deck.Count(existing => existing.Keywords.Contains(CardKeyword.Exhaust) || existing.DesignId is "DY_U06" or "DY_R19")) * card.Value(2, 3)),
             _ => 0
         };
     }

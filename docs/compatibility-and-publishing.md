@@ -4,7 +4,7 @@
 
 ## 当前版本入口
 
-v0.3.0 开发预览版已通过23项规则、283组最终引擎回归、118项资源检查与88张卡牌数据校验，Debug/Release均0警告0错误。完整A10种子 `DUANYUFULLA10-048` 两次新进程从头胜利，击败Kin、Insatiable、Queen与Aeonglass，最后首领战后72/72生命；两次原生结束标志与胜利选项完成情况均确认。详见[当前验证](runtime-verification.md)与[完整 A10 证据](full-run-validation.md)。
+v0.4.0 已通过23项规则、283组最终引擎回归、118项资源检查与88张卡牌数据校验，Debug/Release均0警告0错误。连续A10采样20局得到6胜、14负、0异常；详见[当前验证](runtime-verification.md)。v0.3.0 的单种子完整通关记录保留为历史证据，不外推当前胜率。
 
 主动消耗、状态牌与外门借招的回归不扩大为多人或任意第三方组合兼容。日志仍保留Godot RID/ObjectDB/resources退出告警及非致命 `Invalid Task ID`；283组用例无失败、完整流程两次胜利，不代表日志没有告警或已排除资源泄漏。
 

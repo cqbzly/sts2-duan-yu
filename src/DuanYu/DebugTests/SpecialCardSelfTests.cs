@@ -170,7 +170,7 @@ internal static class SpecialCardSelfTests
         var initialHp = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, attack);
         var statuses = GeneratedCards().OfType<DY_S01>().ToArray();
-        EngineSelfTests.Equal(3 * (upgraded ? 32 : 24), initialHp - fixture.Enemy.CurrentHp, "replayed attack retains native damage for every body");
+        EngineSelfTests.Equal(3 * (upgraded ? 28 : 20), initialHp - fixture.Enemy.CurrentHp, "replayed attack retains native damage for every body");
         EngineSelfTests.Equal(3, statuses.Length, "every completed attack body creates one stagnation");
         EngineSelfTests.Equal(true, statuses.All(status => status.Pile?.Type == PileType.Discard), "attack statuses enter discard");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "creating stagnation does not immediately lose Qi");
@@ -287,18 +287,18 @@ internal static class SpecialCardSelfTests
         var fixture = await ReadyFixture();
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_U28", PileType.Hand));
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_U28", PileType.Hand, true));
-        EngineSelfTests.Equal(7, fixture.Player.Creature.GetPowerAmount<PeacefulHeartPower>(), "exhaust-block powers stack normal and upgraded amounts");
+        EngineSelfTests.Equal(5, fixture.Player.Creature.GetPowerAmount<PeacefulHeartPower>(), "exhaust-block powers stack normal and upgraded amounts");
         EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "playing the power grants no immediate block");
         await SetQi(fixture, 0);
         var fuel = EngineSelfTests.AddCard(fixture, "DY_B01", PileType.Hand);
         await CardCmd.Exhaust(new ThrowingPlayerChoiceContext(), fuel);
-        EngineSelfTests.Equal(7, fixture.Player.Creature.Block, "active exhaust grants stacked power block once");
+        EngineSelfTests.Equal(5, fixture.Player.Creature.Block, "active exhaust grants stacked power block once");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "exhaust power grants no Qi");
         EngineSelfTests.Equal(0, PileType.Hand.GetPile(fixture.Player).Cards.Count, "exhaust power grants no card draw");
         await DuanYuState.EndTurn(fixture.Player);
-        EngineSelfTests.Equal(7, fixture.Player.Creature.Block, "peaceful end-turn grants no obsolete passive block");
+        EngineSelfTests.Equal(5, fixture.Player.Creature.Block, "peaceful end-turn grants no obsolete passive block");
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_S02", PileType.Hand));
-        EngineSelfTests.Equal(14, fixture.Player.Creature.Block, "played Exhaust status triggers the power once");
+        EngineSelfTests.Equal(10, fixture.Player.Creature.Block, "played Exhaust status triggers the power once");
     }
 
     private static async Task ExhaustPowerLifetime()
@@ -363,7 +363,7 @@ internal static class SpecialCardSelfTests
             EngineSelfTests.Equal(5 - selectedCount, PileType.Hand.GetPile(fixture.Player).Cards.Count, "selective exhaust honors zero or maximum selection");
             EngineSelfTests.Equal(selectedCount + 1, PileType.Exhaust.GetPile(fixture.Player).Cards.Count, "selective exhaust includes each selected card and its source");
             EngineSelfTests.Equal(selectedCount + 2, DuanYuState.Get(fixture.Player).Qi, "selective exhaust rewards only actual selected cards plus pendant");
-            EngineSelfTests.Equal(selectedCount * (upgraded ? 6 : 4) + (selectedCount + 1) * 3, fixture.Player.Creature.Block, "selective block and native exhaust power both resolve once per card");
+            EngineSelfTests.Equal(selectedCount * (upgraded ? 4 : 3) + (selectedCount + 1) * 3, fixture.Player.Creature.Block, "selective block and native exhaust power both resolve once per card");
         }
     }
 
@@ -390,7 +390,7 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(string.Join(",", expected), string.Join(",", swords.Select(DuanYuState.CardId)), "stoke consumes native RNG for independent sword choices");
         EngineSelfTests.Equal(true, swords.Select(card => card.Id).Distinct().Count() < swords.Length, "stoke allows duplicate sword kinds");
         EngineSelfTests.Equal(true, swords.All(sword => sword.IsUpgraded == upgraded && sword.Pile?.Type == PileType.Hand), "stoke sword tier follows source upgrade");
-        EngineSelfTests.Equal((upgraded ? 12 : 8) + 21, fixture.Player.Creature.Block, "stoke block combines printed block with seven exhaust triggers");
+        EngineSelfTests.Equal((upgraded ? 10 : 7) + 21, fixture.Player.Creature.Block, "stoke block combines printed block with seven exhaust triggers");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "stoke generation is not sword play");
     }
 

@@ -23,26 +23,26 @@ var cases = new (string Name, Action Check)[]
         ledger.GainQi(1);
         Equal(0, ledger.SpendingCount);
     }),
-    ("Sword momentum caps at twelve without integer overflow", () =>
+    ("Sword momentum caps at eight without integer overflow", () =>
     {
         var ledger = new DuanYuCombatLedger();
-        ledger.GainSwordMomentum(11);
+        ledger.GainSwordMomentum(7);
         ledger.GainSwordMomentum(3);
-        Equal(12, ledger.SwordMomentum);
+        Equal(8, ledger.SwordMomentum);
         ledger.GainSwordMomentum(int.MaxValue);
-        Equal(12, ledger.SwordMomentum);
+        Equal(8, ledger.SwordMomentum);
         ledger.GainSwordMomentum(0);
         ledger.GainSwordMomentum(-1);
-        Equal(12, ledger.SwordMomentum);
+        Equal(8, ledger.SwordMomentum);
     }),
-    ("Sword momentum persists through turn reset", () =>
+    ("Sword momentum clears through turn reset", () =>
     {
         var ledger = new DuanYuCombatLedger();
         ledger.GainSwordMomentum(7);
         ledger.RegisterPlay(false, true, "DY_T01");
         ledger.GainLingbo(3);
         ledger.BeginTurn();
-        Equal(7, ledger.SwordMomentum);
+        Equal(0, ledger.SwordMomentum);
         Equal(0, ledger.SwordPlays);
         Equal(0, ledger.DistinctSwords.Count);
         Equal(0, ledger.Lingbo);
@@ -56,7 +56,7 @@ var cases = new (string Name, Action Check)[]
         first.GainSwordMomentum(1);
         second.BeginTurn();
         Equal(5, first.SwordMomentum);
-        Equal(2, second.SwordMomentum);
+        Equal(0, second.SwordMomentum);
     }),
     ("Payment records the empty resource before refunds", () =>
     {
@@ -126,7 +126,7 @@ var cases = new (string Name, Action Check)[]
             block -= absorbed;
             hpLost += reduction.Damage - absorbed;
         }
-        Equal(12m, hpLost);
+        Equal(18m, hpLost);
         Equal(0, ledger.Lingbo);
         Equal(3, ledger.LingboTriggers);
     }),
@@ -148,7 +148,7 @@ var cases = new (string Name, Action Check)[]
         ledger.GainLingbo(1);
         var reduction = DuanYuCombatLedger.ReduceAttack(5, true, ledger.Lingbo);
         if (reduction.ConsumesLingbo) ledger.ConsumeLingbo();
-        Equal(18m, 20 - reduction.Damage);
+        Equal(16m, 20 - reduction.Damage);
         Equal(0, ledger.Lingbo);
     }),
     ("Zero attacks and non-attack damage preserve Lingbo", () =>
@@ -156,7 +156,7 @@ var cases = new (string Name, Action Check)[]
         Equal(new DuanYuAttackReduction(0, false), DuanYuCombatLedger.ReduceAttack(0, true, 1));
         Equal(new DuanYuAttackReduction(5, false), DuanYuCombatLedger.ReduceAttack(5, false, 1));
         Equal(new DuanYuAttackReduction(0, true), DuanYuCombatLedger.ReduceAttack(1, true, 1));
-        Equal(new DuanYuAttackReduction(2, true), DuanYuCombatLedger.ReduceAttack(5.9m, true, 1));
+        Equal(new DuanYuAttackReduction(4, true), DuanYuCombatLedger.ReduceAttack(5.9m, true, 1));
     }),
     ("Upgrades and duplicate sword plays share one identity", () =>
     {
@@ -211,6 +211,7 @@ var cases = new (string Name, Action Check)[]
             Equal(turn, ledger.TurnNumber);
             Equal(0, ledger.SwordPlays);
             Equal(0, ledger.DistinctSwords.Count);
+            Equal(0, ledger.SwordMomentum);
             Equal(0, ledger.SpendingCount);
             Equal(false, ledger.TryProcessSpend(1));
             Equal(true, ledger.TrySpendQi(1));

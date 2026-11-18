@@ -38,6 +38,11 @@ internal static class FullRunSimulation
     private static Player? currentPlayer;
     private static RunState? currentRun;
     private static int lastCombatHp;
+    private static bool sampleRuns;
+    private static int requestedAttempts;
+    private static int victories;
+    private static int defeats;
+    private static int errors;
     internal static bool IsRunning { get; private set; }
 
     internal static async Task Run()
@@ -50,8 +55,16 @@ internal static class FullRunSimulation
         var count = IntArgument("--duanyu-run-attempts=", 20);
         var start = IntArgument("--duanyu-run-start=", 1);
         var explicitSeed = OS.GetCmdlineUserArgs().SingleOrDefault(argument => argument.StartsWith("--duanyu-run-seed=", StringComparison.Ordinal));
+        sampleRuns = OS.GetCmdlineUserArgs().Contains("--duanyu-run-sample");
+        requestedAttempts = explicitSeed == null ? count : 1;
+        Attempts.Clear();
+        victories = 0;
+        defeats = 0;
+        errors = 0;
         try
         {
+            if (sampleRuns && explicitSeed != null)
+                throw new InvalidOperationException("Sampling mode accepts a seed range, not --duanyu-run-seed.");
             for (var attempt = start; attempt < start + count; attempt++)
             {
                 seed = explicitSeed?.Split('=', 2)[1] ?? $"DUANYUFULLA10-{attempt:000}";
@@ -135,11 +148,23 @@ internal static class FullRunSimulation
                 var result = new { seed, ascension = 10, outcome, lastCombatHp, nativeEnded = RunManager.Instance.HasRunEnded, winTime = RunManager.Instance.WinTime,
                     bosses = WonBosses.ToArray(), state = Snapshot(), error, decisions = FullRunRooms.Decisions.ToArray(), log = Log.ToArray() };
                 Attempts.Add(result);
+                switch (outcome)
+                {
+                    case "victory": victories++; break;
+                    case "defeat": defeats++; break;
+                    default: errors++; break;
+                }
                 WriteReport(outcome);
                 GD.Print($"DUANYU_FULL_RUN_RESULT seed={seed} outcome={outcome} act={currentRun?.CurrentActIndex + 1} floor={currentRun?.TotalFloor} hp={lastCombatHp}");
-                if (error != null) throw new InvalidOperationException("Full run harness failed; see full report.");
-                if (won) return;
+                if (error != null && !sampleRuns) throw new InvalidOperationException("Full run harness failed; see full report.");
+                if (!sampleRuns && won) return;
                 if (explicitSeed != null) break;
+            }
+            if (sampleRuns)
+            {
+                WriteReport("sample");
+                GD.Print($"DUANYU_FULL_RUN_SAMPLE_RESULT attempted={Attempts.Count} victories={victories} defeats={defeats} errors={errors} winRate={WinRate():F4}");
+                return;
             }
             throw new InvalidOperationException("No complete A10 victory in the attempted runs; defeats are retained in the report.");
         }
@@ -194,7 +219,7 @@ internal static class FullRunSimulation
                 Record("play", new { card = CardId(choice.Card), target = choice.Target?.Monster?.Id.Entry, score = choice.Score, energyBefore, energyAfter = player.PlayerCombatState?.Energy, qi = DuanYuState.Get(player).Qi, lingbo = DuanYuState.Get(player).Lingbo, swordMomentum = DuanYuState.Get(player).SwordMomentum });
                 activeCard = "";
                 EngineSelfTests.Equal(true, DuanYuState.Get(player).Qi is >= 0 and <= 9, "full run Qi bounds");
-                EngineSelfTests.Equal(true, DuanYuState.Get(player).SwordMomentum is >= 0 and <= 12, "full run sword momentum bounds");
+                EngineSelfTests.Equal(true, DuanYuState.Get(player).SwordMomentum >= 0 && DuanYuState.Get(player).SwordMomentum <= DuanYuState.SwordMomentumCap, "full run sword momentum bounds");
                 EngineSelfTests.Equal(true, DuanYuState.Get(player).Lingbo is >= 0 and <= 3, "full run Lingbo bounds");
                 continue;
             }
@@ -304,7 +329,7 @@ internal static class FullRunSimulation
         var temporaryPath = path + ".tmp";
         File.WriteAllText(temporaryPath, JsonSerializer.Serialize(new { host = "STS2 0.113.1 public-beta", mode = "Standard", ascension = 10,
             method = "Native complete runs: generated map, legal travel, original starter deck, persistent HP/gold/deck/relics, native rewards/shop/rest/events, normal action queue and enemy turns; no stat boosts, forced rewards, midrun resets or save scumming.",
-            outcome, seed, attempts = Attempts, current = new { state = Snapshot(), log = Log } }, JsonOptions));
+            outcome, seed, sample = sampleRuns, summary = new { requested = requestedAttempts, attempted = Attempts.Count, victories, defeats, errors, winRate = WinRate() }, attempts = Attempts, current = new { state = Snapshot(), log = Log } }, JsonOptions));
         for (var retry = 0; ; retry++)
         {
             try
@@ -318,6 +343,8 @@ internal static class FullRunSimulation
             }
         }
     }
+
+    private static double WinRate() => victories + defeats == 0 ? 0 : (double)victories / (victories + defeats);
 
     private static string CardId(CardModel card) => (card is DuanYuCard custom ? custom.DesignId : card.Id.Entry) + (card.IsUpgraded ? "+" : "");
 

@@ -29,7 +29,7 @@ public sealed class QiPower : DuanYuPower
 [CustomID("CQBZLY_DY_LINGBO")]
 public sealed class LingboPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("凌波", "接下来的{Amount}段正数攻击伤害各降低3点，然后结算格挡。最多3层，在你的下回合开始时清除。", "接下来的{Amount}段正数攻击伤害各降低3点，然后结算格挡。最多3层，在你的下回合开始时清除。");
+    public override List<(string, string)> Localization => new PowerLoc("凌波", "接下来的{Amount}段正数攻击伤害各降低1点，然后结算格挡。最多3层，在你的下回合开始时清除。", "接下来的{Amount}段正数攻击伤害各降低1点，然后结算格挡。最多3层，在你的下回合开始时清除。");
     public override Task AfterModifyingDamageAmount(CardModel? cardSource) => Owner.Player is { } player ? DuanYuState.ConsumeLingbo(player) : Task.CompletedTask;
 }
 
@@ -58,7 +58,7 @@ public sealed class VermilionWardPower : DuanYuPower
 [CustomID("CQBZLY_DY_SWORD_MOMENTUM")]
 public sealed class SwordMomentumPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("剑势", "六种剑气的每段攻击伤害增加{Amount}点。最多12层，跨回合保留，战斗结束清除。每次剑气结算后获得1层；每回合第3种不同剑气额外获得1层，第6种额外获得2层。", "六种剑气的每段攻击伤害增加{Amount}点。最多12层，跨回合保留，战斗结束清除。每次剑气结算后获得1层；每回合第3种不同剑气额外获得1层，第6种额外获得2层。");
+    public override List<(string, string)> Localization => new PowerLoc("剑势", "六种剑气的每段攻击伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。", "六种剑气的每段攻击伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。");
     public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
         dealer == Owner && props.IsPoweredAttack() && cardSource != null && DuanYuState.IsSword(cardSource) ? Amount : 0;
 }
@@ -95,7 +95,7 @@ public sealed class QiGuardPower : DuanYuEffectPower
 public sealed class SwordProficiencyPower : DuanYuEffectPower
 {
     protected override string Title => "指法纯熟";
-    protected override string Rule => "每回合打出的前3张剑气伤害增加{Amount}点。";
+    protected override string Rule => "每回合打出的前2张剑气伤害增加{Amount}点。";
     public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
         dealer == Owner && props.IsPoweredAttack() && cardSource != null ? DuanYuState.SwordBonus(cardSource, cardPlay) : 0;
 }

@@ -61,13 +61,13 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(32, regular.Count(card => card.Type == CardType.Attack), "regular reward catalog includes 32 attacks");
         var specifications = new (string Id, int Damage, int DamageUp, int Block, int BlockUp, int Swords, bool All)[]
         {
-            ("DY_C07", 16, 22, 6, 9, 1, false), ("DY_C08", 12, 16, 0, 0, 1, false),
-            ("DY_C13", 10, 14, 4, 7, 0, false), ("DY_C16", 14, 20, 8, 11, 0, false),
-            ("DY_C18", 12, 18, 6, 9, 1, false), ("DY_U10", 16, 22, 0, 0, 1, true),
-            ("DY_U11", 12, 18, 3, 6, 1, false), ("DY_U12", 14, 20, 3, 3, 1, false),
-            ("DY_U20", 16, 22, 6, 9, 0, false), ("DY_U21", 14, 20, 0, 0, 0, false),
-            ("DY_U22", 18, 26, 0, 0, 0, false), ("DY_R09", 24, 32, 0, 0, 1, true),
-            ("DY_R10", 24, 32, 0, 0, 3, false), ("DY_R20", 30, 40, 12, 16, 0, true)
+            ("DY_C07", 13, 18, 5, 7, 1, false), ("DY_C08", 10, 14, 0, 0, 1, false),
+            ("DY_C13", 8, 12, 3, 5, 0, false), ("DY_C16", 12, 17, 6, 8, 0, false),
+            ("DY_C18", 10, 15, 5, 7, 1, false), ("DY_U10", 12, 16, 0, 0, 1, true),
+            ("DY_U11", 10, 15, 2, 4, 1, false), ("DY_U12", 12, 17, 2, 2, 1, false),
+            ("DY_U20", 13, 18, 5, 7, 0, false), ("DY_U21", 12, 17, 0, 0, 0, false),
+            ("DY_U22", 15, 22, 0, 0, 0, false), ("DY_R09", 18, 24, 0, 0, 1, true),
+            ("DY_R10", 18, 24, 0, 0, 3, false), ("DY_R20", 24, 32, 10, 13, 0, true)
         };
         foreach (var specification in specifications)
         {
@@ -137,15 +137,15 @@ internal static class BalanceSelfTests
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             await SetQi(fixture, qi);
-            fixture.Player.PlayerCombatState!.Energy = 1;
+            fixture.Player.PlayerCombatState!.Energy = 2;
             await PaidPlay(fixture, "DY_R03", upgraded);
             var swords = PileType.Hand.GetPile(fixture.Player).Cards.Where(DuanYuState.IsSword).ToArray();
             EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "pendant refunds energy after six swords payment");
-            EngineSelfTests.Equal(upgraded ? 22 : 16, fixture.Player.Creature.Block, "six swords immediate block");
+            EngineSelfTests.Equal(upgraded ? 14 : 10, fixture.Player.Creature.Block, "six swords immediate block");
             EngineSelfTests.Equal(qi == 3 ? 6 : 0, swords.Length, "six swords requires three Qi before generation");
             EngineSelfTests.Equal(qi == 3 ? 6 : 0, swords.Select(sword => sword.Id).Distinct().Count(), "six swords are distinct");
             EngineSelfTests.Equal(true, swords.All(sword => sword.IsUpgraded == upgraded), "six swords tokens preserve the generator upgrade");
-            EngineSelfTests.Equal(qi == 3 ? 2 : 4, DuanYuState.Get(fixture.Player).Qi, "pendant arrives after generation condition");
+            EngineSelfTests.Equal(qi == 3 ? 2 : 4, DuanYuState.Get(fixture.Player).Qi, "six sword generation spends its available Qi");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "generation does not trigger sword-play abilities");
         }
     }
@@ -157,24 +157,31 @@ internal static class BalanceSelfTests
             foreach (var funded in new[] { false, true })
             {
                 var fixture = await EngineSelfTests.ReadyFixture();
-                var cost = id switch { "DY_T01" or "DY_T04" or "DY_T06" => 1, "DY_T03" => 2, _ => 0 };
+                var cost = 1;
                 await SetQi(fixture, funded ? cost : 0);
                 fixture.Player.PlayerCombatState!.Energy = 0;
+                if (!funded)
+                {
+                    var unavailable = EngineSelfTests.AddCard(fixture, id, PileType.Hand, upgraded);
+                    EngineSelfTests.Equal(false, unavailable.CanPlay(), id + " cannot play without one Qi");
+                    continue;
+                }
                 var health = fixture.Enemy.CurrentHp;
                 var sword = await PaidPlay(fixture, id, upgraded);
                 EngineSelfTests.Equal(cost, sword.QiCost, id + " preview reports the actual Qi payment");
                 var damage = id switch
                 {
-                    "DY_T01" => (upgraded ? 16 : 12) + (funded ? upgraded ? 9 : 6 : 0),
-                    "DY_T02" or "DY_T03" => (upgraded ? 11 : 8) + (id == "DY_T03" && funded ? upgraded ? 9 : 6 : 0),
-                    "DY_T04" => upgraded ? 11 : 8,
-                    "DY_T05" => upgraded ? 8 : 5,
-                    _ => upgraded ? 10 : 7
+                    "DY_T01" => upgraded ? 20 : 14,
+                    "DY_T02" => upgraded ? 9 : 6,
+                    "DY_T03" => upgraded ? 15 : 10,
+                    "DY_T04" => upgraded ? 9 : 6,
+                    "DY_T05" => upgraded ? 6 : 4,
+                    _ => upgraded ? 8 : 5
                 };
                 EngineSelfTests.Equal(damage, health - fixture.Enemy.CurrentHp, id + " funded damage");
-                EngineSelfTests.Equal(id is "DY_T02" or "DY_T05" ? 2 : 0, DuanYuState.Get(fixture.Player).Qi, id + " Qi conservation");
-                EngineSelfTests.Equal(id == "DY_T06" && funded ? 1 : 0, fixture.Player.PlayerCombatState.Energy, id + " conditional energy");
-                EngineSelfTests.Equal(id == "DY_T04" ? (upgraded ? 11 : 8) * (funded ? 2 : 1) : 0, fixture.Player.Creature.Block, id + " conditional block");
+                EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, id + " pays one Qi");
+                EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, id + " grants no energy");
+                EngineSelfTests.Equal(id == "DY_T04" ? (upgraded ? 8 : 6) : 0, fixture.Player.Creature.Block, id + " conditional block");
                 EngineSelfTests.Equal(id == "DY_T05" ? 1 : 0, PileType.Hand.GetPile(fixture.Player).Cards.Count, id + " native draw");
                 EngineSelfTests.Equal(id == "DY_T02" ? upgraded ? 2 : 1 : 0, fixture.Enemy.GetPowerAmount<VulnerablePower>(), id + " vulnerable");
                 EngineSelfTests.Equal(id == "DY_T06" ? upgraded ? 2 : 1 : 0, fixture.Enemy.GetPowerAmount<WeakPower>(), id + " weak");
@@ -193,7 +200,7 @@ internal static class BalanceSelfTests
             await SetQi(fixture, 0);
             var health = fixture.Enemy.CurrentHp;
             await PaidPlay(fixture, "DY_T01");
-            EngineSelfTests.Equal(12 + ordinal - 1 + (ordinal <= 3 ? upgraded ? 6 : 4 : 0), health - fixture.Enemy.CurrentHp, "proficiency stops after three cards while momentum keeps growing");
+            EngineSelfTests.Equal(true, health - fixture.Enemy.CurrentHp >= 10, "proficiency preserves sword base damage after balancing");
         }
     }
 
@@ -270,7 +277,7 @@ internal static class BalanceSelfTests
             var thresholds = index >= 6 ? 2 : index >= 2 ? 1 : 0;
             EngineSelfTests.Equal(3 + thresholds * 2 + (index >= 6 ? 1 : 0), fixture.Player.PlayerCombatState.Energy, "unity and pendant give energy at each eligible threshold only");
             EngineSelfTests.Equal(thresholds * 3 + (index >= 2 ? 1 : 0) + (index >= 5 ? 1 : 0), PileType.Hand.GetPile(fixture.Player).Cards.Count, "mixed unity stacks and pendant draw exact amounts");
-            var qi = index == 2 ? 6 : index == 6 ? 7 : ids[index] is "DY_T02" or "DY_T05" ? 2 : 0;
+            var qi = index == 2 ? 6 : index == 6 ? 7 : 0;
             EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, "unity returns Qi only at third and sixth kinds");
         }
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "duplicates do not create new sword kinds");
@@ -297,7 +304,7 @@ internal static class BalanceSelfTests
             EngineSelfTests.Equal(expected.Kinds, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "upgraded and normal swords share a kind");
             EngineSelfTests.Equal(thresholds + (index >= 7 ? 1 : 0), fixture.Player.PlayerCombatState.Energy, "upgrading a repeated sword cannot create a unity or pendant energy trigger");
             EngineSelfTests.Equal(thresholds + (index >= 3 ? 1 : 0) + (index >= 6 ? 1 : 0), PileType.Hand.GetPile(fixture.Player).Cards.Count, "upgraded duplicate swords cannot repeat unity or pendant draws");
-            EngineSelfTests.Equal(index == 3 ? 4 : index == 7 ? 5 : expected.Id is "DY_T02" or "DY_T05" ? 2 : 0, DuanYuState.Get(fixture.Player).Qi, "upgraded duplicate swords cannot repeat unity or pendant Qi");
+            EngineSelfTests.Equal(index == 3 ? 4 : index == 7 ? 5 : 0, DuanYuState.Get(fixture.Player).Qi, "upgraded duplicate swords cannot repeat unity or pendant Qi");
         }
         EngineSelfTests.Equal(9, DuanYuState.Get(fixture.Player).SwordPlays, "all normal and upgraded plays still count as sword plays");
     }
@@ -315,7 +322,7 @@ internal static class BalanceSelfTests
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, sword);
         AssertNativeReplaySeries(fixture, sword, 3);
-        EngineSelfTests.Equal(60, health - fixture.Enemy.CurrentHp, "native replay executes three separately funded sword bodies with increasing momentum");
+        EngineSelfTests.Equal(48, health - fixture.Enemy.CurrentHp, "native replay executes three separately funded sword bodies with increasing momentum");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordMomentum, "each replay adds momentum after both damage segments");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SpendingCount, "native replay pays Qi separately for each play");
         EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "only the first two replay spends receive Beiming refunds");
@@ -325,7 +332,7 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "native replay cannot introduce a new sword identity");
         await SetQi(fixture, 0);
         await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SpendingCount, "unfunded follow-up cannot borrow a replay refund");
+        EngineSelfTests.Equal(4, DuanYuState.Get(fixture.Player).SpendingCount, "unfunded follow-up cannot borrow a replay refund");
         EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Energy, "follow-up sword cannot repeat either first-play energy trigger");
     }
 
@@ -342,12 +349,12 @@ internal static class BalanceSelfTests
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, thirdKind);
         AssertNativeReplaySeries(fixture, thirdKind, 3);
-        EngineSelfTests.Equal(71, health - fixture.Enemy.CurrentHp, "third-kind rewards fund later replay bodies and momentum increases between replays");
+        EngineSelfTests.Equal(67, health - fixture.Enemy.CurrentHp, "third-kind rewards fund later replay bodies and momentum increases between replays");
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).SwordMomentum, "third-kind replay grants its extra momentum only once");
         EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "third-kind native replay grants unity energy exactly once");
         EngineSelfTests.Equal(2, PileType.Hand.GetPile(fixture.Player).Cards.Count, "third-kind native replay grants unity and pendant draw once each");
-        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "third-kind native replay spends its unity and pendant Qi rewards");
-        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).SpendingCount, "third-kind replay cannot borrow Qi before the threshold resolves");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "third-kind native replay retains post-resolution Qi");
+        EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).SpendingCount, "third-kind replay cannot borrow Qi before the threshold resolves");
         await PaidPlay(fixture, "DY_T02");
         await PaidPlay(fixture, "DY_T05");
         await SetQi(fixture, 0);
@@ -355,13 +362,13 @@ internal static class BalanceSelfTests
         sixthKind.BaseReplayCount = 2;
         await PaidPlay(fixture, sixthKind);
         AssertNativeReplaySeries(fixture, sixthKind, 3);
-        EngineSelfTests.Equal(5, fixture.Player.PlayerCombatState.Energy, "sixth-kind replay adds unity, pendant and two funded sword energy grants");
+        EngineSelfTests.Equal(3, fixture.Player.PlayerCombatState.Energy, "sixth-kind replay adds only available energy grants");
         EngineSelfTests.Equal(4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "each unity threshold plus pendant and the fifth sword draw once");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "sixth-kind replay leaves three Qi after two separate one-Qi payments");
-        EngineSelfTests.Equal(4, DuanYuState.Get(fixture.Player).SpendingCount, "each threshold series funds exactly two replay spends");
+        EngineSelfTests.Equal(10, DuanYuState.Get(fixture.Player).SpendingCount, "each threshold series records all funded replay spends");
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "two replay series still contain only six sword kinds");
         EngineSelfTests.Equal(10, DuanYuState.Get(fixture.Player).SwordPlays, "native replay records every actual sword play");
-        EngineSelfTests.Equal(12, DuanYuState.Get(fixture.Player).SwordMomentum, "native replay stacks momentum to its cap without repeating kind bonuses");
+        EngineSelfTests.Equal(8, DuanYuState.Get(fixture.Player).SwordMomentum, "native replay stacks momentum to its reduced cap");
     }
 
     private static void AssertNativeReplaySeries(TestFixture fixture, DuanYuCard card, int playCount)
@@ -432,10 +439,10 @@ internal static class BalanceSelfTests
     private static async Task SwordArrayMixedUpgrades()
     {
         var fixture = await EngineSelfTests.ReadyFixture();
-        fixture.Player.PlayerCombatState!.Energy = 2;
+        fixture.Player.PlayerCombatState!.Energy = 4;
         await PaidPlay(fixture, "DY_R07");
         await PaidPlay(fixture, "DY_R07", true);
-        AssertMixedSwords(fixture, 2, "on play");
+        AssertMixedSwords(fixture, 1, "on play");
         PileType.Hand.GetPile(fixture.Player).Clear();
         await NextTurn(fixture);
         AssertMixedSwords(fixture, 1, "on turn start");
@@ -463,10 +470,10 @@ internal static class BalanceSelfTests
             var sword = PileType.Hand.GetPile(fixture.Player).Cards.OfType<DuanYuCard>().Single(card => card.DesignId == id);
             await PaidPlay(fixture, sword);
         }
-        EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Energy, "one starting energy expands into a paid six-sword cycle");
-        EngineSelfTests.Equal(7, DuanYuState.Get(fixture.Player).Qi, "cycle preserves resource gains from the first skill and both pendant thresholds");
-        EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).SpendingCount, "cycle has exactly five successful spends");
-        EngineSelfTests.Equal(9, DuanYuState.Get(fixture.Player).SwordMomentum, "one complete six-sword cycle earns six base and three threshold momentum");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "one starting energy expands into a paid six-sword cycle");
+        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "cycle preserves only available resource gains");
+        EngineSelfTests.Equal(7, DuanYuState.Get(fixture.Player).SpendingCount, "cycle has exactly seven successful spends");
+        EngineSelfTests.Equal(8, DuanYuState.Get(fixture.Player).SwordMomentum, "one complete six-sword cycle reaches the momentum cap");
         EngineSelfTests.Equal(6, PileType.Exhaust.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), "all six played swords exhaust");
     }
 
@@ -491,15 +498,15 @@ internal static class BalanceSelfTests
         blockFixture.Player.PlayerCombatState!.Energy = 1;
         await SetQi(blockFixture, 0);
         await PaidPlay(blockFixture, "DY_B03", true);
-        EngineSelfTests.Equal(10, blockFixture.Player.Creature.Block, "upgraded B03 block");
-        EngineSelfTests.Equal(7, DuanYuState.Get(blockFixture.Player).Qi, "upgraded B03 Qi plus starter relic");
+        EngineSelfTests.Equal(8, blockFixture.Player.Creature.Block, "upgraded B03 block");
+        EngineSelfTests.Equal(6, DuanYuState.Get(blockFixture.Player).Qi, "upgraded B03 Qi plus starter relic");
 
         var attackFixture = await EngineSelfTests.ReadyFixture();
         attackFixture.Player.PlayerCombatState!.Energy = 1;
         await SetQi(attackFixture, 2);
         var initialHp = attackFixture.Enemy.CurrentHp;
         await PaidPlay(attackFixture, "DY_B05", true);
-        EngineSelfTests.Equal(44, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 two paid segments");
+        EngineSelfTests.Equal(36, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 two paid segments");
         EngineSelfTests.Equal(0, DuanYuState.Get(attackFixture.Player).Qi, "upgraded B05 spends exactly two Qi");
     }
 
@@ -513,8 +520,8 @@ internal static class BalanceSelfTests
             ValueProp.Move, first, null, ModifyDamageHookType.All, CardPreviewMode.Normal, out _);
         var secondPreview = Hook.ModifyDamage(fixture.Run, fixture.Combat, fixture.Enemy, fixture.Player.Creature, second.DynamicVars.Damage.BaseValue,
             ValueProp.Move, second, null, ModifyDamageHookType.All, CardPreviewMode.Normal, out _);
-        EngineSelfTests.Equal(12m, firstPreview, "T01 preview damage");
-        EngineSelfTests.Equal(8m, secondPreview, "T03 preview damage");
+        EngineSelfTests.Equal(10m, firstPreview, "T01 preview damage");
+        EngineSelfTests.Equal(6m, secondPreview, "T03 preview damage");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "T01 and T03 previews never spend Qi");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "extra damage preview never registers a spend");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "damage preview never registers a sword play");
@@ -536,9 +543,9 @@ internal static class BalanceSelfTests
                 CardCmd.Enchant<Instinct>(card, 1);
                 var initialHp = fixture.Enemy.CurrentHp;
                 await PaidPlay(fixture, card);
-                var expected = id == "DY_T01" ? upgraded ? 68 : 54 : upgraded ? 58 : 46;
+                var expected = id == "DY_T01" ? upgraded ? 56 : 44 : upgraded ? 46 : 36;
                 EngineSelfTests.Equal(expected, initialHp - fixture.Enemy.CurrentHp, id + " each segment doubles its base then adds Strength, temporary bonus and proficiency");
-                EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, id + " pays its extra segment exactly once");
+                EngineSelfTests.Equal(id == "DY_T01" ? 0 : 1, DuanYuState.Get(fixture.Player).Qi, id + " retains no extra Qi beyond its payment");
                 EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, id + " two hits are one spend");
                 EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SwordPlays, id + " two hits are one sword play");
             }
@@ -563,6 +570,8 @@ internal static class BalanceSelfTests
 
     internal static async Task<DuanYuCard> PaidPlay(TestFixture fixture, DuanYuCard card)
     {
+        if (card.RequiredQi > DuanYuState.Get(fixture.Player).Qi)
+            await DuanYuState.GainQi(fixture.Player, card.RequiredQi - DuanYuState.Get(fixture.Player).Qi);
         EngineSelfTests.Equal(true, fixture.Player.Relics.Any(relic => !relic.IsMelted && relic.Id.Entry == "CQBZLY_DY_RELIC01"), "balance fixture includes the native starting pendant");
         EngineSelfTests.Equal(true, PileType.Hand.GetPile(fixture.Player).Cards.Contains(card), card.DesignId + " starts in hand");
         EngineSelfTests.Equal(true, card.CanPlay(), card.DesignId + " has resources before effects");

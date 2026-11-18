@@ -48,7 +48,7 @@ public static class DuanYuState
 {
     public const int QiCap = 9;
     public const int LingboCap = 3;
-    public const int LingboReduction = 3;
+    public const int LingboReduction = DuanYuCombatLedger.LingboReduction;
     public const int SwordMomentumCap = DuanYuCombatLedger.SwordMomentumCap;
     private static readonly ConditionalWeakTable<Player, PlayerRuntimeState> States = new();
     private static readonly ConditionalWeakTable<Player, DuanYuRunHistory> Histories = new();
@@ -237,6 +237,7 @@ public static class DuanYuState
         state.IncomingDamage.Clear();
         state.PendingWindBlock = 0;
         if (player.Creature.GetPower<LingboPower>() is { } lingbo) lingbo.RemoveInternal();
+        if (player.Creature.GetPower<SwordMomentumPower>() is { } momentum) momentum.RemoveInternal();
     }
 
     internal static async Task BeginTurn(Player player, PlayerChoiceContext context)
@@ -302,6 +303,7 @@ public static class DuanYuState
     internal static void BeforeCard(CardPlay play)
     {
         var state = Get(play.Player);
+        if (IsSword(play.Card) && state.Qi < 1) return;
         if (state.Plays.ContainsKey(play)) return;
         var ordinal = state.RegisterPlay(play.Card.Type == CardType.Skill, play.Card.Type == CardType.Attack, IsSword(play.Card) ? CardId(play.Card) : null);
         state.Plays.Add(play, new DuanYuPlayRecord
@@ -324,7 +326,7 @@ public static class DuanYuState
         if (state.ActivePlays.TryPeek(out var top) && ReferenceEquals(top, play)) state.ActivePlays.Pop();
         if (!CanAct(player)) return;
         if (record.SwordOrdinal > 0)
-            await GainSwordMomentum(player, 1 + (record.ThirdSwordKind ? 1 : 0) + (record.SixthSwordKind ? 2 : 0), play.Card);
+            await GainSwordMomentum(player, 1 + (record.ThirdSwordKind ? 1 : 0) + (record.SixthSwordKind ? 1 : 0), play.Card);
         foreach (var relic in player.Relics.Where(relic => !relic.IsMelted).ToArray())
         {
             if (!CanAct(player)) return;
@@ -385,7 +387,7 @@ public static class DuanYuState
             ordinal = record.SwordOrdinal;
             effects = record.Effects;
         }
-        return ordinal is > 0 and <= 3 ? effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount) : 0;
+        return ordinal is > 0 and <= 2 ? effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount) : 0;
     }
 
     internal static async Task ConsumeLingbo(Player player)

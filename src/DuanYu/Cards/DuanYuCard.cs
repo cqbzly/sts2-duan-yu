@@ -29,10 +29,12 @@ public abstract class DuanYuCard : CustomCardModel
     public CardDefinition Definition => Definitions[DesignId];
     public LocString SelectionPrompt => SelectionScreenPrompt;
     public DuanYuCardNumbers Numbers => DuanYuCardNumbers.For(DesignId);
+    public int RequiredQi => DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? 1 : 0;
     public int QiCost => DesignId switch
     {
-        "DY_C17" or "DY_T01" or "DY_T04" or "DY_T06" => 1,
-        "DY_B05" or "DY_C02" or "DY_C15" or "DY_U32" or "DY_R06" or "DY_T03" => 2,
+        "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06" => 1,
+        "DY_C17" => 1,
+        "DY_B05" or "DY_C02" or "DY_C15" or "DY_U32" or "DY_R06" => 2,
         "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R03" or "DY_R05" or "DY_R20" => 3,
         "DY_R13" => 5, _ => 0
     };
@@ -45,13 +47,14 @@ public abstract class DuanYuCard : CustomCardModel
 
     public override string CustomPortraitPath => DuanYuAssets.CardPortrait(DesignId);
     public override bool GainsBlock => Numbers.Block > 0;
+    protected override bool IsPlayable => base.IsPlayable && (RequiredQi == 0 || Owner == null || DuanYuState.Get(Owner).Qi >= RequiredQi);
     protected override IEnumerable<DynamicVar> CanonicalVars
     {
         get
         {
             if (DesignId == "DY_U08")
             {
-                foreach (var variable in MakeCalculatedDamage(24, (source, _) => source.IsCanonical || source.Owner == null ? 0 : DuanYuState.Get(source.Owner).Qi, 4)) yield return variable;
+                foreach (var variable in MakeCalculatedDamage(20, (source, _) => source.IsCanonical || source.Owner == null ? 0 : DuanYuState.Get(source.Owner).Qi, 2)) yield return variable;
             }
             else if (Numbers.Damage > 0) yield return new DamageVar(Numbers.Damage, ValueProp.Move);
             if (Numbers.ExtraDamage > 0) yield return new DamageVar("ExtraDamage", Numbers.ExtraDamage, ValueProp.Move);
@@ -73,12 +76,12 @@ public abstract class DuanYuCard : CustomCardModel
     {
         get
         {
-            if (Definition.Text.Contains("气", StringComparison.Ordinal) && !DesignId.StartsWith("DY_T", StringComparison.Ordinal))
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，最多9点。耗气N：在该句结算时自动支付足额真气，否则跳过附加效果。" + QiPreview());
+            if (Definition.Text.Contains("气", StringComparison.Ordinal))
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，最多9点。需N点真气：打出前必须拥有并支付N点真气，否则不能发动。耗气N：在该句结算时自动支付足额真气，否则跳过附加效果。" + QiPreview());
             if (Definition.Text.Contains("凌波", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<LingboPower>();
             if (DuanYuState.IsSword(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
             if (Definition.Text.Contains("剑气", StringComparison.Ordinal))
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".swordTipTitle"), "六种0费衍生攻击牌，均具有消耗、虚无。每层剑势令剑气每段伤害增加1点，最多12层，跨回合保留。每张剑气全部结算后获得1层剑势；每回合第3种不同剑式额外获得1层，第6种额外获得2层。升级版本仍算同一种剑式。手牌已满时生成牌进入弃牌堆。");
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".swordTipTitle"), "六种0费衍生攻击牌，每次发动必须支付1点真气，均具有消耗、虚无。每层剑势令剑气每段伤害增加1点，最多8层，在你的下回合开始时清除。每张剑气全部结算后获得1层剑势；每回合第3、第6种不同剑式各额外获得1层。升级版本仍算同一种剑式。手牌已满时生成牌进入弃牌堆。");
             if (Definition.Text.Contains("虚弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<WeakPower>();
             if (Definition.Text.Contains("易伤", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<VulnerablePower>();
             if (Definition.Text.Contains("气滞", StringComparison.Ordinal) || Definition.Text.Contains("异种真气", StringComparison.Ordinal) || Type == CardType.Status)
@@ -103,12 +106,13 @@ public abstract class DuanYuCard : CustomCardModel
     {
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
+        if (RequiredQi > 0) return current >= RequiredQi ? $"当前真气：{current}/9；发动时支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：不能发动。";
         if (QiCost == 0) return $"当前真气：{current}/9。";
         return current >= QiCost ? $"按当前真气可发动：{current}→{current - QiCost}；实际以耗气句结算时为准。" : $"当前{current}/需要{QiCost}：附加效果不执行；实际以耗气句结算时为准。";
     }
     private string DescriptionText(bool upgraded)
     {
-        if (DesignId == "DY_U08") return "造成{CalculatedDamage:diff()}点伤害（基础伤害加当前真气的4倍）。将1张气滞加入弃牌堆。";
+        if (DesignId == "DY_U08") return "造成{CalculatedDamage:diff()}点伤害（基础伤害加当前真气的2倍）。将1张气滞加入弃牌堆。";
         string result = Clean(upgraded ? Definition.Upgrade.Text : Definition.Text);
         if (Numbers.Damage > 0) result = result.Replace($"造成{(upgraded ? Numbers.DamageUp : Numbers.Damage)}点伤害", "造成{Damage:diff()}点伤害");
         if (Numbers.ExtraDamage > 0) result = result.Replace($"造成{(upgraded ? Numbers.ExtraDamageUp : Numbers.ExtraDamage)}点伤害", "造成{ExtraDamage:diff()}点伤害");

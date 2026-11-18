@@ -11,7 +11,8 @@ public sealed class DuanYuRunHistory
 
 public class DuanYuCombatLedger
 {
-    public const int SwordMomentumCap = 12;
+    public const int LingboReduction = 1;
+    public const int SwordMomentumCap = 8;
     private readonly HashSet<int> processedSpendOrdinals = [];
     public int Qi { get; internal set; }
     public int Lingbo { get; internal set; }
@@ -68,6 +69,7 @@ public class DuanYuCombatLedger
         SwordPlays = 0;
         SpendingCount = 0;
         LingboTriggers = 0;
+        SwordMomentum = 0;
         DistinctSwords.Clear();
         processedSpendOrdinals.Clear();
         return hadSkillWithoutAttack;
@@ -93,6 +95,6 @@ public class DuanYuCombatLedger
     public static DuanYuAttackReduction ReduceAttack(decimal damage, bool attack, int lingbo)
     {
         if (!attack || lingbo <= 0 || damage < 1) return new DuanYuAttackReduction(damage, false);
-        return new DuanYuAttackReduction(Math.Max(0, decimal.Floor(damage) - 3), true);
+        return new DuanYuAttackReduction(Math.Max(0, decimal.Floor(damage) - LingboReduction), true);
     }
 }

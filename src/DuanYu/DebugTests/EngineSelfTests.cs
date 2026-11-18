@@ -238,10 +238,10 @@ internal static class EngineSelfTests
             await PaidPlay(fixture, "DY_B03", upgraded);
             await PaidPlay(fixture, "DY_B04", upgraded);
             await PaidPlay(fixture, "DY_B05", upgraded);
-            Equal(7, DuanYuState.Get(fixture.Player).Qi, "initial Qi after cap and paid double attack");
+            Equal(upgraded ? 7 : 6, DuanYuState.Get(fixture.Player).Qi, "initial Qi after cap and paid double attack");
             Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "initial Lingbo");
-            Equal(upgraded ? 18 : 12, fixture.Player.Creature.Block, "initial block");
-            Equal(upgraded ? 44 : 32, initialHp - fixture.Enemy.CurrentHp, "initial damage");
+            Equal(upgraded ? 16 : 11, fixture.Player.Creature.Block, "initial block");
+            Equal(upgraded ? 36 : 26, initialHp - fixture.Enemy.CurrentHp, "initial damage");
             Equal(1, fixture.Player.PlayerCombatState.Energy, "three paid cards receive one pendant energy");
         }
     }
@@ -252,12 +252,12 @@ internal static class EngineSelfTests
         fixture.Player.PlayerCombatState!.Energy = 1;
         await SetQi(fixture, 1);
         await PaidPlay(fixture, "DY_C15");
-        Equal(8, fixture.Player.Creature.Block, "insufficient Qi skips extra block");
+        Equal(7, fixture.Player.Creature.Block, "insufficient Qi skips extra block");
         Equal(3, DuanYuState.Get(fixture.Player).Qi, "pendant arrives after skill");
         Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "pendant Qi cannot fund its triggering skill");
         Equal(1, fixture.Player.PlayerCombatState.Energy, "first skill refunds one paid energy");
         await PaidPlay(fixture, "DY_C15");
-        Equal(24, fixture.Player.Creature.Block, "later skill may spend the earned pendant Qi");
+        Equal(21, fixture.Player.Creature.Block, "later skill may spend the earned pendant Qi");
         Equal(1, DuanYuState.Get(fixture.Player).Qi, "later skill receives no second pendant refund");
         Equal(0, fixture.Player.PlayerCombatState.Energy, "later skill receives no second energy refund");
     }
@@ -267,6 +267,8 @@ internal static class EngineSelfTests
 
     private static async Task<DuanYuCard> PaidPlay(TestFixture fixture, DuanYuCard card)
     {
+        if (card.RequiredQi > DuanYuState.Get(fixture.Player).Qi)
+            await DuanYuState.GainQi(fixture.Player, card.RequiredQi - DuanYuState.Get(fixture.Player).Qi);
         Equal(true, card.CanPlay(), card.DesignId + " is payable before its effects");
         var energyValue = card.EnergyCost.GetWithModifiers(CostModifiers.All);
         var beforeEnergy = fixture.Player.PlayerCombatState!.Energy;
@@ -325,7 +327,7 @@ internal static class EngineSelfTests
         Equal(2, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "upgraded sword shares its ordinary identity");
         Equal(0, PileType.Hand.GetPile(fixture.Player).Cards.Count, "repeated sword kind earns no draw");
         await PaidPlay(fixture, "DY_T03");
-        Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "third-kind reward cannot fund the triggering sword body");
+        Equal(4, DuanYuState.Get(fixture.Player).SpendingCount, "each sword pays its own Qi before the threshold reward");
         Equal(2, DuanYuState.Get(fixture.Player).Qi, "third sword kind grants two Qi after its body");
         Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "third sword kind draws exactly one card");
         Equal(0, fixture.Player.PlayerCombatState.Energy, "third sword kind grants no pendant energy");
@@ -334,7 +336,7 @@ internal static class EngineSelfTests
         await PaidPlay(fixture, thirdReplay);
         Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, thirdReplay)), "native third-kind replay executes three bodies");
         Equal(0, DuanYuState.Get(fixture.Player).Qi, "later replay can spend previously earned Qi");
-        Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "replayed third kind earns no repeated Qi reward");
+        Equal(6, DuanYuState.Get(fixture.Player).SpendingCount, "replayed third kind pays each eligible body");
         Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "replayed third kind earns no repeated draw");
         await PaidPlay(fixture, "DY_T02");
         await PaidPlay(fixture, "DY_T05");
@@ -345,14 +347,14 @@ internal static class EngineSelfTests
         await PaidPlay(fixture, sixthReplay);
         Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, sixthReplay)), "native sixth-kind replay executes three bodies");
         Equal(6, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "native replays retain six distinct sword kinds");
-        Equal(beforeSpends + 2, DuanYuState.Get(fixture.Player).SpendingCount, "sixth-kind reward funds both later replay bodies");
+        Equal(beforeSpends + 3, DuanYuState.Get(fixture.Player).SpendingCount, "sixth-kind reward funds both later replay bodies");
         Equal(1, DuanYuState.Get(fixture.Player).Qi, "sixth-kind replay receives one three-Qi reward");
-        Equal(3, fixture.Player.PlayerCombatState.Energy, "sixth-kind replay earns one pendant energy plus two funded sword energy");
+        Equal(1, fixture.Player.PlayerCombatState.Energy, "sixth-kind replay earns only the available energy reward");
         Equal(2, PileType.Hand.GetPile(fixture.Player).Cards.Count, "sixth-kind replay adds no pendant draw");
         await PaidPlay(fixture, "DY_T06");
         Equal(0, DuanYuState.Get(fixture.Player).Qi, "repeated sixth kind spends the remaining Qi without another pendant reward");
-        Equal(beforeSpends + 3, DuanYuState.Get(fixture.Player).SpendingCount, "repeated sixth kind pays its own Qi cost");
-        Equal(4, fixture.Player.PlayerCombatState.Energy, "repeated sixth kind earns only its funded sword energy");
+        Equal(beforeSpends + 4, DuanYuState.Get(fixture.Player).SpendingCount, "repeated sixth kind pays its own Qi cost");
+        Equal(1, fixture.Player.PlayerCombatState.Energy, "repeated sixth kind earns only its funded sword energy");
     }
 
     private static async Task PendantLateAcquisition()
@@ -475,7 +477,7 @@ internal static class EngineSelfTests
         await DuanYuState.GainSwordMomentum(companion, 1);
         var enemyHp = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(16, enemyHp - fixture.Enemy.CurrentHp, "first player's sword uses only its own momentum");
+        Equal(22, enemyHp - fixture.Enemy.CurrentHp, "first player's sword uses only its own momentum");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "first player's sword advances its own momentum");
         Equal(1, DuanYuState.Get(companion).SwordMomentum, "first player's sword leaves companion momentum unchanged");
         enemyHp = fixture.Enemy.CurrentHp;
@@ -488,7 +490,7 @@ internal static class EngineSelfTests
         {
             LocalContext.NetId = localNetId;
         }
-        Equal(13, enemyHp - fixture.Enemy.CurrentHp, "companion's sword uses only its own momentum");
+        Equal(16, enemyHp - fixture.Enemy.CurrentHp, "companion's sword uses only its own momentum");
         Equal(2, DuanYuState.Get(companion).SwordMomentum, "companion's momentum advances independently");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "companion's sword leaves first player momentum unchanged");
     }
@@ -509,16 +511,16 @@ internal static class EngineSelfTests
         await SetQi(fixture, 2);
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(18, health - fixture.Enemy.CurrentHp, "first sword completes both segments before gaining momentum");
+        Equal(14, health - fixture.Enemy.CurrentHp, "first sword completes both segments before gaining momentum");
         Equal(1, DuanYuState.Get(fixture.Player).SwordMomentum, "sword gains momentum without the pendant");
         Equal(1, fixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "momentum power mirrors the ledger");
         health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(20, health - fixture.Enemy.CurrentHp, "next sword adds existing momentum to both segments");
+        Equal(16, health - fixture.Enemy.CurrentHp, "next sword adds existing momentum to both segments");
         Equal(2, DuanYuState.Get(fixture.Player).SwordMomentum, "same sword kind still gains one base momentum");
         health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_B01");
-        Equal(10, health - fixture.Enemy.CurrentHp, "ordinary attack receives no sword momentum damage");
+        Equal(8, health - fixture.Enemy.CurrentHp, "ordinary attack receives no sword momentum damage");
         Equal(2, DuanYuState.Get(fixture.Player).SwordMomentum, "ordinary attack gains no sword momentum");
     }
 
@@ -533,7 +535,7 @@ internal static class EngineSelfTests
         await SetQi(fixture, 1);
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(38, health - fixture.Enemy.CurrentHp, "both sword segments add momentum, temporary damage, proficiency and Strength");
+        Equal(34, health - fixture.Enemy.CurrentHp, "both sword segments add momentum, temporary damage, proficiency and Strength");
         Equal(4, DuanYuState.Get(fixture.Player).SwordMomentum, "two-hit sword gains momentum once after both hits");
         var secondEnemy = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
         fixture.Combat.AddCreature(secondEnemy);
@@ -541,8 +543,8 @@ internal static class EngineSelfTests
         health = fixture.Enemy.CurrentHp;
         await SetQi(fixture, 2);
         await PaidPlay(fixture, "DY_T03");
-        Equal(36, health - fixture.Enemy.CurrentHp, "first enemy takes the additive bonus on both AOE segments");
-        Equal(36, secondHealth - secondEnemy.CurrentHp, "second enemy takes the same bonus without mid-card momentum growth");
+        Equal(32, health - fixture.Enemy.CurrentHp, "first enemy takes the additive bonus on both AOE segments");
+        Equal(32, secondHealth - secondEnemy.CurrentHp, "second enemy takes the same bonus without mid-card momentum growth");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "multi-enemy multi-hit sword grants only one base momentum");
     }
 
@@ -569,7 +571,7 @@ internal static class EngineSelfTests
         Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "damage previews never register sword plays");
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, sword);
-        Equal(16, health - fixture.Enemy.CurrentHp, "real sword uses the previewed momentum");
+        Equal(22, health - fixture.Enemy.CurrentHp, "real sword uses the previewed momentum");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "only completed sword grows momentum");
     }
 
@@ -580,8 +582,8 @@ internal static class EngineSelfTests
         await DuanYuState.EndTurn(fixture.Player);
         await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
         await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, new ThrowingPlayerChoiceContext());
-        Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "momentum persists through turn end and start");
-        Equal(5, fixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "momentum power persists with its ledger");
+        Equal(0, DuanYuState.Get(fixture.Player).SwordMomentum, "momentum clears at turn start");
+        Equal(0, fixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "momentum power clears with its ledger");
         await Hook.AfterCombatEnd(fixture.Run, fixture.Combat, new CombatRoom(fixture.Combat));
         Equal(0, DuanYuState.Get(fixture.Player).SwordMomentum, "combat end clears momentum state");
         Equal(0, fixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "combat end removes momentum power");
@@ -598,10 +600,10 @@ internal static class EngineSelfTests
         await DuanYuState.GainSwordMomentum(fixture.Player, int.MaxValue);
         await DuanYuState.GainSwordMomentum(fixture.Player, -1);
         await DuanYuState.GainSwordMomentum(fixture.Player, 0);
-        Equal(12, DuanYuState.Get(fixture.Player).SwordMomentum, "momentum cap resists overflow and nonpositive changes");
-        Equal(12, fixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "momentum power respects the cap");
+        Equal(8, DuanYuState.Get(fixture.Player).SwordMomentum, "momentum cap resists overflow and nonpositive changes");
+        Equal(8, fixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "momentum power respects the cap");
         await PaidPlay(fixture, "DY_T01");
-        Equal(12, DuanYuState.Get(fixture.Player).SwordMomentum, "completed swords cannot exceed the momentum cap");
+        Equal(8, DuanYuState.Get(fixture.Player).SwordMomentum, "completed swords cannot exceed the momentum cap");
 
         var deathFixture = await MomentumFixture();
         await DuanYuState.GainSwordMomentum(deathFixture.Player, 5);
@@ -625,12 +627,12 @@ internal static class EngineSelfTests
         thirdKind.BaseReplayCount = 2;
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, thirdKind);
-        Equal(38, health - fixture.Enemy.CurrentHp, "native replay uses the momentum earned by each preceding resolution");
-        Equal(7, DuanYuState.Get(fixture.Player).SwordMomentum, "third-kind replay grants three base stacks and one threshold stack");
+        Equal(16, health - fixture.Enemy.CurrentHp, "native replay requires each body to have Qi");
+        Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "third-kind replay grants only completed-body momentum");
         var plays = CombatManager.Instance.History.CardPlaysFinished.Where(entry => ReferenceEquals(entry.CardPlay.Card, thirdKind)).Select(entry => entry.CardPlay).ToArray();
         Equal(3, plays.Length, "third-kind test executes three native replay bodies");
         foreach (var play in plays) await DuanYuState.AfterCard(play, new ThrowingPlayerChoiceContext());
-        Equal(7, DuanYuState.Get(fixture.Player).SwordMomentum, "duplicate callbacks cannot grant momentum twice");
+        Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "duplicate callbacks cannot grant momentum twice");
 
         var sixthFixture = await MomentumFixture();
         foreach (var id in new[] { "DY_T01", "DY_T04", "DY_T03", "DY_T02", "DY_T05" }) await PaidPlay(sixthFixture, id);
@@ -639,8 +641,8 @@ internal static class EngineSelfTests
         sixthKind.BaseReplayCount = 2;
         await PaidPlay(sixthFixture, sixthKind);
         Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, sixthKind)), "sixth-kind test executes three native replay bodies");
-        Equal(11, DuanYuState.Get(sixthFixture.Player).SwordMomentum, "sixth-kind replay grants three base stacks and exactly two threshold stacks");
-        Equal(11, sixthFixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "native replay keeps the momentum power synchronized");
+        Equal(8, DuanYuState.Get(sixthFixture.Player).SwordMomentum, "sixth-kind replay reaches the reduced momentum cap");
+        Equal(8, sixthFixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "native replay keeps the momentum power synchronized");
     }
 
     private static async Task LingboFiveHits()
@@ -651,7 +653,7 @@ internal static class EngineSelfTests
         var initialHp = fixture.Player.Creature.CurrentHp;
         for (var hit = 0; hit < 5; hit++)
             await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
-        Equal(12, initialHp - fixture.Player.Creature.CurrentHp, "five attacks HP loss");
+        Equal(18, initialHp - fixture.Player.Creature.CurrentHp, "five attacks HP loss");
         Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "all Lingbo consumed");
         Equal(3, DuanYuState.Get(fixture.Player).LingboTriggers, "three reductions");
     }
@@ -684,7 +686,7 @@ internal static class EngineSelfTests
         Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "blocked nonattacks preserve Lingbo");
         Equal(0, DuanYuState.Get(fixture.Player).LingboTriggers, "nonattacks never trigger Lingbo");
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
-        Equal(7, fixture.Player.Creature.Block, "following attack receives Lingbo reduction before block");
+        Equal(5, fixture.Player.Creature.Block, "following attack receives Lingbo reduction before block");
         Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "full block consumes layer");
         Equal(1, DuanYuState.Get(fixture.Player).LingboTriggers, "following attack consumes exactly one Lingbo");
     }
@@ -696,7 +698,7 @@ internal static class EngineSelfTests
         await DuanYuState.GainLingbo(fixture.Player, 1);
         var initialHp = fixture.Player.Creature.CurrentHp;
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
-        Equal(2, initialHp - fixture.Player.Creature.CurrentHp, "wind does not retroactively block");
+        Equal(4, initialHp - fixture.Player.Creature.CurrentHp, "wind does not retroactively block");
         Equal(4, fixture.Player.Creature.Block, "wind grants later block");
     }
 
@@ -706,7 +708,7 @@ internal static class EngineSelfTests
         await DuanYuState.GainLingbo(fixture.Player, 2);
         var initialHp = fixture.Player.Creature.CurrentHp;
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), new[] { fixture.Player.Creature }, 5, ValueProp.Move, fixture.Enemy, null, null, ModifyDamageHookType.Cap);
-        Equal(2, initialHp - fixture.Player.Creature.CurrentHp, "cap-only copied attack receives target Lingbo");
+        Equal(4, initialHp - fixture.Player.Creature.CurrentHp, "cap-only copied attack receives target Lingbo");
         Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "cap-only attack consumes one layer");
     }
 
@@ -715,7 +717,7 @@ internal static class EngineSelfTests
         var fixture = await ReadyFixture();
         await DuanYuState.GainLingbo(fixture.Player, 2);
         var preview = Hook.ModifyDamage(fixture.Run, fixture.Combat, fixture.Player.Creature, fixture.Enemy, 5, ValueProp.Move, null, null, ModifyDamageHookType.All, CardPreviewMode.Normal, out _);
-        Equal(2m, preview, "Lingbo preview damage");
+        Equal(4m, preview, "Lingbo preview damage");
         Equal(2, DuanYuState.Get(fixture.Player).Lingbo, "preview does not consume layer");
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
         Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "real damage consumes layer");
@@ -729,10 +731,10 @@ internal static class EngineSelfTests
         await PowerCmd.Apply<StrengthPower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 2, fixture.Player.Creature, null);
         var sword = AddCard(fixture, "DY_T01", PileType.Hand);
         CardCmd.Enchant<Instinct>(sword, 1);
-        await DuanYuState.SpendQi(fixture.Player, DuanYuState.Get(fixture.Player).Qi);
+        await SetQi(fixture, 1);
         var initialHp = fixture.Enemy.CurrentHp;
         await PlayCard(fixture, sword);
-        Equal(33, initialHp - fixture.Enemy.CurrentHp, "12 times 2 enchantment plus 2 Strength plus 3 temporary plus 4 proficiency");
+        Equal(44, initialHp - fixture.Enemy.CurrentHp, "enchantment and sword bonuses apply to both segments");
     }
 
     private static async Task EtherealBeforeRetain()
