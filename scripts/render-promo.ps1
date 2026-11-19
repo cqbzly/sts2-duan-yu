@@ -72,7 +72,7 @@ try {
     Draw-Text $cover.Graphics '北冥积气 · 凌波游身 · 六脉破局' 31 $paper 68 421 890 55
     Draw-Fill $cover.Graphics ([System.Drawing.ColorTranslator]::FromHtml('#943F38')) 832 177 115 115
     Draw-Text $cover.Graphics '六脉' 40 $paper 845 196 100 80 -Serif
-    Draw-Text $cover.Graphics "$($design.cards.Count) 种卡牌    8 件遗物    2 个事件" 30 $paper 67 882 900 57
+    Draw-Text $cover.Graphics "$($design.cards.Count) 种卡牌    9 件遗物    2 个事件" 30 $paper 67 882 900 57
     Draw-Text $cover.Graphics "v$($design.version)  /  public-beta  /  cqbzly" 21 $muted 69 949 900 40
     $cover.Bitmap.Save((Join-Path $outputDirectory 'workshop-preview.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 }

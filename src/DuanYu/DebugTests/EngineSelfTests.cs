@@ -88,6 +88,7 @@ internal static class EngineSelfTests
             await RunCase("runtime:initial-deck-sequence", InitialDeckSequence);
             foreach (var test in QiResourceSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in QiRetentionSelfTests.Cases) await RunCase(test.Name, test.Action);
+            foreach (var test in CircletSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in ReadabilityBalanceSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in CardRoleSelfTests.Cases) await RunCase(test.Name, test.Action);
             await RunCase("runtime:spending-cannot-borrow-pendant", CannotBorrowPendant);

@@ -80,6 +80,7 @@ internal static class DuanYuArt
             "CQBZLY_DY_RELIC06" => 4,
             "CQBZLY_DY_RELIC07" => 7,
             "CQBZLY_DY_RELIC08" or "CQBZLY_DY_VERMILION_WARD" => 5,
+            "CQBZLY_DY_RELIC09" => 14,
             "CQBZLY_DY_QI" or "CQBZLY_DY_POWER_U01" or "CQBZLY_DY_POWER_R01" => 8,
             "CQBZLY_DY_LINGBO" or "CQBZLY_DY_POWER_R02" or "CQBZLY_DY_POWER_U23" => 9,
             "CQBZLY_DY_QI_BLADE" or "CQBZLY_DY_POWER_U14" or "CQBZLY_DY_POWER_R07" => 10,
@@ -102,6 +103,7 @@ internal static class DuanYuArt
             10 => "<path d=\"M30 97L86 25L102 20L100 38L44 104Z\" fill=\"#8FE6C7\" stroke=\"#E6C47B\" stroke-width=\"3\"/><path d=\"M24 83L48 105M22 110L36 96\" stroke=\"#E6C47B\" stroke-width=\"8\"/><path d=\"M59 34L66 23M91 70L105 62\" stroke=\"#F2ECD7\" stroke-width=\"4\"/>",
             11 => "<path d=\"M64 21L102 37L94 80L64 108L34 80L26 37Z\" fill=\"#245C62\" stroke=\"#E6C47B\" stroke-width=\"6\"/><path d=\"M64 39V89M43 61H85\" stroke=\"#4EBDA8\" stroke-width=\"8\"/>",
             13 => "<path d=\"M39 89L70 26L77 51L52 100Z\" fill=\"#4EBDA8\"/><path d=\"M56 96L87 20L94 46L69 107Z\" fill=\"#F2ECD7\" stroke=\"#E6C47B\" stroke-width=\"3\"/><path d=\"M20 73A44 44 0 0 1 51 20M108 57A44 44 0 0 1 77 108\" fill=\"none\" stroke=\"#E6C47B\" stroke-width=\"5\"/><path d=\"M43 15L54 19L49 30M84 100L75 109L87 113\" fill=\"none\" stroke=\"#E6C47B\" stroke-width=\"4\"/>",
+            14 => "<ellipse cx=\"64\" cy=\"67\" rx=\"44\" ry=\"24\" fill=\"none\" stroke=\"#E6C47B\" stroke-width=\"11\"/><path d=\"M22 62Q64 88 106 62\" fill=\"none\" stroke=\"#4EBDA8\" stroke-width=\"5\"/><path d=\"M51 67L64 44L77 67L64 84Z\" fill=\"#4EBDA8\" stroke=\"#F2ECD7\" stroke-width=\"3\"/><path d=\"M40 27Q64 13 88 27M48 102Q64 112 80 102\" fill=\"none\" stroke=\"#4EBDA8\" stroke-width=\"3\"/>",
             _ => "<path d=\"M64 95Q24 88 24 54Q51 51 64 80Q77 51 104 54Q104 88 64 95Z\" fill=\"#4EBDA8\"/><path d=\"M64 89Q37 63 64 26Q91 63 64 89Z\" fill=\"#F2ECD7\" stroke=\"#E6C47B\" stroke-width=\"3\"/>"
         };
         return Wrap(size, size, $"<g transform=\"scale({Number(size / 128d)})\"><circle cx=\"64\" cy=\"64\" r=\"59\" fill=\"{Ink}\" stroke=\"{Jade}\" stroke-width=\"3\"/>{shape}</g>");

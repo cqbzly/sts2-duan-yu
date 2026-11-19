@@ -4,11 +4,11 @@
 
 ## 当前版本入口
 
-v0.5.10 本轮96张卡牌数据与图鉴校验、24/24项规则测试、442/442项真实游戏引擎回归通过；Debug与Release构建均0警告、0错误。127项资源结果沿用v0.5.1，本轮未重跑。详见[当前验证](runtime-verification.md)。本版未以自动策略采样推断胜率，历史完整通关记录不外推当前胜率。
+v0.5.11 本轮96张卡牌数据与图鉴校验、24/24项规则测试、451/451项真实游戏引擎回归、128/128项资源加载检查通过；Debug与Release构建均0警告、0错误。详见[当前验证](runtime-verification.md)。本版未以自动策略采样推断胜率，历史完整通关记录不外推当前胜率。
 
 主动消耗、状态牌与外门借招的回归不扩大为远程多人或任意第三方组合兼容。Godot RID/ObjectDB/resources退出回收告警与引擎断言分开记录。
 
-版本源码见 [GitHub 仓库](https://github.com/cqbzly/sts2-duan-yu)；当前 v0.5.10 使用已有的公开 [Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。订阅回装和任意第三方模组组合仍需单独验证。下文保留旧版本环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
+版本源码见 [GitHub 仓库](https://github.com/cqbzly/sts2-duan-yu)；当前 v0.5.11 使用已有的公开 [Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。订阅回装和任意第三方模组组合仍需单独验证。下文保留旧版本环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
 
 ## 已验证环境
 
@@ -19,14 +19,14 @@ v0.5.10 本轮96张卡牌数据与图鉴校验、24/24项规则测试、442/442�
 | 检查 | 实际结果 | 范围和限制 |
 | --- | --- | --- |
 | `node scripts/validate.mjs` | 通过 | 96 张卡牌、稀有度分布、起始牌组、衍生牌引用和图鉴一致性。 |
-| `scripts/test-assets.ps1` | v0.5.1通过，127 个纹理/场景；本轮未重跑 | 使用 Godot 4.5.1 Mono 独立进程加载程序化生成的 `.ctex` 与 `.tscn`。 |
+| `scripts/test-assets.ps1` | 本轮128/128个纹理/场景通过 | 使用 Godot 4.5.1 Mono 独立进程加载程序化生成的 `.ctex` 与 `.tscn`，包含专属头环。 |
 | 规则单元测试 | 本轮24/24通过 | 真气、凌波、状态和关键触发规则；不替代宿主引擎回归。 |
 | Release 构建 | 本轮通过，0警告、0错误 | 生成 `CQBZLY_DUAN_YU.dll`；不等于 Steam 上传成功。 |
 | 隔离游戏启动 | 历史通过 | 只加载 BaseLib、Compatibility Helper 和段誉；模组初始化、角色注册、主菜单加载成功。 |
-| 引擎内 Debug 自测 | 本轮442/442通过，0失败 | 96张卡牌基础/升级执行、关键资源机制、图鉴、奖励过滤、事件边界、抽弃牌与剑气回收；报告见当前验证。 |
+| 引擎内 Debug 自测 | 本轮451/451通过，0失败 | 96张卡牌基础/升级执行、关键资源机制、图鉴、奖励过滤、事件边界、抽弃牌与剑气回收，新增头环升级、旧存档选项迁移与持有者隔离；报告见当前验证。 |
 | 人工 UI 冒烟 | 历史通过 | 在隔离副本中成功选择段誉并完成首战，随后获得段誉卡牌；没有覆盖完整通关。 |
 
-本轮报告见[v0.5.10 最终引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.10/v0510-card-tuning-engine-tests.json)。测试副本只加载BaseLib、Compatibility Helper和段誉。退出时出现Godot RID与资源回收提示，尚未完成泄漏归因，不能据此判定段誉卡牌断言失败，也不能声称日志无异常。资源检查127项沿用 v0.5.1，本轮未重跑。
+本轮报告见[v0.5.11 最终引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.11/v0511-circlet-engine-tests.json)。测试副本只加载BaseLib、Compatibility Helper和段誉。退出时出现Godot RID与资源回收提示，尚未完成泄漏归因，不能据此判定段誉卡牌断言失败，也不能声称日志无异常。本轮128项资源加载检查通过。
 
 ## 本机已安装模组
 
@@ -60,7 +60,7 @@ v0.5.10 本轮96张卡牌数据与图鉴校验、24/24项规则测试、442/442�
 .\scripts\package.ps1 -Configuration Release -SkipBuild
 ```
 
-`dist/DuanYu-0.5.10.zip` 内含：
+`dist/DuanYu-0.5.11.zip` 内含：
 
 ```text
 DuanYu/CQBZLY_DUAN_YU.dll
@@ -80,12 +80,12 @@ workshop-workspace/
   image.png
 ```
 
-`workshop/workshop.json`已提供中文说明、public可见性与BaseLib工坊项目数字ID；脚本同步`DuanYu.json`中的版本信息。封面为项目生成的`assets/workshop-preview.png`，小于1MB。上传器来源、执行命令和条目更新方式见[上传说明](workshop-upload.md)，本版内容和验证结果见[版本记录](releases/v0.5.10.md)。
+`workshop/workshop.json`已提供中文说明、public可见性与BaseLib工坊项目数字ID；脚本同步`DuanYu.json`中的版本信息。封面为项目生成的`assets/workshop-preview.png`，小于1MB。上传器来源、执行命令和条目更新方式见[上传说明](workshop-upload.md)，本版内容和验证结果见[版本记录](releases/v0.5.11.md)。
 
 发布流程使用官方 `ModUploader.exe upload -w <workshop-workspace>` 更新现有公开条目 `3841781260`，工作区保留原条目ID。上传后查询远程版本和公开状态；订阅回装、角色选择、首战、继续游戏和卸载提示仍需各自验证。上传器使用当前Steam客户端登录账号，GitHub的`cqbzly`账号不能代替Steam发布权限。
 
 ## 发布判定
 
-`v0.5.10`延续现有公开发布方式，清单和DLL名称沿用既有约定。本轮Release构建0警告、0错误，独立游戏引擎回归442/442通过；程序化资源加载检查沿用v0.5.1结果。当前证据仍不能证明与本机所有模组无冲突；Steam订阅回装、远程联机和第三方组合测试未完成。
+`v0.5.11`延续现有公开发布方式，清单和DLL名称沿用既有约定。本轮Debug与Release构建均0警告、0错误，独立游戏引擎回归451/451、资源加载128/128通过。当前证据仍不能证明与本机所有模组无冲突；Steam订阅回装、远程联机和第三方组合测试未完成。
 
 每次发布保存包含游戏版本、BaseLib版本、测试模组列表、发布版本和自测报告的记录；更新游戏或BaseLib后重新执行构建、资源检查、隔离引擎自测和最小联合测试。

@@ -246,6 +246,7 @@ public static class DuanYuState
     public static async Task StartRelicCombat(Player player, int relicNumber)
     {
         if (relicNumber == 1 && HasRelic(player, "CQBZLY_DY_RELIC01")) await GainQi(player, 3);
+        if (relicNumber == 9 && HasRelic(player, "CQBZLY_DY_RELIC09")) await GainQi(player, 5);
         if (relicNumber == 8)
             await PowerCmd.Apply<VermilionWardPower>(new ThrowingPlayerChoiceContext(), player.Creature, 1, player.Creature, null);
     }
@@ -290,6 +291,7 @@ public static class DuanYuState
         }
         foreach (var relic in player.Relics.Where(relic => !relic.IsMelted).ToArray())
         {
+            if (relic.Id.Entry == "CQBZLY_DY_RELIC09") await GainQi(player, 1);
             if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC02" && state.Qi == 0) await GainQi(player, 1);
             if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC07" && state.PreviousTurnWasPeaceful) await GainQi(player, 1);
         }

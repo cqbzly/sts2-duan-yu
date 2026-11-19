@@ -24,7 +24,7 @@ public partial class SmokeTest : Node
                 if (texture.GetWidth() <= 0 || texture.GetHeight() <= 0) throw new InvalidOperationException("Empty texture: " + path);
                 loaded++;
             }
-            foreach (string path in Enumerable.Range(1, 8).Select(number => DuanYuAssets.RelicIcon($"CQBZLY_DY_RELIC{number:00}"))
+            foreach (string path in Enumerable.Range(1, 9).Select(number => DuanYuAssets.RelicIcon($"CQBZLY_DY_RELIC{number:00}"))
                 .Concat(new[] { "CQBZLY_DY_QI", "CQBZLY_DY_LINGBO", "CQBZLY_DY_QI_BLADE", "CQBZLY_DY_SWORD_MOMENTUM", "CQBZLY_DY_VERMILION_WARD", "CQBZLY_DY_POWER_R22" }.Select(DuanYuAssets.PowerIcon))
                 .Concat(new[] { "CQBZLY_DY_EVENT01", "CQBZLY_DY_EVENT02" }.Select(DuanYuAssets.EventPortrait)))
             {
