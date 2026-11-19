@@ -30,9 +30,9 @@ public sealed class DuanYuCharacter : PlaceholderCharacterModel
 
     public override IEnumerable<CardModel> StartingDeck =>
     [
-        ModelDb.Card<DY_B01>(), ModelDb.Card<DY_B01>(), ModelDb.Card<DY_B01>(),
+        ModelDb.Card<DY_B01>(), ModelDb.Card<DY_B01>(), ModelDb.Card<DY_B01>(), ModelDb.Card<DY_B01>(),
         ModelDb.Card<DY_B02>(), ModelDb.Card<DY_B02>(), ModelDb.Card<DY_B02>(), ModelDb.Card<DY_B02>(),
-        ModelDb.Card<DY_B03>(), ModelDb.Card<DY_B04>(), ModelDb.Card<DY_B05>()
+        ModelDb.Card<DY_B03>(), ModelDb.Card<DY_B05>()
     ];
 
     public override IReadOnlyList<RelicModel> StartingRelics => [ModelDb.Relic<LanghuanPendant>()];

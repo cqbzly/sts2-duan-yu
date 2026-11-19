@@ -1,5 +1,5 @@
 {
-  "version": "0.5.1",
+  "version": "0.5.2",
   "character": {
     "id": "duan_yu",
     "name": "大理世子·段誉",
@@ -13,7 +13,7 @@
     "startingDeck": [
       {
         "id": "DY_B01",
-        "count": 3
+        "count": 4
       },
       {
         "id": "DY_B02",
@@ -21,10 +21,6 @@
       },
       {
         "id": "DY_B03",
-        "count": 1
-      },
-      {
-        "id": "DY_B04",
         "count": 1
       },
       {
