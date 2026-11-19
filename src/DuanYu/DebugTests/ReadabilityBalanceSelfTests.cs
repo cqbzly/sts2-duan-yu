@@ -61,9 +61,9 @@ internal static class ReadabilityBalanceSelfTests
     {
         var specifications = new (string Id, int BaseDamage, int UpgradedDamage, bool All)[]
         {
-            ("DY_B05", 20, 28, false), ("DY_C04", 10, 14, true),
-            ("DY_U07", 30, 42, false), ("DY_U17", 23, 31, true),
-            ("DY_U33", 16, 22, false), ("DY_R13", 58, 79, false),
+            ("DY_B05", 16, 22, false), ("DY_C04", 9, 12, true),
+            ("DY_U07", 27, 37, false), ("DY_U17", 20, 27, true),
+            ("DY_U33", 16, 22, false), ("DY_R13", 52, 70, false),
             ("DY_T01", 7, 10, false), ("DY_T03", 5, 7, true)
         };
         var specification = specifications.Single(value => value.Id == id);
@@ -104,8 +104,8 @@ internal static class ReadabilityBalanceSelfTests
         int health = fixture.Enemy.CurrentHp;
         int otherHealth = other.CurrentHp;
         int playerHealth = fixture.Player.Creature.CurrentHp;
-        int primary = upgraded ? 72 : 54;
-        int secondary = upgraded ? 29 : 22;
+        int primary = upgraded ? 64 : 48;
+        int secondary = upgraded ? 26 : 20;
         card.DynamicVars.Damage.UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
         card.DynamicVars["ExtraDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, other, true);
         EngineSelfTests.Equal((decimal)primary + 2, card.DynamicVars.Damage.PreviewValue, "R05 primary preview includes the combined damage with Strength once");
@@ -147,7 +147,7 @@ internal static class ReadabilityBalanceSelfTests
             await PowerCmd.Apply<ThornsPower>(context, second, 1, second, null);
             fixture.Player.PlayerCombatState!.Energy = paidX;
             var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand, upgraded);
-            int expected = (upgraded ? 10 : 7) * (paidX + (chemicalX ? 2 : 0) + 1) + 2;
+            int expected = (upgraded ? 9 : 6) * (paidX + (chemicalX ? 2 : 0) + 1) + 2;
             card.DynamicVars["XDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
             EngineSelfTests.Equal((decimal)expected, card.DynamicVars["XDamage"].PreviewValue, "R21 total preview multiplies resolved X before applying Strength once");
             int health = fixture.Enemy.CurrentHp;

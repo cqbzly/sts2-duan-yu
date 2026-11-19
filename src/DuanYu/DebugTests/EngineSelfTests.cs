@@ -87,7 +87,7 @@ internal static class EngineSelfTests
             }
             await RunCase("runtime:initial-deck-sequence", InitialDeckSequence);
             foreach (var test in QiResourceSelfTests.Cases) await RunCase(test.Name, test.Action);
-            foreach (var test in QiDecaySelfTests.Cases) await RunCase(test.Name, test.Action);
+            foreach (var test in QiRetentionSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in ReadabilityBalanceSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in CardRoleSelfTests.Cases) await RunCase(test.Name, test.Action);
             await RunCase("runtime:spending-cannot-borrow-pendant", CannotBorrowPendant);
@@ -107,7 +107,7 @@ internal static class EngineSelfTests
             await RunCase("runtime:lingbo-cap-only-new-hit", LingboCapOnlyHit);
             await RunCase("runtime:lingbo-preview-is-readonly", LingboPreview);
             await RunCase("runtime:sword-bonus-after-enchantment", SwordDamageOrdering);
-            await RunCase("runtime:wind-block-after-damage", WindBlockAfterDamage);
+            await RunCase("runtime:wind-block-on-lingbo-gain", WindBlockOnGain);
             await RunCase("runtime:ability-limit-is-not-reset", AbilityLimit);
             await RunCase("runtime:turn-start-clears-old-lingbo", TurnStartLingbo);
             await RunCase("runtime:generated-sword-overflow", SwordOverflow);
@@ -615,9 +615,8 @@ internal static class EngineSelfTests
         var initialHp = fixture.Player.Creature.CurrentHp;
         for (var hit = 0; hit < 5; hit++)
             await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
-        Equal(18, initialHp - fixture.Player.Creature.CurrentHp, "five attacks HP loss");
-        Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "all Lingbo consumed");
-        Equal(3, DuanYuState.Get(fixture.Player).LingboTriggers, "three reductions");
+        Equal(6, initialHp - fixture.Player.Creature.CurrentHp, "three Lingbo reduce all five attacks by three before block");
+        Equal(3, DuanYuState.Get(fixture.Player).Lingbo, "all layers persist across every hit");
     }
 
     private static async Task LingboNonAttacks()
@@ -633,35 +632,46 @@ internal static class EngineSelfTests
         await PowerCmd.Apply<WeakPower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 1, fixture.Enemy, null);
         var wither = fixture.Combat.CreateCard(ModelDb.Card<Wither>(), fixture.Player);
         await wither.OnTurnEndInHandWrapper(new ThrowingPlayerChoiceContext());
-        Equal(10, initialHp - fixture.Player.Creature.CurrentHp, "native Wither damage ignores Weak and Lingbo");
+        Equal(9, initialHp - fixture.Player.Creature.CurrentHp, "native Wither ignores Weak but receives Lingbo reduction");
         Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "native Wither preserves Lingbo");
         fixture.Player.Creature.GainBlockInternal(20);
         var burn = fixture.Combat.CreateCard(ModelDb.Card<Burn>(), fixture.Player);
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, burn.DynamicVars.Damage, burn, null);
-        Equal(18, fixture.Player.Creature.Block, "native Burn damage is blocked without Lingbo reduction");
+        Equal(19, fixture.Player.Creature.Block, "native Burn damage is reduced by Lingbo before block");
         var toxic = fixture.Combat.CreateCard(ModelDb.Card<Toxic>(), fixture.Player);
         await toxic.OnTurnEndInHandWrapper(new ThrowingPlayerChoiceContext());
-        Equal(13, fixture.Player.Creature.Block, "native Toxic damage is blocked without Lingbo reduction");
+        Equal(15, fixture.Player.Creature.Block, "native Toxic damage is reduced by Lingbo before block");
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 4, ValueProp.Unpowered, fixture.Enemy);
-        Equal(9, fixture.Player.Creature.Block, "unpowered retaliation is blocked without Lingbo reduction");
-        Equal(10, initialHp - fixture.Player.Creature.CurrentHp, "blocked nonattacks preserve HP");
+        Equal(12, fixture.Player.Creature.Block, "unpowered retaliation is reduced by Lingbo before block");
+        Equal(9, initialHp - fixture.Player.Creature.CurrentHp, "blocked nonattacks preserve HP");
         Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "blocked nonattacks preserve Lingbo");
-        Equal(0, DuanYuState.Get(fixture.Player).LingboTriggers, "nonattacks never trigger Lingbo");
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
-        Equal(5, fixture.Player.Creature.Block, "following attack receives Lingbo reduction before block");
-        Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "full block consumes layer");
-        Equal(1, DuanYuState.Get(fixture.Player).LingboTriggers, "following attack consumes exactly one Lingbo");
+        Equal(8, fixture.Player.Creature.Block, "following attack receives Lingbo reduction before block");
+        Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "fully blocked damage preserves every layer");
     }
 
-    private static async Task WindBlockAfterDamage()
+    private static async Task WindBlockOnGain()
     {
         var fixture = await ReadyFixture();
         await Play(fixture, "DY_U23");
         await DuanYuState.GainLingbo(fixture.Player, 1);
+        Equal(5, fixture.Player.Creature.Block, "wind grants immediate block on each actual layer gained");
         var initialHp = fixture.Player.Creature.CurrentHp;
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
-        Equal(4, initialHp - fixture.Player.Creature.CurrentHp, "wind does not retroactively block");
-        Equal(3, fixture.Player.Creature.Block, "wind grants later block");
+        Equal(0, initialHp - fixture.Player.Creature.CurrentHp, "wind block protects against the next reduced hit");
+        Equal(1, fixture.Player.Creature.Block, "taking damage grants no further wind block");
+        await Play(fixture, "DY_U23", true);
+        await DuanYuState.GainLingbo(fixture.Player, 5);
+        Equal(25, fixture.Player.Creature.Block, "stacked wind grants twelve block for each of two actual new layers");
+        await DuanYuState.GainLingbo(fixture.Player, 1);
+        Equal(25, fixture.Player.Creature.Block, "a capped layer grants no wind block");
+        var companion = Player.CreateForNewRun(ModelDb.Character<DuanYuCharacter>(), UnlockState.all, 2);
+        fixture.Run.AddPlayerDebug(companion, -1);
+        companion.ResetCombatState();
+        fixture.Combat.AddPlayer(companion);
+        await DuanYuState.GainLingbo(companion, 1);
+        Equal(0, companion.Creature.Block, "another player's Lingbo does not borrow wind powers");
+        Equal(25, fixture.Player.Creature.Block, "another player's Lingbo does not reward the wind owner");
     }
 
     private static async Task LingboCapOnlyHit()
@@ -670,8 +680,8 @@ internal static class EngineSelfTests
         await DuanYuState.GainLingbo(fixture.Player, 2);
         var initialHp = fixture.Player.Creature.CurrentHp;
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), new[] { fixture.Player.Creature }, 5, ValueProp.Move, fixture.Enemy, null, null, ModifyDamageHookType.Cap);
-        Equal(4, initialHp - fixture.Player.Creature.CurrentHp, "cap-only copied attack receives target Lingbo");
-        Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "cap-only attack consumes one layer");
+        Equal(3, initialHp - fixture.Player.Creature.CurrentHp, "cap-only copied attack receives all target Lingbo");
+        Equal(2, DuanYuState.Get(fixture.Player).Lingbo, "cap-only attack preserves every layer");
     }
 
     private static async Task LingboPreview()
@@ -679,10 +689,10 @@ internal static class EngineSelfTests
         var fixture = await ReadyFixture();
         await DuanYuState.GainLingbo(fixture.Player, 2);
         var preview = Hook.ModifyDamage(fixture.Run, fixture.Combat, fixture.Player.Creature, fixture.Enemy, 5, ValueProp.Move, null, null, ModifyDamageHookType.All, CardPreviewMode.Normal, out _);
-        Equal(4m, preview, "Lingbo preview damage");
+        Equal(3m, preview, "Lingbo preview damage");
         Equal(2, DuanYuState.Get(fixture.Player).Lingbo, "preview does not consume layer");
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
-        Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "real damage consumes layer");
+        Equal(2, DuanYuState.Get(fixture.Player).Lingbo, "real damage also preserves every layer");
     }
 
     private static async Task SwordDamageOrdering()

@@ -24,6 +24,7 @@ internal static class BalanceSelfTests
             {
                 var suffix = upgraded ? "+" : "";
                 yield return ("balance:energy-cards-paid" + suffix, () => EnergyCards(upgraded));
+                yield return ("balance:rebalanced-qi-sources-paid" + suffix, () => QiSources(upgraded));
                 yield return ("balance:qi-before-pendant" + suffix, () => QiBeforePendant(upgraded));
                 yield return ("balance:six-swords-paid" + suffix, () => SixSwordPayment(upgraded));
                 yield return ("balance:sword-resource-boundaries" + suffix, () => SwordResourceBoundaries(upgraded));
@@ -91,6 +92,35 @@ internal static class BalanceSelfTests
             EngineSelfTests.Equal(specification.Swords, PileType.Hand.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), specification.Id + " retains sword generation");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SkillsPlayed, specification.Id + " does not consume first skill trigger");
             EngineSelfTests.Equal(energyBefore - cost, fixture.Player.PlayerCombatState.Energy, specification.Id + " does not receive first skill energy");
+            if (specification.Id is "DY_R09" or "DY_R10")
+            {
+                EngineSelfTests.Equal(false, card.Keywords.Contains(CardKeyword.Exhaust), specification.Id + " no longer carries Exhaust");
+                EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, specification.Id + " returns to discard after use");
+                await CardPileCmd.Add(card, PileType.Hand);
+                fixture.Player.PlayerCombatState.Energy = 2;
+                var health = fixture.Enemy.CurrentHp;
+                await PaidPlay(fixture, card);
+                EngineSelfTests.Equal(damage, health - fixture.Enemy.CurrentHp, specification.Id + " can be played again from discard");
+                EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, specification.Id + " remains reusable after the second play");
+            }
+        }
+    }
+
+    private static async Task QiSources(bool upgraded)
+    {
+        foreach (var id in new[] { "DY_B03", "DY_C10", "DY_U03" })
+        {
+            var fixture = await EngineSelfTests.ReadyFixture();
+            await SetQi(fixture, 0);
+            var card = EngineSelfTests.AddCard(fixture, id, PileType.Hand, upgraded);
+            fixture.Player.PlayerCombatState!.Energy = card.EnergyCost.GetAmountToSpend();
+            await PaidPlay(fixture, card);
+            var qi = id == "DY_B03" ? upgraded ? 2 : 1 : upgraded ? 3 : 2;
+            var block = id switch { "DY_B03" => upgraded ? 7 : 5, "DY_U03" => upgraded ? 20 : 15, _ => 0 };
+            EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, id + " grants its exact rebalanced Qi");
+            EngineSelfTests.Equal(block, fixture.Player.Creature.Block, id + " retains its printed block");
+            EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, id + " pays its actual energy cost");
+            EngineSelfTests.Equal(id == "DY_C10" ? PileType.Exhaust : PileType.Discard, card.Pile!.Type, id + " retains its intended lifecycle");
         }
     }
 
@@ -105,7 +135,7 @@ internal static class BalanceSelfTests
             fixture.Player.PlayerCombatState!.Energy = paid;
             var health = fixture.Player.Creature.CurrentHp;
             await PaidPlay(fixture, card);
-            var energy = id switch { "DY_U02" => 1, "DY_U04" => 1, "DY_R04" when upgraded => 2, "DY_R04" => 1, _ => 0 };
+            var energy = id switch { "DY_U02" => 1, "DY_U04" when upgraded => 2, "DY_U04" => 1, "DY_R04" when upgraded => 2, "DY_R04" => 1, _ => 0 };
             EngineSelfTests.Equal(energy, fixture.Player.PlayerCombatState.Energy, id + " energy after actual payment");
             var qi = upgraded ? 3 : 2;
             EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, id + " printed Qi");
@@ -526,14 +556,14 @@ internal static class BalanceSelfTests
         await SetQi(blockFixture, 0);
         await PaidPlay(blockFixture, "DY_B03", true);
         EngineSelfTests.Equal(7, blockFixture.Player.Creature.Block, "upgraded B03 block");
-        EngineSelfTests.Equal(3, DuanYuState.Get(blockFixture.Player).Qi, "upgraded B03 printed Qi");
+        EngineSelfTests.Equal(2, DuanYuState.Get(blockFixture.Player).Qi, "upgraded B03 printed Qi");
 
         var attackFixture = await EngineSelfTests.ReadyFixture();
         attackFixture.Player.PlayerCombatState!.Energy = 1;
         await SetQi(attackFixture, 2);
         var initialHp = attackFixture.Enemy.CurrentHp;
         await PaidPlay(attackFixture, "DY_B05", true);
-        EngineSelfTests.Equal(28, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 combined damage");
+        EngineSelfTests.Equal(22, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 combined damage");
         EngineSelfTests.Equal(0, DuanYuState.Get(attackFixture.Player).Qi, "upgraded B05 spends exactly two Qi");
     }
 

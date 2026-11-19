@@ -66,20 +66,6 @@ internal static class DuanYuTurnEndHook
     }
 }
 
-[HarmonyPatch(typeof(Hook), nameof(Hook.AfterSideTurnEnd))]
-internal static class DuanYuQiDecayHook
-{
-    private static void Postfix(CombatSide side, IEnumerable<Creature> participants, ref Task __result)
-    {
-        if (side != CombatSide.Player) return;
-        var players = participants.Select(creature => creature.Player).OfType<Player>().Distinct().ToArray();
-        __result = DuanYuHookTasks.After(__result, async () =>
-        {
-            foreach (var player in players) await DuanYuState.DecayQiAtTurnEnd(player);
-        });
-    }
-}
-
 [HarmonyPatch(typeof(Hook), nameof(Hook.BeforeCardPlayed))]
 internal static class DuanYuBeforeCardHook
 {
@@ -98,21 +84,9 @@ internal static class DuanYuDamageHook
     private static void Postfix(Creature? target, ValueProp props, ref IEnumerable<AbstractModel> modifiers, ref decimal __result)
     {
         if (target?.Player == null || target.GetPower<LingboPower>() is not { } lingbo) return;
-        var reduction = DuanYuCombatLedger.ReduceAttack(__result, props.IsPoweredAttack(), lingbo.Amount);
-        if (!reduction.ConsumesLingbo) return;
-        __result = reduction.Damage;
+        var reduced = DuanYuCombatLedger.ReduceDamage(__result, props.HasFlag(ValueProp.Unblockable), lingbo.Amount);
+        if (reduced == __result) return;
+        __result = reduced;
         modifiers = modifiers.Append(lingbo).Distinct().ToArray();
     }
-}
-
-[HarmonyPatch(typeof(Hook), nameof(Hook.BeforeDamageReceived))]
-internal static class DuanYuBeforeIncomingDamageHook
-{
-    private static void Prefix(Creature target) => DuanYuState.BeforeIncomingDamage(target);
-}
-
-[HarmonyPatch(typeof(Hook), nameof(Hook.AfterDamageReceived))]
-internal static class DuanYuAfterIncomingDamageHook
-{
-    private static void Postfix(Creature target, ref Task __result) => __result = DuanYuHookTasks.After(__result, () => DuanYuState.AfterIncomingDamage(target));
 }

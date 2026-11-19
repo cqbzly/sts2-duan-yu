@@ -343,7 +343,7 @@ internal static class SpecialCardSelfTests
         var volley = EngineSelfTests.AddCard(zero, "DY_R21", PileType.Hand, upgraded);
         var initialHp = zero.Enemy.CurrentHp;
         await PaidPlay(zero, volley);
-        EngineSelfTests.Equal(upgraded ? 10 : 7, initialHp - zero.Enemy.CurrentHp, "六脉齐发X为0仍造成一次基础伤害");
+        EngineSelfTests.Equal(upgraded ? 9 : 6, initialHp - zero.Enemy.CurrentHp, "六脉齐发X为0仍造成一次基础伤害");
         EngineSelfTests.Equal(0, DuanYuState.Get(zero.Player).Qi, "六脉齐发强制消耗三点真气");
         EngineSelfTests.Equal(PileType.Exhaust, volley.Pile!.Type, "六脉齐发自身消耗");
 
@@ -356,8 +356,8 @@ internal static class SpecialCardSelfTests
         var xInitialHp = combat.Enemy.CurrentHp;
         var secondInitialHp = secondEnemy.CurrentHp;
         await PaidPlay(combat, volleyWithX);
-        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按X加一计算单次总伤害");
-        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), secondInitialHp - secondEnemy.CurrentHp, "六脉齐发对全部敌人造成相同单次总伤害");
+        EngineSelfTests.Equal(3 * (upgraded ? 9 : 6), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按X加一计算单次总伤害");
+        EngineSelfTests.Equal(3 * (upgraded ? 9 : 6), secondInitialHp - secondEnemy.CurrentHp, "六脉齐发对全部敌人造成相同单次总伤害");
         EngineSelfTests.Equal(2, volleyWithX.EnergyCost.CapturedXValue, "六脉齐发捕获支付时的X值");
         EngineSelfTests.Equal(0, combat.Player.PlayerCombatState.Energy, "六脉齐发支付全部能量");
     }
@@ -415,18 +415,18 @@ internal static class SpecialCardSelfTests
         var fixture = await ReadyFixture();
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_U28", PileType.Hand));
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_U28", PileType.Hand, true));
-        EngineSelfTests.Equal(3, fixture.Player.Creature.GetPowerAmount<PeacefulHeartPower>(), "exhaust-block powers stack normal and upgraded amounts");
+        EngineSelfTests.Equal(5, fixture.Player.Creature.GetPowerAmount<PeacefulHeartPower>(), "exhaust-block powers stack normal and upgraded amounts");
         EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "playing the power grants no immediate block");
         await SetQi(fixture, 0);
         var fuel = EngineSelfTests.AddCard(fixture, "DY_B01", PileType.Hand);
         await CardCmd.Exhaust(new ThrowingPlayerChoiceContext(), fuel);
-        EngineSelfTests.Equal(3, fixture.Player.Creature.Block, "active exhaust grants stacked power block once");
+        EngineSelfTests.Equal(5, fixture.Player.Creature.Block, "active exhaust grants stacked power block once");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "exhaust power grants no Qi");
         EngineSelfTests.Equal(0, PileType.Hand.GetPile(fixture.Player).Cards.Count, "exhaust power grants no card draw");
         await DuanYuState.EndTurn(fixture.Player);
-        EngineSelfTests.Equal(3, fixture.Player.Creature.Block, "peaceful end-turn grants no obsolete passive block");
+        EngineSelfTests.Equal(5, fixture.Player.Creature.Block, "peaceful end-turn grants no obsolete passive block");
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_S02", PileType.Hand));
-        EngineSelfTests.Equal(6, fixture.Player.Creature.Block, "played Exhaust status triggers the power once");
+        EngineSelfTests.Equal(10, fixture.Player.Creature.Block, "played Exhaust status triggers the power once");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "played Exhaust status restores one Qi through the exhaust power");
     }
 

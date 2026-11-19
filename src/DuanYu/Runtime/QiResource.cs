@@ -27,7 +27,7 @@ public sealed class QiResource() : BasicCustomResource("CQBZLY_DY_QI_RESOURCE")
     public override bool ShouldShowDisplay() => Owner != null && (DuanYuState.IsDuanYu(Owner) || Amount > 0);
     public override string GetTextForAmount(int displayAmount) => $"{displayAmount}/{DuanYuState.QiCap}";
     public override HoverTip? MakeTip() => new(ModelDb.Power<QiPower>().Title,
-        "段誉的专属资源，最多9点。自己的回合结束且其他回合末效果结算后失去1点，最低为0，剩余真气跨回合保留；自然流失不算支付真气。运气N：获得N点真气。需N点真气：打出整张牌前必须足额支付；不足时不能打出。能量免费不会免除真气费用；同一次出牌的重放不重复支付。",
+        "段誉的专属资源，最多9点，跨回合保留。运气N：获得N点真气。需N点真气：打出整张牌前必须足额支付；不足时不能打出。能量免费不会免除真气费用；同一次出牌的重放不重复支付。",
         DuanYuAssets.Texture(TexturePath));
 
     public override async Task<bool> Spend<T>(ICombatState combatState, AbstractModel? spender, int amount, bool optional)

@@ -191,7 +191,7 @@ internal static class QiResourceSelfTests
         await SetQi(player, 3);
         await CardCmd.AutoPlay(new ThrowingPlayerChoiceContext(), card, fixture.Enemy, skipCardPileVisuals: true);
         EngineSelfTests.Equal(1, DuanYuState.Get(player).Qi, "auto-play pays its full Qi cost");
-        EngineSelfTests.Equal(20, health - fixture.Enemy.CurrentHp, "paid auto-play resolves the full card");
+        EngineSelfTests.Equal(16, health - fixture.Enemy.CurrentHp, "paid auto-play resolves the full card");
         EngineSelfTests.Equal(energy, player.PlayerCombatState.Energy, "auto-play leaves native energy free");
         await CardPileCmd.Add(card, PileType.Hand);
         health = fixture.Enemy.CurrentHp;

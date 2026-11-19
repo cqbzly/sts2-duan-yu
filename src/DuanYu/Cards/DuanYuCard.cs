@@ -77,7 +77,7 @@ public abstract class DuanYuCard : CustomCardModel
     public override IEnumerable<CardKeyword> CanonicalKeywords => DesignId == "DY_S01"
         ? [CardKeyword.Unplayable, CardKeyword.Ethereal]
         : DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? [CardKeyword.Exhaust, CardKeyword.Ethereal]
-        : DesignId is "DY_C22" or "DY_C10" or "DY_C17" or "DY_U02" or "DY_U04" or "DY_U09" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U25" or "DY_U27" or "DY_U35" or "DY_U36" or "DY_U37" or "DY_U38" or "DY_R04" or "DY_R09" or "DY_R10" or "DY_R11" or "DY_R14" or "DY_R16" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
+        : DesignId is "DY_C22" or "DY_C10" or "DY_C17" or "DY_U02" or "DY_U04" or "DY_U09" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U25" or "DY_U27" or "DY_U35" or "DY_U36" or "DY_U37" or "DY_U38" or "DY_R04" or "DY_R11" or "DY_R14" or "DY_R16" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
     public override List<(string, string)> Localization => new CardLoc(Definition.Name,
         "{IfUpgraded:show:" + DescriptionText(true) + "|" + DescriptionText(false) + "}",
         ("selectionScreenPrompt", "选择卡牌"), ("qiTipTitle", "真气与耗气"), ("lingboTipTitle", "凌波"), ("swordTipTitle", "六脉剑气"), ("statusTipTitle", "专属状态牌"), ("foreignTipTitle", "外门招式"));
@@ -86,7 +86,7 @@ public abstract class DuanYuCard : CustomCardModel
         get
         {
             if (Definition.Text.Contains("气", StringComparison.Ordinal))
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，最多9点。自己的回合末效果全部结算后失去1点真气，最低0，不算支付。需N点真气：打出整张牌前必须足额支付，不足时不能打出。能量免费仍需支付真气；同一次出牌的重放不重复支付。" + QiPreview());
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，最多9点，跨回合保留。需N点真气：打出整张牌前必须足额支付，不足时不能打出。能量免费仍需支付真气；同一次出牌的重放不重复支付。" + QiPreview());
             if (Definition.Text.Contains("凌波", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<LingboPower>();
             if (DuanYuState.IsSword(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
             if (Definition.Text.Contains("剑气", StringComparison.Ordinal))
@@ -94,7 +94,7 @@ public abstract class DuanYuCard : CustomCardModel
             if (Definition.Text.Contains("虚弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<WeakPower>();
             if (Definition.Text.Contains("易伤", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<VulnerablePower>();
             if (Definition.Text.Contains("气滞", StringComparison.Ordinal) || Definition.Text.Contains("异种真气", StringComparison.Ordinal) || Type == CardType.Status)
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".statusTipTitle"), "气滞：不可打出、虚无；回合结束时失去2点真气，随后结算自然流失1点。失去真气不算支付。异种真气：1费、消耗；运气2，获得1层剑势，抽1张牌。两者均不能升级。");
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".statusTipTitle"), "气滞：不可打出、虚无；回合结束时失去2点真气。失去真气不算支付。异种真气：1费、消耗；运气2，获得1层剑势，抽1张牌。两者均不能升级。");
             if (DesignId is "DY_U27" or "DY_U36")
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "从其他角色的全部非基础攻击牌中等概率借招，同一次不重复。固定能量费用本回合为0，X费用、专属资源费用和打出条件照常。借来的牌具有消耗，升级借招生成升级牌。");
         }

@@ -17,38 +17,37 @@ using MegaCrit.Sts2.Core.ValueProps;
 
 namespace DuanYu.DebugTests;
 
-internal static class QiDecaySelfTests
+internal static class QiRetentionSelfTests
 {
     internal static IEnumerable<(string Name, Func<Task> Action)> Cases
     {
         get
         {
-            yield return ("qi-decay:boundaries-and-independent-resource", ResourceBoundaries);
-            yield return ("qi-decay:once-per-turn-and-extra-turn", OncePerTurn);
-            yield return ("qi-decay:preserves-first-payment-rewards", PaymentRewards);
-            yield return ("qi-decay:side-participants-and-player-isolation", PlayerIsolation);
-            yield return ("qi-decay:after-guard-status-and-ethereal", TurnEndOrdering);
-            yield return ("qi-decay:inactive-combat-does-not-decay", InactiveCombat);
+            yield return ("qi-retention:boundaries-and-independent-resource", ResourceBoundaries);
+            yield return ("qi-retention:repeated-turn-end-and-extra-turn", RepeatedTurnEnds);
+            yield return ("qi-retention:preserves-first-payment-rewards", PaymentRewards);
+            yield return ("qi-retention:side-participants-and-player-isolation", PlayerIsolation);
+            yield return ("qi-retention:explicit-status-loss-and-ethereal-refund", TurnEndOrdering);
+            yield return ("qi-retention:inactive-combat-preserves-resource", InactiveCombat);
         }
     }
 
     private static async Task ResourceBoundaries()
     {
-        foreach (int startingQi in new[] { 0, 1, 9 })
+        foreach (int startingQi in new[] { 0, 1, 5, 9 })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             var player = fixture.Player;
             await SetQi(player, startingQi);
             player.PlayerCombatState!.Stars = 5;
+            await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
             await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
-            int expected = Math.Max(0, startingQi - 1);
-            AssertQi(player, expected, "natural decay from " + startingQi);
-            EngineSelfTests.Equal(5, player.PlayerCombatState.Stars, "natural Qi decay preserves native stars");
-            EngineSelfTests.Equal(DuanYuState.Get(player).TurnNumber, DuanYuState.Get(player).QiDecayTurn, "natural decay records its owner turn even at zero Qi");
+            AssertQi(player, startingQi, "turn-end retains " + startingQi + " Qi");
+            EngineSelfTests.Equal(5, player.PlayerCombatState.Stars, "Qi retention preserves independent native stars");
         }
     }
 
-    private static async Task OncePerTurn()
+    private static async Task RepeatedTurnEnds()
     {
         var fixture = await EngineSelfTests.ReadyFixture();
         var player = fixture.Player;
@@ -56,14 +55,14 @@ internal static class QiDecaySelfTests
         int turn = DuanYuState.Get(player).TurnNumber;
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
-        AssertQi(player, 4, "duplicate turn-end hook loses Qi only once");
+        AssertQi(player, 5, "duplicate turn-end hooks do not change Qi");
         await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [player.Creature]);
         await Hook.BeforeHandDraw(fixture.Combat, player, new ThrowingPlayerChoiceContext());
         EngineSelfTests.Equal(turn + 1, DuanYuState.Get(player).TurnNumber, "an extra player turn advances the independent turn counter");
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
-        AssertQi(player, 3, "an extra player turn incurs its own natural decay");
+        AssertQi(player, 5, "an extra player turn preserves Qi");
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
-        AssertQi(player, 3, "duplicate extra-turn hook also loses Qi only once");
+        AssertQi(player, 5, "duplicate extra-turn hooks also preserve Qi");
     }
 
     private static async Task PaymentRewards()
@@ -79,21 +78,21 @@ internal static class QiDecaySelfTests
         int draw = PileType.Draw.GetPile(player).Cards.Count;
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
         var state = DuanYuState.Get(player);
-        AssertQi(player, 0, "natural decay receives no Beiming refund");
-        EngineSelfTests.Equal(0, state.SpendingCount, "natural decay records no successful payment");
-        EngineSelfTests.Equal(false, state.SealUsed, "natural decay preserves the first seal trigger");
-        EngineSelfTests.Equal(false, state.PrayerBeadsUsedThisTurn, "natural decay preserves the first prayer trigger");
-        EngineSelfTests.Equal(0, player.PlayerCombatState.Energy, "natural decay grants no refund energy");
-        EngineSelfTests.Equal(0, player.Creature.Block, "natural decay grants no prayer block");
-        EngineSelfTests.Equal(0, PileType.Hand.GetPile(player).Cards.Count, "natural decay grants no first-payment draw");
-        EngineSelfTests.Equal(draw, PileType.Draw.GetPile(player).Cards.Count, "natural decay preserves the draw pile");
+        AssertQi(player, 1, "ordinary turn-end receives no Beiming refund or Qi loss");
+        EngineSelfTests.Equal(0, state.SpendingCount, "ordinary turn-end records no successful payment");
+        EngineSelfTests.Equal(false, state.SealUsed, "ordinary turn-end preserves the first seal trigger");
+        EngineSelfTests.Equal(false, state.PrayerBeadsUsedThisTurn, "ordinary turn-end preserves the first prayer trigger");
+        EngineSelfTests.Equal(0, player.PlayerCombatState.Energy, "ordinary turn-end grants no refund energy");
+        EngineSelfTests.Equal(0, player.Creature.Block, "ordinary turn-end grants no prayer block");
+        EngineSelfTests.Equal(0, PileType.Hand.GetPile(player).Cards.Count, "ordinary turn-end grants no first-payment draw");
+        EngineSelfTests.Equal(draw, PileType.Draw.GetPile(player).Cards.Count, "ordinary turn-end preserves the draw pile");
         await SetQi(player, 3);
         player.PlayerCombatState.Energy = 1;
         var card = EngineSelfTests.AddCard(fixture, "DY_U07", PileType.Hand);
         card.BaseReplayCount = 2;
         await EngineSelfTests.PaidPlay(fixture, card);
         AssertQi(player, 1, "the first genuine payment still receives one Beiming refund");
-        EngineSelfTests.Equal(1, state.SpendingCount, "native replay records one genuine payment after decay");
+        EngineSelfTests.Equal(1, state.SpendingCount, "native replay records one genuine payment after ordinary turn-end");
         EngineSelfTests.Equal(true, state.SealUsed, "genuine payment consumes the first seal trigger");
         EngineSelfTests.Equal(true, state.PrayerBeadsUsedThisTurn, "genuine payment consumes the first prayer trigger");
         EngineSelfTests.Equal(2, player.PlayerCombatState.Energy, "genuine payment receives Beiming and seal energy once");
@@ -120,21 +119,21 @@ internal static class QiDecaySelfTests
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Enemy, [first.Creature, second.Creature, fixture.Enemy]);
         AssertQi(first, 5, "enemy-side end preserves the first player Qi");
         AssertQi(second, 3, "enemy-side end preserves companion Qi");
-        EngineSelfTests.Equal(-1, DuanYuState.Get(first).QiDecayTurn, "enemy-side end does not consume the first decay guard");
-        EngineSelfTests.Equal(-1, DuanYuState.Get(second).QiDecayTurn, "enemy-side end does not consume companion decay guard");
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [first.Creature]);
-        AssertQi(first, 4, "participating player loses one Qi");
+        AssertQi(first, 5, "participating player retains Qi");
         AssertQi(second, 3, "nonparticipating companion preserves Qi");
-        EngineSelfTests.Equal(-1, DuanYuState.Get(second).QiDecayTurn, "nonparticipating companion preserves its decay guard");
         await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [first.Creature, second.Creature]);
         await Hook.BeforeHandDraw(fixture.Combat, first, new ThrowingPlayerChoiceContext());
         await Hook.BeforeHandDraw(fixture.Combat, second, new ThrowingPlayerChoiceContext());
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [first.Creature, second.Creature, first.Creature]);
-        AssertQi(first, 3, "duplicate participant loses Qi only once");
-        AssertQi(second, 2, "companion independently loses one Qi");
+        AssertQi(first, 5, "duplicate participant retains Qi");
+        AssertQi(second, 3, "companion independently retains Qi");
         await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [first.Creature, second.Creature]);
-        AssertQi(first, 3, "duplicate shared end preserves first player Qi");
-        AssertQi(second, 2, "duplicate shared end preserves companion Qi");
+        AssertQi(first, 5, "duplicate shared end preserves first player Qi");
+        AssertQi(second, 3, "duplicate shared end preserves companion Qi");
+        await DuanYuState.LoseQi(first, 2);
+        AssertQi(first, 3, "explicit Qi loss still affects its owner");
+        AssertQi(second, 3, "explicit owner loss does not change companion Qi");
     }
 
     private static async Task TurnEndOrdering()
@@ -145,12 +144,12 @@ internal static class QiDecaySelfTests
             var player = fixture.Player;
             await SetQi(player, startingQi);
             await DuanYuState.AddEffect(player, "DY_U05");
-            await DuanYuState.AddEffect(player, "DY_U28", 3);
+            await DuanYuState.AddEffect(player, "DY_U28", 2);
             var status = EngineSelfTests.AddCard(fixture, "DY_S01", PileType.Hand);
             CardCmd.ApplySingleTurnRetain(status);
             await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
-            AssertQi(player, startingQi, "guard hook precedes all natural Qi decay");
-            EngineSelfTests.Equal(startingQi / 2, player.Creature.Block, "Qi Guard uses the full pre-decay Qi amount");
+            AssertQi(player, startingQi, "guard hook preserves stored Qi");
+            EngineSelfTests.Equal(startingQi / 2, player.Creature.Block, "Qi Guard uses the stored Qi before explicit status loss");
             var turnState = AccessTools.Field(typeof(CombatManager), "_turnState").GetValue(CombatManager.Instance)!;
             await (Task)AccessTools.Method(typeof(CombatManager), "DoTurnEnd")
                 .Invoke(CombatManager.Instance, [turnState, player, new ThrowingPlayerChoiceContext()])!;
@@ -158,9 +157,9 @@ internal static class QiDecaySelfTests
             AssertQi(player, afterStatus, "status loses two Qi before ethereal exhaust restores one");
             EngineSelfTests.Equal(PileType.Exhaust, status.Pile!.Type, "ethereal status exhausts despite single-turn retain");
             EngineSelfTests.Equal(1, CombatManager.Instance.History.Entries.OfType<CardExhaustedEntry>().Count(entry => ReferenceEquals(entry.Card, status)), "native status exhaust occurs once");
-            EngineSelfTests.Equal(startingQi / 2 + 3, player.Creature.Block, "native status exhaustion grants one exhaust-power block trigger");
+            EngineSelfTests.Equal(startingQi / 2 + 2, player.Creature.Block, "native status exhaustion grants one exhaust-power block trigger");
             await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
-            AssertQi(player, afterStatus - 1, "natural decay follows all status and ethereal effects");
+            AssertQi(player, afterStatus, "side end preserves Qi after explicit status loss and exhaust refund");
             EngineSelfTests.Equal(0, DuanYuState.Get(player).SpendingCount, "the complete turn-end sequence records no genuine Qi payment");
         }
     }
@@ -179,12 +178,10 @@ internal static class QiDecaySelfTests
             int qi = DuanYuState.Get(player).Qi;
             int resource = CustomResources<QiResource>.Get(player.PlayerCombatState!).Amount;
             int power = player.Creature.GetPowerAmount<QiPower>();
-            int decayTurn = DuanYuState.Get(player).QiDecayTurn;
             await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
             EngineSelfTests.Equal(qi, DuanYuState.Get(player).Qi, "inactive turn-end hook preserves Qi");
             EngineSelfTests.Equal(resource, CustomResources<QiResource>.Get(player.PlayerCombatState!).Amount, "inactive turn-end hook preserves the resource display");
             EngineSelfTests.Equal(power, player.Creature.GetPowerAmount<QiPower>(), "inactive turn-end hook preserves the Qi power");
-            EngineSelfTests.Equal(decayTurn, DuanYuState.Get(player).QiDecayTurn, "inactive turn-end hook preserves the decay guard");
         }
     }
 

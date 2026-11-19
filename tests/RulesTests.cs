@@ -96,21 +96,21 @@ var cases = new (string Name, Action Check)[]
         Equal(false, ledger.TryProcessSpend(ledger.SpendingCount));
         Equal(false, ledger.TryProcessSpend(2));
     }),
-    ("Initial deck resource sequence leaves three Qi", () =>
+    ("Initial deck resource sequence leaves two Qi", () =>
     {
         var ledger = new DuanYuCombatLedger();
         ledger.GainQi(3);
         ledger.BeginTurn();
         ledger.RegisterPlay(true, false, null);
-        ledger.GainQi(2);
+        ledger.GainQi(1);
         ledger.RegisterPlay(true, false, null);
         ledger.RegisterPlay(false, true, null);
         Equal(true, ledger.TrySpendQi(2));
-        Equal(3, ledger.Qi);
+        Equal(2, ledger.Qi);
         Equal(0, ledger.Lingbo);
         Equal(2, ledger.SkillsPlayed);
     }),
-    ("Lingbo consumes exactly three layers across five hits", () =>
+    ("Lingbo reduces every hit without consuming layers", () =>
     {
         var ledger = new DuanYuCombatLedger();
         ledger.GainLingbo(9);
@@ -118,15 +118,13 @@ var cases = new (string Name, Action Check)[]
         var hpLost = 0m;
         for (var hit = 0; hit < 5; hit++)
         {
-            var reduction = DuanYuCombatLedger.ReduceAttack(5, true, ledger.Lingbo);
-            if (reduction.ConsumesLingbo) ledger.ConsumeLingbo();
-            var absorbed = Math.Min(block, reduction.Damage);
+            var damage = DuanYuCombatLedger.ReduceDamage(5, false, ledger.Lingbo);
+            var absorbed = Math.Min(block, damage);
             block -= absorbed;
-            hpLost += reduction.Damage - absorbed;
+            hpLost += damage - absorbed;
         }
-        Equal(18m, hpLost);
-        Equal(0, ledger.Lingbo);
-        Equal(3, ledger.LingboTriggers);
+        Equal(6m, hpLost);
+        Equal(3, ledger.Lingbo);
     }),
     ("Only a new turn restores the first-skill ordinal", () =>
     {
@@ -140,21 +138,34 @@ var cases = new (string Name, Action Check)[]
         ledger.BeginTurn();
         Equal(1, ledger.RegisterPlay(true, false, null).Skill);
     }),
-    ("Fully blocked attacks still consume Lingbo", () =>
+    ("Fully blocked hits preserve Lingbo", () =>
     {
         var ledger = new DuanYuCombatLedger();
         ledger.GainLingbo(1);
-        var reduction = DuanYuCombatLedger.ReduceAttack(5, true, ledger.Lingbo);
-        if (reduction.ConsumesLingbo) ledger.ConsumeLingbo();
-        Equal(16m, 20 - reduction.Damage);
-        Equal(0, ledger.Lingbo);
+        var damage = DuanYuCombatLedger.ReduceDamage(5, false, ledger.Lingbo);
+        Equal(16m, 20 - damage);
+        Equal(1, ledger.Lingbo);
     }),
-    ("Zero attacks and non-attack damage preserve Lingbo", () =>
+    ("Lingbo floors damage and preserves explicit HP loss", () =>
     {
-        Equal(new DuanYuAttackReduction(0, false), DuanYuCombatLedger.ReduceAttack(0, true, 1));
-        Equal(new DuanYuAttackReduction(5, false), DuanYuCombatLedger.ReduceAttack(5, false, 1));
-        Equal(new DuanYuAttackReduction(0, true), DuanYuCombatLedger.ReduceAttack(1, true, 1));
-        Equal(new DuanYuAttackReduction(4, true), DuanYuCombatLedger.ReduceAttack(5.9m, true, 1));
+        Equal(0m, DuanYuCombatLedger.ReduceDamage(0, false, 1));
+        Equal(5m, DuanYuCombatLedger.ReduceDamage(5, true, 1));
+        Equal(0m, DuanYuCombatLedger.ReduceDamage(1, false, 1));
+        Equal(4m, DuanYuCombatLedger.ReduceDamage(5.9m, false, 1));
+        Equal(2m, DuanYuCombatLedger.ReduceDamage(5, false, 3));
+    }),
+    ("Lingbo gains report only actual layers below the cap", () =>
+    {
+        var ledger = new DuanYuCombatLedger();
+        Equal(1, ledger.GainLingbo(1));
+        Equal(2, ledger.GainLingbo(int.MaxValue));
+        Equal(0, ledger.GainLingbo(1));
+        Equal(0, ledger.GainLingbo(0));
+        Equal(0, ledger.GainLingbo(-1));
+        Equal(3, ledger.Lingbo);
+        ledger.BeginTurn();
+        Equal(0, ledger.Lingbo);
+        Equal(2, ledger.GainLingbo(2));
     }),
     ("Upgrades and duplicate sword plays share one identity", () =>
     {

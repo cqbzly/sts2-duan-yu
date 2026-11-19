@@ -1,7 +1,6 @@
 namespace DuanYu.Runtime;
 
 public readonly record struct DuanYuPlayOrdinal(int Skill, int Sword, bool ThirdSwordKind, bool SixthSwordKind);
-public readonly record struct DuanYuAttackReduction(decimal Damage, bool ConsumesLingbo);
 
 public sealed class DuanYuRunHistory
 {
@@ -21,7 +20,6 @@ public class DuanYuCombatLedger
     public int SwordPlays { get; internal set; }
     public HashSet<string> DistinctSwords { get; } = [];
     public int SpendingCount { get; internal set; }
-    public int LingboTriggers { get; internal set; }
     public int TurnNumber { get; internal set; }
     public int SwordDamage { get; internal set; }
     public int SwordMomentum { get; internal set; }
@@ -46,17 +44,11 @@ public class DuanYuCombatLedger
 
     public bool TryProcessSpend(int ordinal) => ordinal > 0 && ordinal <= SpendingCount && processedSpendOrdinals.Add(ordinal);
 
-    public void GainLingbo(int amount)
+    public int GainLingbo(int amount)
     {
+        var previous = Lingbo;
         if (amount > 0) Lingbo = (int)Math.Min(3L, (long)Lingbo + amount);
-    }
-
-    public bool ConsumeLingbo()
-    {
-        if (Lingbo <= 0) return false;
-        Lingbo -= 1;
-        LingboTriggers += 1;
-        return true;
+        return Lingbo - previous;
     }
 
     public bool BeginTurn()
@@ -68,7 +60,6 @@ public class DuanYuCombatLedger
         AttacksPlayed = 0;
         SwordPlays = 0;
         SpendingCount = 0;
-        LingboTriggers = 0;
         SwordMomentum = 0;
         DistinctSwords.Clear();
         processedSpendOrdinals.Clear();
@@ -92,9 +83,9 @@ public class DuanYuCombatLedger
         return new DuanYuPlayOrdinal(skill ? SkillsPlayed : 0, swordId == null ? 0 : SwordPlays, thirdKind, sixthKind);
     }
 
-    public static DuanYuAttackReduction ReduceAttack(decimal damage, bool attack, int lingbo)
+    public static decimal ReduceDamage(decimal damage, bool hpLoss, int lingbo)
     {
-        if (!attack || lingbo <= 0 || damage < 1) return new DuanYuAttackReduction(damage, false);
-        return new DuanYuAttackReduction(Math.Max(0, decimal.Floor(damage) - LingboReduction), true);
+        if (hpLoss || lingbo <= 0 || damage < 1) return damage;
+        return Math.Max(0, decimal.Floor(damage) - (long)Math.Min(3, lingbo) * LingboReduction);
     }
 }

@@ -24,14 +24,13 @@ public abstract class DuanYuPower : CustomPowerModel
 [CustomID("CQBZLY_DY_QI")]
 public sealed class QiPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("真气", "当前有{Amount}点真气，最多9点。自己的回合末效果全部结算后失去1点，最低0，不算支付真气；剩余跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。", "当前有{Amount}点真气，最多9点。自己的回合末效果全部结算后失去1点，最低0，不算支付真气；剩余跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。");
+    public override List<(string, string)> Localization => new PowerLoc("真气", "当前有{Amount}点真气，最多9点，跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。", "当前有{Amount}点真气，最多9点，跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。");
 }
 
 [CustomID("CQBZLY_DY_LINGBO")]
 public sealed class LingboPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("凌波", "接下来的{Amount}段正数攻击伤害各降低1点，然后结算格挡。最多3层，在你的下回合开始时清除。", "接下来的{Amount}段正数攻击伤害各降低1点，然后结算格挡。最多3层，在你的下回合开始时清除。");
-    public override Task AfterModifyingDamageAmount(CardModel? cardSource) => Owner.Player is { } player ? DuanYuState.ConsumeLingbo(player) : Task.CompletedTask;
+    public override List<(string, string)> Localization => new PowerLoc("凌波", "本回合受到的伤害每段降低{Amount}点。最多3层，下个自己的回合开始清除。失去生命不受影响。", "本回合受到的伤害每段降低{Amount}点。最多3层，下个自己的回合开始清除。失去生命不受影响。");
 }
 
 [CustomID("CQBZLY_DY_QI_BLADE")]
@@ -105,7 +104,7 @@ public sealed class SwordProficiencyPower : DuanYuEffectPower
 public sealed class WindWithoutTracePower : DuanYuEffectPower
 {
     protected override string Title => "风过无痕";
-    protected override string Rule => "每回合首次凌波减伤的该段伤害结算后，获得{Amount}点格挡。";
+    protected override string Rule => "每获得1层凌波，获得{Amount}点格挡。";
 }
 [CustomID("CQBZLY_DY_POWER_U28")]
 public sealed class PeacefulHeartPower : DuanYuEffectPower
@@ -126,7 +125,7 @@ public sealed class PeacefulHeartPower : DuanYuEffectPower
 public sealed class BeimingPower : DuanYuEffectPower
 {
     protected override string Title => "北冥神功";
-    protected override string Rule => "每回合前2次有牌支付真气后，运气{Amount}；首次另按每份北冥神功获得1点能量。自然流失不触发。";
+    protected override string Rule => "每回合前2次有牌支付真气后，运气{Amount}；首次另按每份北冥神功获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R02")]
 public sealed class LingboFootworkPower : DuanYuEffectPower

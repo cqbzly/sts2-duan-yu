@@ -24,13 +24,10 @@ public sealed class PlayerRuntimeState : DuanYuCombatLedger
     public List<DuanYuDelayedEffect> DelayedEffects { get; } = [];
     internal Dictionary<CardPlay, DuanYuPlayRecord> Plays { get; } = [];
     internal Stack<CardPlay> ActivePlays { get; } = [];
-    internal Stack<int> IncomingDamage { get; } = [];
-    internal int PendingWindBlock { get; set; }
     internal bool SealUsed { get; set; }
     internal bool PrayerBeadsUsedThisTurn { get; set; }
     internal bool PreviousTurnWasPeaceful { get; set; }
     internal int StatusExhaustTriggers { get; set; }
-    internal int QiDecayTurn { get; set; } = -1;
     internal ICombatState? Combat { get; set; }
     internal Dictionary<CardModel, DuanYuPlayRecord> PendingCardSpends { get; } = [];
 }
@@ -181,8 +178,11 @@ public static class DuanYuState
     {
         if (amount <= 0 || !CanAct(player)) return;
         var state = Get(player);
-        state.GainLingbo(amount);
+        var gained = state.GainLingbo(amount);
+        if (gained <= 0) return;
         await SyncPower<LingboPower>(player, state.Lingbo, source);
+        foreach (var effect in state.Effects.Where(effect => effect.CardId == "DY_U23").ToArray())
+            if (CanAct(player)) await GainBlock(player, gained * effect.Amount);
     }
 
     public static async Task GainSwordMomentum(Player player, int amount, CardModel? source = null)
@@ -267,8 +267,6 @@ public static class DuanYuState
         state.PreviousTurnWasPeaceful = state.BeginTurn();
         state.StatusExhaustTriggers = 0;
         state.PrayerBeadsUsedThisTurn = false;
-        state.IncomingDamage.Clear();
-        state.PendingWindBlock = 0;
         if (player.Creature.GetPower<LingboPower>() is { } lingbo) lingbo.RemoveInternal();
         if (player.Creature.GetPower<SwordMomentumPower>() is { } momentum) momentum.RemoveInternal();
     }
@@ -343,15 +341,6 @@ public static class DuanYuState
         }
         state.SwordDamage = 0;
         await PowerCmd.Remove<QiBladePower>(player.Creature);
-    }
-
-    internal static async Task DecayQiAtTurnEnd(Player player)
-    {
-        if (!CanAct(player)) return;
-        var state = Get(player);
-        if (state.QiDecayTurn == state.TurnNumber) return;
-        state.QiDecayTurn = state.TurnNumber;
-        await LoseQi(player, 1);
     }
 
     internal static void BeforeCard(CardPlay play)
@@ -429,29 +418,6 @@ public static class DuanYuState
             effects = record.Effects;
         }
         return ordinal is > 0 and <= 2 ? effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount) : 0;
-    }
-
-    internal static async Task ConsumeLingbo(Player player)
-    {
-        var state = Get(player);
-        if (!state.ConsumeLingbo()) return;
-        state.PendingWindBlock = state.LingboTriggers == 1 ? state.Effects.Where(effect => effect.CardId == "DY_U23").Sum(effect => effect.Amount) : 0;
-        await SyncPower<LingboPower>(player, state.Lingbo);
-    }
-
-    internal static void BeforeIncomingDamage(Creature target)
-    {
-        if (target.Player is not { } player) return;
-        var state = Get(player);
-        state.IncomingDamage.Push(state.PendingWindBlock);
-        state.PendingWindBlock = 0;
-    }
-
-    internal static async Task AfterIncomingDamage(Creature target)
-    {
-        if (target.Player is not { } player) return;
-        var state = Get(player);
-        if (state.IncomingDamage.TryPop(out var block) && block > 0 && CanAct(player)) await GainBlock(player, block);
     }
 
     private static Task<decimal> GainBlock(Player player, int amount) => CreatureCmd.GainBlock(player.Creature, amount, ValueProp.Move, null);

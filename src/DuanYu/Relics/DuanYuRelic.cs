@@ -41,7 +41,7 @@ public sealed class LanghuanPendant : DuanYuRelic
     public override int RelicNumber => 1;
     protected override string LocalizationId => "DY_RELIC01";
     protected override string TitleText => "琅嬛玉佩";
-    protected override string DescriptionText => "每场战斗开始时，运气3。你的回合结束时，失去1点真气。";
+    protected override string DescriptionText => "每场战斗开始时，运气3。";
     protected override string FlavorText => "玉声清越，似有无数旧卷在其中翻动。";
     public override RelicRarity Rarity => RelicRarity.Starter;
 }

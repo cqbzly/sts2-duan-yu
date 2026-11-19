@@ -97,7 +97,7 @@ internal static class StructureCardSelfTests
             var source = EngineSelfTests.AddCard(fixture, "DY_C23", PileType.Hand, upgraded);
             var health = fixture.Enemy.CurrentHp;
             await PaidPlay(fixture, source);
-            EngineSelfTests.Equal(upgraded ? 10 : 7, health - fixture.Enemy.CurrentHp, "zero-cost attack deals its printed damage");
+            EngineSelfTests.Equal(upgraded ? 14 : 10, health - fixture.Enemy.CurrentHp, "zero-cost attack deals its printed damage");
             var pile = fullHand ? PileType.Discard : PileType.Hand;
             EngineSelfTests.Equal(1, pile.GetPile(fixture.Player).Cards.Count(card => card is DY_S01), "attack-generated fuel follows native hand overflow");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SkillsPlayed, "zero-cost attack does not trigger a skill resource rebate");
@@ -191,7 +191,7 @@ internal static class StructureCardSelfTests
         var health = attack.Enemy.CurrentHp;
         var playerHealth = attack.Player.Creature.CurrentHp;
         await PaidPlay(attack, volley);
-        EngineSelfTests.Equal(8 * (upgraded ? 10 : 7) + 4, health - attack.Enemy.CurrentHp, "native replay reuses captured X and applies Strength once per replay body");
+        EngineSelfTests.Equal(8 * (upgraded ? 9 : 6) + 4, health - attack.Enemy.CurrentHp, "native replay reuses captured X and applies Strength once per replay body");
         EngineSelfTests.Equal(2, playerHealth - attack.Player.Creature.CurrentHp, "native replay triggers Thorns once per combined body");
         EngineSelfTests.Equal(1, DuanYuState.Get(attack.Player).SpendingCount, "native X replay pays mandatory Qi once for the activation");
         EngineSelfTests.Equal(0, attack.Player.PlayerCombatState.Energy, "replayed X card pays only once");
