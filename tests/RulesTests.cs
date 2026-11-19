@@ -96,19 +96,18 @@ var cases = new (string Name, Action Check)[]
         Equal(false, ledger.TryProcessSpend(ledger.SpendingCount));
         Equal(false, ledger.TryProcessSpend(2));
     }),
-    ("Initial deck resource sequence leaves four Qi", () =>
+    ("Initial deck resource sequence leaves three Qi", () =>
     {
         var ledger = new DuanYuCombatLedger();
         ledger.GainQi(3);
         ledger.BeginTurn();
         ledger.RegisterPlay(true, false, null);
-        ledger.GainQi(3);
+        ledger.GainQi(2);
         ledger.RegisterPlay(true, false, null);
-        ledger.GainLingbo(1);
         ledger.RegisterPlay(false, true, null);
         Equal(true, ledger.TrySpendQi(2));
-        Equal(4, ledger.Qi);
-        Equal(1, ledger.Lingbo);
+        Equal(3, ledger.Qi);
+        Equal(0, ledger.Lingbo);
         Equal(2, ledger.SkillsPlayed);
     }),
     ("Lingbo consumes exactly three layers across five hits", () =>

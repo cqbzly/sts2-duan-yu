@@ -66,6 +66,20 @@ internal static class DuanYuTurnEndHook
     }
 }
 
+[HarmonyPatch(typeof(Hook), nameof(Hook.AfterSideTurnEnd))]
+internal static class DuanYuQiDecayHook
+{
+    private static void Postfix(CombatSide side, IEnumerable<Creature> participants, ref Task __result)
+    {
+        if (side != CombatSide.Player) return;
+        var players = participants.Select(creature => creature.Player).OfType<Player>().Distinct().ToArray();
+        __result = DuanYuHookTasks.After(__result, async () =>
+        {
+            foreach (var player in players) await DuanYuState.DecayQiAtTurnEnd(player);
+        });
+    }
+}
+
 [HarmonyPatch(typeof(Hook), nameof(Hook.BeforeCardPlayed))]
 internal static class DuanYuBeforeCardHook
 {

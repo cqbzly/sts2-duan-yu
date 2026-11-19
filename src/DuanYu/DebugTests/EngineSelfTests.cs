@@ -87,6 +87,7 @@ internal static class EngineSelfTests
             }
             await RunCase("runtime:initial-deck-sequence", InitialDeckSequence);
             foreach (var test in QiResourceSelfTests.Cases) await RunCase(test.Name, test.Action);
+            foreach (var test in QiDecaySelfTests.Cases) await RunCase(test.Name, test.Action);
             await RunCase("runtime:spending-cannot-borrow-pendant", CannotBorrowPendant);
             await RunCase("runtime:pendant-first-skill-native-replay", PendantSkillReplay);
             await RunCase("runtime:pendant-third-sixth-native-replay", PendantSwordThresholds);
@@ -435,7 +436,7 @@ internal static class EngineSelfTests
         await DuanYuState.GainSwordMomentum(companion, 1);
         var enemyHp = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(19, enemyHp - fixture.Enemy.CurrentHp, "first player's sword uses only its own momentum");
+        Equal(15, enemyHp - fixture.Enemy.CurrentHp, "first player's sword uses only its own momentum");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "first player's sword advances its own momentum");
         Equal(1, DuanYuState.Get(companion).SwordMomentum, "first player's sword leaves companion momentum unchanged");
         enemyHp = fixture.Enemy.CurrentHp;
@@ -448,7 +449,7 @@ internal static class EngineSelfTests
         {
             LocalContext.NetId = localNetId;
         }
-        Equal(13, enemyHp - fixture.Enemy.CurrentHp, "companion's sword uses only its own momentum");
+        Equal(9, enemyHp - fixture.Enemy.CurrentHp, "companion's sword uses only its own momentum");
         Equal(2, DuanYuState.Get(companion).SwordMomentum, "companion's momentum advances independently");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "companion's sword leaves first player momentum unchanged");
     }
@@ -469,12 +470,12 @@ internal static class EngineSelfTests
         await SetQi(fixture, 2);
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(11, health - fixture.Enemy.CurrentHp, "first sword completes both segments before gaining momentum");
+        Equal(7, health - fixture.Enemy.CurrentHp, "first sword completes both segments before gaining momentum");
         Equal(1, DuanYuState.Get(fixture.Player).SwordMomentum, "sword gains momentum without the pendant");
         Equal(1, fixture.Player.Creature.GetPowerAmount<SwordMomentumPower>(), "momentum power mirrors the ledger");
         health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(13, health - fixture.Enemy.CurrentHp, "next sword adds existing momentum to both segments");
+        Equal(9, health - fixture.Enemy.CurrentHp, "next sword adds existing momentum to both segments");
         Equal(2, DuanYuState.Get(fixture.Player).SwordMomentum, "same sword kind still gains one base momentum");
         health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_B01");
@@ -493,7 +494,7 @@ internal static class EngineSelfTests
         await SetQi(fixture, 1);
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, "DY_T01");
-        Equal(31, health - fixture.Enemy.CurrentHp, "both sword segments add momentum, temporary damage, proficiency and Strength");
+        Equal(27, health - fixture.Enemy.CurrentHp, "both sword segments add momentum, temporary damage, proficiency and Strength");
         Equal(4, DuanYuState.Get(fixture.Player).SwordMomentum, "two-hit sword gains momentum once after both hits");
         var secondEnemy = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
         fixture.Combat.AddCreature(secondEnemy);
@@ -501,8 +502,8 @@ internal static class EngineSelfTests
         health = fixture.Enemy.CurrentHp;
         await SetQi(fixture, 2);
         await PaidPlay(fixture, "DY_T03");
-        Equal(30, health - fixture.Enemy.CurrentHp, "first enemy takes the additive bonus on both AOE segments");
-        Equal(30, secondHealth - secondEnemy.CurrentHp, "second enemy takes the same bonus without mid-card momentum growth");
+        Equal(27, health - fixture.Enemy.CurrentHp, "first enemy takes the additive bonus on both AOE segments");
+        Equal(27, secondHealth - secondEnemy.CurrentHp, "second enemy takes the same bonus without mid-card momentum growth");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "multi-enemy multi-hit sword grants only one base momentum");
     }
 
@@ -529,7 +530,7 @@ internal static class EngineSelfTests
         Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "damage previews never register sword plays");
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, sword);
-        Equal(19, health - fixture.Enemy.CurrentHp, "real sword uses the previewed momentum");
+        Equal(15, health - fixture.Enemy.CurrentHp, "real sword uses the previewed momentum");
         Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "only completed sword grows momentum");
     }
 
@@ -585,7 +586,7 @@ internal static class EngineSelfTests
         thirdKind.BaseReplayCount = 2;
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, thirdKind);
-        Equal(52, health - fixture.Enemy.CurrentHp, "native replay reuses the paid activation and gains momentum between bodies");
+        Equal(43, health - fixture.Enemy.CurrentHp, "native replay reuses the paid activation and gains momentum between bodies");
         Equal(7, DuanYuState.Get(fixture.Player).SwordMomentum, "third-kind replay grants momentum for all three bodies");
         var plays = CombatManager.Instance.History.CardPlaysFinished.Where(entry => ReferenceEquals(entry.CardPlay.Card, thirdKind)).Select(entry => entry.CardPlay).ToArray();
         Equal(3, plays.Length, "third-kind test executes three native replay bodies");
@@ -692,7 +693,7 @@ internal static class EngineSelfTests
         await SetQi(fixture, 1);
         var initialHp = fixture.Enemy.CurrentHp;
         await PlayCard(fixture, sword);
-        Equal(38, initialHp - fixture.Enemy.CurrentHp, "enchantment and sword bonuses apply to both segments");
+        Equal(28, initialHp - fixture.Enemy.CurrentHp, "enchantment and sword bonuses apply to both segments");
     }
 
     private static async Task EtherealBeforeRetain()

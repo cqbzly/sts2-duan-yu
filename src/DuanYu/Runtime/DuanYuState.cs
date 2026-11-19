@@ -30,6 +30,7 @@ public sealed class PlayerRuntimeState : DuanYuCombatLedger
     internal bool PrayerBeadsUsedThisTurn { get; set; }
     internal bool PreviousTurnWasPeaceful { get; set; }
     internal int StatusExhaustTriggers { get; set; }
+    internal int QiDecayTurn { get; set; } = -1;
     internal ICombatState? Combat { get; set; }
     internal Dictionary<CardModel, DuanYuPlayRecord> PendingCardSpends { get; } = [];
 }
@@ -291,8 +292,8 @@ public static class DuanYuState
         }
         foreach (var relic in player.Relics.Where(relic => !relic.IsMelted).ToArray())
         {
-            if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC02" && state.Qi == 0) await GainQi(player, 2);
-            if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC07" && state.PreviousTurnWasPeaceful) await GainQi(player, 2);
+            if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC02" && state.Qi == 0) await GainQi(player, 1);
+            if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC07" && state.PreviousTurnWasPeaceful) await GainQi(player, 1);
         }
         foreach (var effect in state.Effects.ToArray())
         {
@@ -342,6 +343,15 @@ public static class DuanYuState
         }
         state.SwordDamage = 0;
         await PowerCmd.Remove<QiBladePower>(player.Creature);
+    }
+
+    internal static async Task DecayQiAtTurnEnd(Player player)
+    {
+        if (!CanAct(player)) return;
+        var state = Get(player);
+        if (state.QiDecayTurn == state.TurnNumber) return;
+        state.QiDecayTurn = state.TurnNumber;
+        await LoseQi(player, 1);
     }
 
     internal static void BeforeCard(CardPlay play)

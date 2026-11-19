@@ -164,8 +164,8 @@ internal static class SpecialCardSelfTests
         await PaidPlay(fixture, status);
         var state = DuanYuState.Get(fixture.Player);
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "status pays energy and receives no first-skill refund");
-        EngineSelfTests.Equal(3, state.Qi, "foreign Qi grants exactly three Qi");
-        EngineSelfTests.Equal(2, state.SwordMomentum, "foreign Qi grants exactly two momentum");
+        EngineSelfTests.Equal(2, state.Qi, "foreign Qi grants exactly two Qi");
+        EngineSelfTests.Equal(1, state.SwordMomentum, "foreign Qi grants exactly one momentum");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "foreign Qi draws one card");
         EngineSelfTests.Equal(0, state.SkillsPlayed, "status does not consume the first-skill ordinal");
         EngineSelfTests.Equal(0, state.SwordPlays, "status is not a sword play");
@@ -174,7 +174,7 @@ internal static class SpecialCardSelfTests
         fixture.Player.PlayerCombatState.Energy = 1;
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_B02", PileType.Hand));
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "later first skill receives no starter relic energy");
-        EngineSelfTests.Equal(3, state.Qi, "later first skill receives no starter relic Qi");
+        EngineSelfTests.Equal(2, state.Qi, "later first skill receives no starter relic Qi");
     }
 
     private static async Task StatusFuelDraw()
@@ -188,7 +188,7 @@ internal static class SpecialCardSelfTests
         await PaidPlay(fixture, card);
         EngineSelfTests.Equal(PileType.Exhaust, status.Pile!.Type, "meditation can consume a custom status");
         EngineSelfTests.Equal(4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "meditation draws its base cards plus one status-fuel card");
-        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "meditation combines base Qi and status-fuel Qi");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "meditation combines base Qi and status-fuel Qi");
     }
 
     private static async Task DiscardStatusRetrieval()
@@ -415,7 +415,7 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(3, fixture.Player.Creature.Block, "peaceful end-turn grants no obsolete passive block");
         await PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_S02", PileType.Hand));
         EngineSelfTests.Equal(6, fixture.Player.Creature.Block, "played Exhaust status triggers the power once");
-        EngineSelfTests.Equal(4, DuanYuState.Get(fixture.Player).Qi, "played Exhaust status restores one Qi through the exhaust power");
+        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "played Exhaust status restores one Qi through the exhaust power");
     }
 
     private static async Task ExhaustPowerLifetime()
@@ -462,7 +462,7 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(1, ExhaustCount(fuel), "active meditation consumes fuel once");
         EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "active meditation remains reusable");
         EngineSelfTests.Equal(upgraded ? 5 : 4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "active meditation draws its base cards plus one native status-fuel card");
-        EngineSelfTests.Equal(upgraded ? 3 : 2, DuanYuState.Get(fixture.Player).Qi, "active meditation grants its fixed Qi");
+        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(fixture.Player).Qi, "active meditation grants its fixed Qi");
         EngineSelfTests.Equal(3, fixture.Player.Creature.Block, "active fuel triggers exhaust power once");
     }
 
@@ -527,7 +527,7 @@ internal static class SpecialCardSelfTests
         var card = EngineSelfTests.AddCard(fixture, "DY_R16", PileType.Hand, upgraded);
         await PaidPlay(fixture, card);
         EngineSelfTests.Equal(true, statuses.All(status => status.Pile?.Type == PileType.Exhaust && ExhaustCount(status) == 1), "cleanse exhausts custom statuses and upgraded native Wither");
-        EngineSelfTests.Equal(8, DuanYuState.Get(fixture.Player).Qi, "cleanse grants status rewards up to the nine-Qi cap");
+        EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).Qi, "cleanse grants one Qi per status plus custom-status exhaust rewards");
         EngineSelfTests.Equal(4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "cleanse draws three and preserves the non-status card");
         EngineSelfTests.Equal(19, fixture.Player.Creature.Block, "cleanse removes Frail before base block and four exhaust triggers");
         EngineSelfTests.Equal(0, fixture.Player.Creature.GetPowerAmount<WeakPower>() + fixture.Player.Creature.GetPowerAmount<FrailPower>() + fixture.Player.Creature.GetPowerAmount<PoisonPower>(), "cleanse removes all three native debuffs");

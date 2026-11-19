@@ -40,6 +40,7 @@ function isCost(value, cardId) {
 function validateEffect(text, label, qiCap, expectedQiCost = 0) {
   requireCondition(isNonemptyText(text), `${label}必须提供完整效果文本。`);
   if (!isNonemptyText(text)) return;
+  requireCondition(!/\?{2,}|\uFFFD/.test(text), `${label}含有疑似编码损坏的连续问号或替换字符。`);
   requireCondition(
     !/^(同上|同原卡|同基础|与基础相同|无变化)[。.]?$/.test(text.trim()) &&
       !/(其余|其他)效果不变/.test(text),

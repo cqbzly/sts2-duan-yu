@@ -20,8 +20,8 @@ public sealed record DuanYuCardNumbers(int Damage = 0, int DamageUp = 0, int Blo
         ["DY_R03"] = new(Block: 8, BlockUp: 11), ["DY_R05"] = new(32, 43, ExtraDamage: 22, ExtraDamageUp: 29),
         ["DY_R06"] = new(22, 30), ["DY_R09"] = new(15, 20), ["DY_R10"] = new(15, 20), ["DY_R11"] = new(Block: 16, BlockUp: 21), ["DY_R12"] = new(Block: 6, BlockUp: 9), ["DY_R13"] = new(18, 24, ExtraDamage: 40, ExtraDamageUp: 55),
         ["DY_R16"] = new(Block: 7, BlockUp: 7), ["DY_R17"] = new(Block: 16, BlockUp: 21), ["DY_R19"] = new(Block: 6, BlockUp: 8), ["DY_R20"] = new(20, 27, 8, 11), ["DY_R21"] = new(7, 10),
-        ["DY_T01"] = new(8, 11, ExtraDamage: 3, ExtraDamageUp: 5), ["DY_T02"] = new(5, 7), ["DY_T03"] = new(5, 7, ExtraDamage: 3, ExtraDamageUp: 5), ["DY_T04"] = new(5, 7, 5, 7),
-        ["DY_T05"] = new(3, 5), ["DY_T06"] = new(4, 6)
+        ["DY_T01"] = new(5, 7, ExtraDamage: 2, ExtraDamageUp: 3), ["DY_T02"] = new(3, 5), ["DY_T03"] = new(3, 4, ExtraDamage: 2, ExtraDamageUp: 3), ["DY_T04"] = new(3, 5, 3, 5),
+        ["DY_T05"] = new(2, 3), ["DY_T06"] = new(2, 4)
     };
     private static readonly DuanYuCardNumbers Empty = new();
     public static DuanYuCardNumbers For(string id) => Values.GetValueOrDefault(id, Empty);

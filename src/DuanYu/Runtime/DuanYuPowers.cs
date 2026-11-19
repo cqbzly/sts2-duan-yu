@@ -24,7 +24,7 @@ public abstract class DuanYuPower : CustomPowerModel
 [CustomID("CQBZLY_DY_QI")]
 public sealed class QiPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("真气", "当前有{Amount}点真气，最多9点。跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。", "当前有{Amount}点真气，最多9点。跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。");
+    public override List<(string, string)> Localization => new PowerLoc("真气", "当前有{Amount}点真气，最多9点。自己的回合末效果全部结算后失去1点，最低0，不算支付真气；剩余跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。", "当前有{Amount}点真气，最多9点。自己的回合末效果全部结算后失去1点，最低0，不算支付真气；剩余跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。");
 }
 
 [CustomID("CQBZLY_DY_LINGBO")]
@@ -126,7 +126,7 @@ public sealed class PeacefulHeartPower : DuanYuEffectPower
 public sealed class BeimingPower : DuanYuEffectPower
 {
     protected override string Title => "北冥神功";
-    protected override string Rule => "每回合前2次成功发动耗气效果后，运气{Amount}（每份北冥神功运气2）；首次另按每份已打出的北冥神功获得1点能量。";
+    protected override string Rule => "每回合前2次有牌支付真气后，运气{Amount}（每份北冥神功运气1）；首次另按每份已打出的北冥神功获得1点能量。自然流失不触发。";
 }
 [CustomID("CQBZLY_DY_POWER_R02")]
 public sealed class LingboFootworkPower : DuanYuEffectPower
@@ -144,7 +144,7 @@ public sealed class InvisibleSwordArrayPower : DuanYuEffectPower
 public sealed class SixPulseUnityPower : DuanYuEffectPower
 {
     protected override string Title => "六脉贯通";
-    protected override string Rule => "每回合打出第3和第6种不同剑气后，各抽{Amount}张牌；每份已打出的六脉贯通另运气2并获得1点能量。";
+    protected override string Rule => "每回合打出第3和第6种不同剑气后，各抽{Amount}张牌；每份已打出的六脉贯通另运气1并获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R12")]
 public sealed class YijingPower : DuanYuEffectPower
@@ -156,7 +156,7 @@ public sealed class YijingPower : DuanYuEffectPower
 public sealed class GuardSimplicityPower : DuanYuEffectPower
 {
     protected override string Title => "守拙";
-    protected override string Rule => "回合开始时运气{Amount}（每份守拙运气3）；每回合首张剑气结算后，每份已打出的守拙获得1点能量。";
+    protected override string Rule => "回合开始时运气{Amount}（每份守拙运气2）；每回合首张剑气结算后，每份已打出的守拙获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R18")]
 public sealed class FormlessPower : DuanYuEffectPower

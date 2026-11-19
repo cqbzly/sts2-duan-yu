@@ -75,7 +75,7 @@ internal static class StructureCardSelfTests
         EngineSelfTests.Equal(true, desired.IsUpgraded, "search preserves the original card's upgrades");
         EngineSelfTests.Equal(PileType.Draw, excluded.Pile!.Type, "search cannot select a status");
         EngineSelfTests.Equal(PileType.Draw, other.Pile!.Type, "search does not draw an unrelated card");
-        EngineSelfTests.Equal(upgraded ? 3 : 2, DuanYuState.Get(fixture.Player).Qi, "search grants printed Qi");
+        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(fixture.Player).Qi, "search grants printed Qi");
         EngineSelfTests.Equal(PileType.Exhaust, source.Pile!.Type, "search source exhausts");
 
         var empty = await Ready();
@@ -83,7 +83,7 @@ internal static class StructureCardSelfTests
         EngineSelfTests.AddCard(empty, "DY_S01", PileType.Draw);
         await PaidPlay(empty, EngineSelfTests.AddCard(empty, "DY_U38", PileType.Hand, upgraded));
         EngineSelfTests.Equal(0, PileType.Hand.GetPile(empty.Player).Cards.Count, "no legal search target resolves without a choice or softlock");
-        EngineSelfTests.Equal(upgraded ? 3 : 2, DuanYuState.Get(empty.Player).Qi, "search with no eligible card retains its Qi effect");
+        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(empty.Player).Qi, "search with no eligible card retains its Qi effect");
     }
 
     private static async Task StatusAttack(bool upgraded)
@@ -116,7 +116,7 @@ internal static class StructureCardSelfTests
         var fuel = PileType.Hand.GetPile(fixture.Player).Cards.OfType<DY_S02>().Single();
         fixture.Player.PlayerCombatState.Energy = 4;
         await PaidPlay(fixture, fuel);
-        EngineSelfTests.Equal(4, DuanYuState.Get(fixture.Player).Qi, "playing foreign Qi also triggers its actual exhaust reward");
+        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "playing foreign Qi also triggers its actual exhaust reward");
         EngineSelfTests.Equal(upgraded ? 7 : 5, fixture.Player.Creature.Block, "first exhausted status grants ability block");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), "first exhausted status generates one sword");
         var second = EngineSelfTests.AddCard(fixture, "DY_S01", PileType.Hand);
@@ -125,7 +125,7 @@ internal static class StructureCardSelfTests
         PileType.Hand.GetPile(fixture.Player).AddInternal(third);
         await CardCmd.Exhaust(new ThrowingPlayerChoiceContext(), third);
         EngineSelfTests.Equal(2 * (upgraded ? 7 : 5), fixture.Player.Creature.Block, "third status gives no additional reward");
-        EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).Qi, "only two status exhausts grant ability Qi");
+        EngineSelfTests.Equal(4, DuanYuState.Get(fixture.Player).Qi, "only two status exhausts grant ability Qi");
         EngineSelfTests.Equal(2, PileType.Hand.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), "only two status exhausts generate swords");
         await CardCmd.Exhaust(new ThrowingPlayerChoiceContext(), EngineSelfTests.AddCard(fixture, "DY_B01", PileType.Hand));
         EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).StatusExhaustTriggers, "ordinary card exhaust does not enter the status counter");

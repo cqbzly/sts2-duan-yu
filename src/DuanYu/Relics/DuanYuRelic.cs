@@ -52,7 +52,7 @@ public sealed class ScrollFragment : DuanYuRelic
     public override int RelicNumber => 2;
     protected override string LocalizationId => "DY_RELIC02";
     protected override string TitleText => "帛卷残页";
-    protected override string DescriptionText => "从你的第二回合开始，若回合开始时真气为0，运气2。";
+    protected override string DescriptionText => "从你的第二回合开始，若回合开始时真气为0，运气1。";
     protected override string FlavorText => "残字未完，行气之法却自成一脉。";
     public override RelicRarity Rarity => RelicRarity.Common;
 }
@@ -107,7 +107,7 @@ public sealed class WitheredBloomPrayer : DuanYuRelic
     public override int RelicNumber => 7;
     protected override string LocalizationId => "DY_RELIC07";
     protected override string TitleText => "枯荣禅珠";
-    protected override string DescriptionText => "从你的第二回合开始，若你上回合打出过技能牌且未打出攻击牌，回合开始时运气2。";
+    protected override string DescriptionText => "从你的第二回合开始，若你上回合打出过技能牌且未打出攻击牌，回合开始时运气1。";
     protected override string FlavorText => "枯荣之间，取舍本就是修行。";
     public override RelicRarity Rarity => RelicRarity.Rare;
 }
