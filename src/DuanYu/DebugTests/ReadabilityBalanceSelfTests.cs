@@ -24,7 +24,7 @@ internal static class ReadabilityBalanceSelfTests
                 var suffix = upgraded ? "+" : "";
                 foreach (var id in new[] { "DY_C15", "DY_R20" })
                     yield return ("readability:single-block-preview-" + id + suffix, () => SingleBlock(id, upgraded));
-                foreach (var id in new[] { "DY_B05", "DY_C02", "DY_U07", "DY_U17", "DY_U33", "DY_R13", "DY_T01", "DY_T03" })
+                foreach (var id in new[] { "DY_B05", "DY_C04", "DY_U07", "DY_U17", "DY_U33", "DY_R13", "DY_T01", "DY_T03" })
                     yield return ("readability:single-damage-packet-" + id + suffix, () => SingleDamage(id, upgraded));
                 yield return ("readability:single-primary-and-secondary-damage" + suffix, () => PrimaryAndSecondaryDamage(upgraded));
                 yield return ("readability:x-damage-preview-and-single-packet" + suffix, () => XDamage(upgraded));
@@ -61,9 +61,9 @@ internal static class ReadabilityBalanceSelfTests
     {
         var specifications = new (string Id, int BaseDamage, int UpgradedDamage, bool All)[]
         {
-            ("DY_B05", 20, 28, false), ("DY_C02", 20, 28, false),
-            ("DY_U07", 30, 42, false), ("DY_U17", 23, 31, true),
-            ("DY_U33", 33, 45, false), ("DY_R13", 58, 79, false),
+            ("DY_B05", 14, 19, false), ("DY_C04", 8, 11, true),
+            ("DY_U07", 22, 30, false), ("DY_U17", 18, 24, true),
+            ("DY_U33", 16, 22, false), ("DY_R13", 42, 56, false),
             ("DY_T01", 7, 10, false), ("DY_T03", 5, 7, true)
         };
         var specification = specifications.Single(value => value.Id == id);
@@ -88,7 +88,7 @@ internal static class ReadabilityBalanceSelfTests
         EngineSelfTests.Equal(printed + 2, health - fixture.Enemy.CurrentHp, id + " combined damage applies Strength once");
         EngineSelfTests.Equal(specification.All ? printed + 2 : 0, secondHealth - secondEnemy.CurrentHp, id + " retains its target selection");
         EngineSelfTests.Equal(specification.All ? 2 : 1, playerHealth - fixture.Player.Creature.CurrentHp, id + " triggers Thorns once per affected target");
-        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, id + " combined damage retains one mandatory Qi payment");
+        EngineSelfTests.Equal(id == "DY_C04" ? 0 : 1, DuanYuState.Get(fixture.Player).SpendingCount, id + " combined damage retains its mandatory Qi payment");
     }
 
     private static async Task PrimaryAndSecondaryDamage(bool upgraded)
@@ -104,8 +104,8 @@ internal static class ReadabilityBalanceSelfTests
         int health = fixture.Enemy.CurrentHp;
         int otherHealth = other.CurrentHp;
         int playerHealth = fixture.Player.Creature.CurrentHp;
-        int primary = upgraded ? 72 : 54;
-        int secondary = upgraded ? 29 : 22;
+        int primary = upgraded ? 54 : 40;
+        int secondary = upgraded ? 22 : 16;
         card.DynamicVars.Damage.UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
         card.DynamicVars["ExtraDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, other, true);
         EngineSelfTests.Equal((decimal)primary + 2, card.DynamicVars.Damage.PreviewValue, "R05 primary preview includes the combined damage with Strength once");
@@ -147,7 +147,7 @@ internal static class ReadabilityBalanceSelfTests
             await PowerCmd.Apply<ThornsPower>(context, second, 1, second, null);
             fixture.Player.PlayerCombatState!.Energy = paidX;
             var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand, upgraded);
-            int expected = (upgraded ? 10 : 7) * (paidX + (chemicalX ? 2 : 0) + 1) + 2;
+            int expected = (upgraded ? 7 : 5) * (paidX + (chemicalX ? 2 : 0) + 1) + 2;
             card.DynamicVars["XDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
             EngineSelfTests.Equal((decimal)expected, card.DynamicVars["XDamage"].PreviewValue, "R21 total preview multiplies resolved X before applying Strength once");
             int health = fixture.Enemy.CurrentHp;

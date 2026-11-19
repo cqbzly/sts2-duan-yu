@@ -191,7 +191,7 @@ internal static class StructureCardSelfTests
         var health = attack.Enemy.CurrentHp;
         var playerHealth = attack.Player.Creature.CurrentHp;
         await PaidPlay(attack, volley);
-        EngineSelfTests.Equal(8 * (upgraded ? 10 : 7) + 4, health - attack.Enemy.CurrentHp, "native replay reuses captured X and applies Strength once per replay body");
+        EngineSelfTests.Equal(8 * (upgraded ? 7 : 5) + 4, health - attack.Enemy.CurrentHp, "native replay reuses captured X and applies Strength once per replay body");
         EngineSelfTests.Equal(2, playerHealth - attack.Player.Creature.CurrentHp, "native replay triggers Thorns once per combined body");
         EngineSelfTests.Equal(1, DuanYuState.Get(attack.Player).SpendingCount, "native X replay pays mandatory Qi once for the activation");
         EngineSelfTests.Equal(0, attack.Player.PlayerCombatState.Energy, "replayed X card pays only once");

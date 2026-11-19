@@ -4,11 +4,11 @@
 
 ## 当前版本入口
 
-v0.5.5 本轮23/23项规则、421/421项真实游戏引擎回归、96张卡牌及10张初始牌组校验通过；Debug、Release构建均0警告、0错误。127项资源加载通过结果沿用 v0.5.1，本轮未重跑。详见[当前验证](runtime-verification.md)。本版未以自动策略采样推断胜率，历史完整通关记录不外推当前胜率。
+v0.5.6 本轮规则23/23、真实游戏引擎429/429，以及96张卡牌、10张初始牌组和图鉴一致性校验通过；Debug/Release构建均0警告、0错误。127项资源加载通过结果沿用 v0.5.1，本轮未重跑。详见[当前验证](runtime-verification.md)。本版未以自动策略采样推断胜率，历史完整通关记录不外推当前胜率。
 
-主动消耗、状态牌与外门借招的回归不扩大为远程多人或任意第三方组合兼容。日志仍保留Godot RID/ObjectDB/resources退出回收告警；本轮421项回归无失败，不代表日志没有告警或已排除资源泄漏。
+主动消耗、状态牌与外门借招的回归不扩大为远程多人或任意第三方组合兼容。日志仍保留Godot RID/ObjectDB/resources退出回收告警；本轮429项引擎回归没有失败，不代表日志没有告警或已排除资源泄漏。
 
-版本源码见 [GitHub 仓库](https://github.com/cqbzly/sts2-duan-yu)；当前 v0.5.5 使用已有的公开 [Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。订阅回装和任意第三方模组组合仍需单独验证。下文保留旧版本环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
+版本源码见 [GitHub 仓库](https://github.com/cqbzly/sts2-duan-yu)；当前 v0.5.6 使用已有的公开 [Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。订阅回装和任意第三方模组组合仍需单独验证。下文保留旧版本环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
 
 ## 已验证环境
 
@@ -22,10 +22,10 @@ v0.5.5 本轮23/23项规则、421/421项真实游戏引擎回归、96张卡牌�
 | `scripts/test-assets.ps1` | 通过，127 个纹理/场景 | 使用 Godot 4.5.1 Mono 独立进程加载程序化生成的 `.ctex` 与 `.tscn`。 |
 | Release 构建 | 通过，0 警告、0 错误 | 生成 `CQBZLY_DUAN_YU.dll`；不等于 Steam 上传成功。 |
 | 隔离游戏启动 | 通过 | 只加载 BaseLib、Compatibility Helper 和段誉；模组初始化、角色注册、主菜单加载成功。 |
-| 引擎内 Debug 自测 | 本轮421通过、0失败 | 96张卡牌基础/升级执行、关键资源机制、图鉴、奖励过滤、事件边界及回合末真气流失；报告见当前验证。 |
+| 引擎内 Debug 自测 | 本轮429/429通过，0失败 | 96张卡牌基础/升级执行、关键资源机制、图鉴、奖励过滤、事件边界、抽弃牌与剑气回收；报告见当前验证。 |
 | 人工 UI 冒烟 | 通过 | 在隔离副本中成功选择段誉并完成首战，随后获得段誉卡牌；没有覆盖完整通关。 |
 
-本轮报告见[v0.5.5 最终引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.5/v055-merged-card-effects-engine-tests.json)。测试副本只加载BaseLib、Compatibility Helper和段誉。退出时出现Godot RID与资源回收提示，尚未完成泄漏归因，不能据此判定段誉卡牌断言失败，也不能声称日志无异常。资源检查127项沿用 v0.5.1，本轮未重跑。
+本轮报告见[v0.5.6 最终引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.6/v056-card-roles-balance-engine-tests.json)。测试副本只加载BaseLib、Compatibility Helper和段誉。退出时出现Godot RID与资源回收提示，尚未完成泄漏归因，不能据此判定段誉卡牌断言失败，也不能声称日志无异常。资源检查127项沿用 v0.5.1，本轮未重跑。
 
 ## 本机已安装模组
 
@@ -59,7 +59,7 @@ v0.5.5 本轮23/23项规则、421/421项真实游戏引擎回归、96张卡牌�
 .\scripts\package.ps1 -Configuration Release -SkipBuild
 ```
 
-`dist/DuanYu-0.5.5.zip` 内含：
+`dist/DuanYu-0.5.6.zip` 内含：
 
 ```text
 DuanYu/CQBZLY_DUAN_YU.dll
@@ -79,12 +79,12 @@ workshop-workspace/
   image.png
 ```
 
-`workshop/workshop.json`已提供中文说明、public可见性与BaseLib工坊项目数字ID；脚本同步`DuanYu.json`中的版本信息。封面为项目生成的`assets/workshop-preview.png`，小于1MB。上传器来源、执行命令和条目更新方式见[上传说明](workshop-upload.md)，本版内容和验证结果见[版本记录](releases/v0.5.5.md)。
+`workshop/workshop.json`已提供中文说明、public可见性与BaseLib工坊项目数字ID；脚本同步`DuanYu.json`中的版本信息。封面为项目生成的`assets/workshop-preview.png`，小于1MB。上传器来源、执行命令和条目更新方式见[上传说明](workshop-upload.md)，本版内容和验证结果见[版本记录](releases/v0.5.6.md)。
 
 发布流程使用官方 `ModUploader.exe upload -w <workshop-workspace>` 更新现有公开条目 `3841781260`，工作区保留原条目ID。上传后查询远程版本和公开状态；订阅回装、角色选择、首战、继续游戏和卸载提示仍需各自验证。上传器使用当前Steam客户端登录账号，GitHub的`cqbzly`账号不能代替Steam发布权限。
 
 ## 发布判定
 
-`v0.5.5`延续现有公开发布方式：本轮Release构建与421项独立游戏引擎回归通过；清单和DLL名称沿用既有约定，程序化资源加载检查沿用v0.5.1结果。当前证据仍不能证明与本机所有模组无冲突；Steam订阅回装、远程联机和第三方组合测试未完成。
+`v0.5.6`延续现有公开发布方式：本轮Release构建0警告0错误，独立游戏引擎429/429通过；清单和DLL名称沿用既有约定，程序化资源加载检查沿用v0.5.1结果。当前证据仍不能证明与本机所有模组无冲突；Steam订阅回装、远程联机和第三方组合测试未完成。
 
 每次发布保存包含游戏版本、BaseLib版本、测试模组列表、发布版本和自测报告的记录；更新游戏或BaseLib后重新执行构建、资源检查、隔离引擎自测和最小联合测试。

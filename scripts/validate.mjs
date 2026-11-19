@@ -15,7 +15,7 @@ const allowedTags = new Set(['北冥', '凌波', '六脉', '通用']);
 const requiredQiCosts = new Map([
   ['DY_T01', 1], ['DY_T02', 1], ['DY_T03', 1], ['DY_T04', 1], ['DY_T05', 1], ['DY_T06', 1],
   ['DY_C17', 1],
-  ['DY_B05', 2], ['DY_C02', 2], ['DY_C15', 2], ['DY_U32', 2], ['DY_R06', 2],
+  ['DY_B05', 2], ['DY_C15', 2], ['DY_U32', 2], ['DY_R06', 2],
   ['DY_C14', 3], ['DY_U07', 3], ['DY_U17', 3], ['DY_U33', 3], ['DY_R03', 3], ['DY_R05', 3], ['DY_R20', 3], ['DY_R21', 3],
   ['DY_R13', 5],
 ]);
@@ -154,6 +154,14 @@ function validateCards(design) {
     for (const generatedId of card.generates) {
       requireCondition(['衍生', '状态'].includes(cardsById.get(generatedId)?.rarity), `${card.id}.generates的${generatedId}必须指向存在的衍生剑气或状态牌。`);
     }
+  }
+  const effectOwners = new Map();
+  for (const card of cardsById.values()) {
+    // Different costs cannot give identical base and upgraded effects distinct roles.
+    const signature = JSON.stringify([card.type, card.text, card.upgrade?.text]);
+    const previousId = effectOwners.get(signature);
+    requireCondition(!previousId, `${card.id}与${previousId}的基础及升级效果完全重复，请区分卡牌定位。`);
+    effectOwners.set(signature, card.id);
   }
   validateCharacter(design.character, cardsById);
 }

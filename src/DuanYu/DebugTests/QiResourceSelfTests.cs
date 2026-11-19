@@ -20,7 +20,7 @@ internal static class QiResourceSelfTests
 {
     private static readonly string[] FeeCards =
     [
-        "DY_B05", "DY_C02", "DY_C14", "DY_C15", "DY_C17", "DY_U07", "DY_U17", "DY_U32", "DY_U33",
+        "DY_B05", "DY_C14", "DY_C15", "DY_C17", "DY_U07", "DY_U17", "DY_U32", "DY_U33",
         "DY_R03", "DY_R05", "DY_R06", "DY_R13", "DY_R20", "DY_R21",
         "DY_T01", "DY_T02", "DY_T03", "DY_T04", "DY_T05", "DY_T06"
     ];
@@ -168,7 +168,7 @@ internal static class QiResourceSelfTests
     {
         var fixture = await EngineSelfTests.ReadyFixture();
         var player = fixture.Player;
-        var card = EngineSelfTests.AddCard(fixture, "DY_C02", PileType.Hand);
+        var card = EngineSelfTests.AddCard(fixture, "DY_B05", PileType.Hand);
         await SetQi(player, 1);
         int health = fixture.Enemy.CurrentHp;
         int energy = player.PlayerCombatState!.Energy;
@@ -178,7 +178,7 @@ internal static class QiResourceSelfTests
         await SetQi(player, 3);
         await CardCmd.AutoPlay(new ThrowingPlayerChoiceContext(), card, fixture.Enemy, skipCardPileVisuals: true);
         EngineSelfTests.Equal(1, DuanYuState.Get(player).Qi, "auto-play pays its full Qi cost");
-        EngineSelfTests.Equal(20, health - fixture.Enemy.CurrentHp, "paid auto-play resolves the full card");
+        EngineSelfTests.Equal(14, health - fixture.Enemy.CurrentHp, "paid auto-play resolves the full card");
         EngineSelfTests.Equal(energy, player.PlayerCombatState.Energy, "auto-play leaves native energy free");
         await CardPileCmd.Add(card, PileType.Hand);
         health = fixture.Enemy.CurrentHp;
@@ -211,7 +211,7 @@ internal static class QiResourceSelfTests
     private static async Task CancelledPayment()
     {
         var fixture = await EngineSelfTests.ReadyFixture();
-        var card = EngineSelfTests.AddCard(fixture, "DY_C02", PileType.Hand);
+        var card = EngineSelfTests.AddCard(fixture, "DY_B05", PileType.Hand);
         await SetQi(fixture.Player, 3);
         await card.SpendResources();
         EngineSelfTests.Equal(true, DuanYuState.HasCardQiPayment(card), "paid activation has a pending payment");

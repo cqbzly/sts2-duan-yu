@@ -58,7 +58,7 @@ internal static class BalanceSelfTests
         var regular = new[] { ("C", 23), ("U", 38), ("R", 22) }
             .SelectMany(group => Enumerable.Range(1, group.Item2).Select(number => DuanYuCard.Canonical($"DY_{group.Item1}{number:00}"))).ToArray();
         EngineSelfTests.Equal(83, regular.Length, "regular reward catalog size");
-        EngineSelfTests.Equal(35, regular.Count(card => card.Type == CardType.Attack), "regular reward catalog includes 35 attacks");
+        EngineSelfTests.Equal(34, regular.Count(card => card.Type == CardType.Attack), "regular reward catalog includes 34 attacks after borrow becomes a cycle skill");
         var specifications = new (string Id, int Damage, int DamageUp, int Block, int BlockUp, int Swords, bool All)[]
         {
             ("DY_C07", 11, 15, 4, 6, 1, false), ("DY_C08", 8, 12, 0, 0, 1, false),
@@ -533,7 +533,7 @@ internal static class BalanceSelfTests
         await SetQi(attackFixture, 2);
         var initialHp = attackFixture.Enemy.CurrentHp;
         await PaidPlay(attackFixture, "DY_B05", true);
-        EngineSelfTests.Equal(28, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 combined damage");
+        EngineSelfTests.Equal(19, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 combined damage");
         EngineSelfTests.Equal(0, DuanYuState.Get(attackFixture.Player).Qi, "upgraded B05 spends exactly two Qi");
     }
 
