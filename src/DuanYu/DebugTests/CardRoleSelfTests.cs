@@ -99,10 +99,14 @@ internal static class CardRoleSelfTests
         var attack = EngineSelfTests.AddCard(fixture, "DY_U07", PileType.Exhaust);
         await DuanYuState.AddEffect(fixture.Player, "DY_U28", 2);
         var source = EngineSelfTests.AddCard(fixture, "DY_U13", PileType.Hand, upgraded);
+        fixture.Player.PlayerCombatState!.Energy = upgraded ? 0 : 1;
+        EngineSelfTests.Equal(upgraded ? 0 : 1, source.EnergyCost.GetAmountToSpend(), "dual swords costs one energy before upgrade and zero after");
+        EngineSelfTests.Equal(true, source.CanPlay(), "dual swords can be played with exactly its printed energy cost");
         var selector = new ChoosingSelector();
         using (RunManager.Instance.CardSelectorStack.PushSelector(fixture.Player, selector))
             await BalanceSelfTests.PaidPlay(fixture, source);
-        int count = upgraded ? 2 : 1;
+        int count = 2;
+        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "dual swords pays its actual energy cost without generating energy");
         EngineSelfTests.Equal(3, selector.LastOptions.Length, "dual swords can choose among all exhausted sword tokens");
         EngineSelfTests.Equal(true, selector.LastOptions.All(DuanYuState.IsSword), "exhaust retrieval filters out statuses and ordinary attacks");
         EngineSelfTests.Equal(count, PileType.Hand.GetPile(fixture.Player).Cards.Count, "dual swords retrieves only its printed maximum");
@@ -125,6 +129,15 @@ internal static class CardRoleSelfTests
             await BalanceSelfTests.PaidPlay(empty, emptySource);
         EngineSelfTests.Equal(0, emptySelector.Calls, "no eligible exhausted swords requires no choice");
         EngineSelfTests.Equal(0, PileType.Hand.GetPile(empty.Player).Cards.Count, "empty retrieval has no generated fallback");
+
+        var single = await Ready();
+        var onlySword = EngineSelfTests.AddCard(single, "DY_T06", PileType.Exhaust);
+        var singleSource = EngineSelfTests.AddCard(single, "DY_U13", PileType.Hand, upgraded);
+        var singleSelector = new ChoosingSelector();
+        using (RunManager.Instance.CardSelectorStack.PushSelector(single.Player, singleSelector))
+            await BalanceSelfTests.PaidPlay(single, singleSource);
+        EngineSelfTests.Equal(1, PileType.Hand.GetPile(single.Player).Cards.Count, "retrieval can recover a single available sword at either upgrade tier");
+        EngineSelfTests.Equal(PileType.Hand, onlySword.Pile!.Type, "single available sword returns as its original object");
 
         var full = await Ready();
         for (int index = 0; index < 9; index++) EngineSelfTests.AddCard(full, "DY_B01", PileType.Hand);

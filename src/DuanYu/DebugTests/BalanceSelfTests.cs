@@ -135,7 +135,7 @@ internal static class BalanceSelfTests
             fixture.Player.PlayerCombatState!.Energy = paid;
             var health = fixture.Player.Creature.CurrentHp;
             await PaidPlay(fixture, card);
-            var energy = id switch { "DY_U02" => 1, "DY_U04" when upgraded => 2, "DY_U04" => 1, "DY_R04" when upgraded => 2, "DY_R04" => 1, _ => 0 };
+            var energy = id switch { "DY_U02" when upgraded => 2, "DY_U02" => 1, "DY_U04" when upgraded => 2, "DY_U04" => 1, "DY_R04" when upgraded => 2, "DY_R04" => 1, _ => 0 };
             EngineSelfTests.Equal(energy, fixture.Player.PlayerCombatState.Energy, id + " energy after actual payment");
             var qi = upgraded ? 3 : 2;
             EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, id + " printed Qi");

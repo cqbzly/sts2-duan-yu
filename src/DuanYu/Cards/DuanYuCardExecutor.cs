@@ -144,7 +144,7 @@ public static class DuanYuCardExecutor
             }
             case "DY_C23": await Attack(Value(10, 14)); await GenerateStatus("DY_S01", PileType.Hand); break;
             case "DY_U01": await Qi(1); await Effect(); break;
-            case "DY_U02": await Qi(Value(2, 3)); await Energy(1); break;
+            case "DY_U02": await Qi(Value(2, 3)); await Energy(Value(1, 2)); break;
             case "DY_U03": await Block(Value(15, 20)); await Qi(Value(2, 3)); break;
             case "DY_U04": await LoseHp(Value(3, 2)); await Qi(Value(2, 3)); await Energy(Value(1, 2)); break;
             case "DY_U05": await Effect(1, Value(0, 2)); break;
@@ -166,7 +166,7 @@ public static class DuanYuCardExecutor
             case "DY_U13":
             {
                 var hand = PileType.Hand.GetPile(player);
-                var maximum = Math.Min(Value(1, 2), Math.Max(0, CardPile.MaxCardsInHand - hand.Cards.Count));
+                var maximum = Math.Min(2, Math.Max(0, CardPile.MaxCardsInHand - hand.Cards.Count));
                 if (maximum == 0) break;
                 var selected = (await CardSelectCmd.FromCombatPile(context, PileType.Exhaust.GetPile(player), player,
                     new CardSelectorPrefs(card.SelectionPrompt, 0, maximum), DuanYuState.IsSword)).ToArray();
