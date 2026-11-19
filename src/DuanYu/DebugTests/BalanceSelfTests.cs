@@ -67,7 +67,7 @@ internal static class BalanceSelfTests
             ("DY_U11", 8, 12, 2, 3, 1, false), ("DY_U12", 10, 14, 2, 2, 1, false),
             ("DY_U20", 11, 15, 4, 6, 0, false), ("DY_U21", 10, 14, 0, 0, 0, false),
             ("DY_U22", 13, 18, 0, 0, 0, false), ("DY_R09", 15, 20, 0, 0, 1, true),
-            ("DY_R10", 15, 20, 0, 0, 3, false), ("DY_R20", 20, 27, 8, 11, 0, true)
+            ("DY_R10", 15, 20, 0, 0, 3, false), ("DY_R20", 20, 27, 16, 22, 0, true)
         };
         foreach (var specification in specifications)
         {
@@ -87,7 +87,6 @@ internal static class BalanceSelfTests
             EngineSelfTests.Equal(damage, firstHp - fixture.Enemy.CurrentHp, specification.Id + " actual first target damage");
             EngineSelfTests.Equal(specification.All ? damage : 0, secondHp - secondEnemy.CurrentHp, specification.Id + " actual second target damage");
             var expectedBlock = upgraded ? specification.BlockUp : specification.Block;
-            if (specification.Id == "DY_R20") expectedBlock *= 2;
             EngineSelfTests.Equal(expectedBlock, fixture.Player.Creature.Block, specification.Id + " retains block effect");
             EngineSelfTests.Equal(specification.Swords, PileType.Hand.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), specification.Id + " retains sword generation");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SkillsPlayed, specification.Id + " does not consume first skill trigger");
@@ -102,13 +101,13 @@ internal static class BalanceSelfTests
             var fixture = await EngineSelfTests.ReadyFixture();
             await SetQi(fixture, 0);
             var card = EngineSelfTests.AddCard(fixture, id, PileType.Hand, upgraded);
-            var paid = id == "DY_U02" ? 1 : id == "DY_R04" ? upgraded ? 0 : 1 : 0;
+            var paid = id == "DY_U04" ? 0 : 1;
             fixture.Player.PlayerCombatState!.Energy = paid;
             var health = fixture.Player.Creature.CurrentHp;
             await PaidPlay(fixture, card);
             var energy = id switch { "DY_U02" => 1, "DY_U04" => 1, "DY_R04" when upgraded => 2, "DY_R04" => 1, _ => 0 };
             EngineSelfTests.Equal(energy, fixture.Player.PlayerCombatState.Energy, id + " energy after actual payment");
-            var qi = id switch { "DY_U02" => upgraded ? 3 : 2, "DY_U04" => upgraded ? 3 : 2, _ => upgraded ? 4 : 3 };
+            var qi = upgraded ? 3 : 2;
             EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, id + " printed Qi");
             EngineSelfTests.Equal(id == "DY_U04" ? upgraded ? 2 : 3 : 0, health - fixture.Player.Creature.CurrentHp, id + " HP payment");
             EngineSelfTests.Equal(true, PileType.Exhaust.GetPile(fixture.Player).Cards.Contains(card), id + " resource card exhausts");
@@ -117,6 +116,9 @@ internal static class BalanceSelfTests
         empty.Player.PlayerCombatState!.Energy = 0;
         var requiresPayment = EngineSelfTests.AddCard(empty, "DY_U02", PileType.Hand, upgraded);
         EngineSelfTests.Equal(false, requiresPayment.CanPlay(), "Qi Sea cannot borrow its future energy");
+        var confluence = EngineSelfTests.AddCard(empty, "DY_R04", PileType.Hand, upgraded);
+        EngineSelfTests.Equal(1, confluence.EnergyCost.GetAmountToSpend(), "confluence retains one energy cost after upgrade");
+        EngineSelfTests.Equal(false, confluence.CanPlay(), "confluence cannot borrow its future energy at either upgrade tier");
     }
 
     private static async Task QiBeforePendant(bool upgraded)

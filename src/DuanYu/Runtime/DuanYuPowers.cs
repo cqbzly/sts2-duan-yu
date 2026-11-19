@@ -111,7 +111,7 @@ public sealed class WindWithoutTracePower : DuanYuEffectPower
 public sealed class PeacefulHeartPower : DuanYuEffectPower
 {
     protected override string Title => "百脉归炉";
-    protected override string Rule => "每当你消耗一张牌时，获得{Amount}点格挡；消耗气滞或异种真气时，额外获得1点真气。";
+    protected override string Rule => "每消耗1张牌，获得{Amount}点格挡；消耗气滞或异种真气时，额外运气1。";
     public override async Task AfterCardExhausted(PlayerChoiceContext choiceContext, CardModel card, bool causedByEthereal)
     {
         if (Owner.Player is { } player && card.Owner == player && DuanYuState.CanAct(player))
@@ -126,7 +126,7 @@ public sealed class PeacefulHeartPower : DuanYuEffectPower
 public sealed class BeimingPower : DuanYuEffectPower
 {
     protected override string Title => "北冥神功";
-    protected override string Rule => "每回合前2次有牌支付真气后，运气{Amount}（每份北冥神功运气1）；首次另按每份已打出的北冥神功获得1点能量。自然流失不触发。";
+    protected override string Rule => "每回合前2次有牌支付真气后，运气{Amount}；首次另按每份北冥神功获得1点能量。自然流失不触发。";
 }
 [CustomID("CQBZLY_DY_POWER_R02")]
 public sealed class LingboFootworkPower : DuanYuEffectPower
@@ -138,13 +138,13 @@ public sealed class LingboFootworkPower : DuanYuEffectPower
 public sealed class InvisibleSwordArrayPower : DuanYuEffectPower
 {
     protected override string Title => "无形剑阵";
-    protected override string Rule => "每份无形剑阵打出时，选择并生成2种不同剑气。回合开始时，选择并生成{Amount}张剑气。来自升级无形剑阵的剑气也升级。";
+    protected override string Rule => "打出时及每回合开始时，随机将剑气加入手牌。每份无形剑阵生成1张，升级版本生成升级剑气。";
 }
 [CustomID("CQBZLY_DY_POWER_R08")]
 public sealed class SixPulseUnityPower : DuanYuEffectPower
 {
     protected override string Title => "六脉贯通";
-    protected override string Rule => "每回合打出第3和第6种不同剑气后，各抽{Amount}张牌；每份已打出的六脉贯通另运气1并获得1点能量。";
+    protected override string Rule => "每回合打出第3和第6种不同剑气后，各抽{Amount}张牌，每份六脉贯通运气1并获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R12")]
 public sealed class YijingPower : DuanYuEffectPower
@@ -156,20 +156,20 @@ public sealed class YijingPower : DuanYuEffectPower
 public sealed class GuardSimplicityPower : DuanYuEffectPower
 {
     protected override string Title => "守拙";
-    protected override string Rule => "回合开始时运气{Amount}（每份守拙运气2）；每回合首张剑气结算后，每份已打出的守拙获得1点能量。";
+    protected override string Rule => "回合开始时运气{Amount}；每回合首张剑气结算后，每份守拙获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R18")]
 public sealed class FormlessPower : DuanYuEffectPower
 {
     protected override string Title => "无相之境";
-    protected override string Rule => "每回合前3张剑气结算后，获得{Amount}点格挡（每份无相之境提供5点，升级后提供7点）。";
+    protected override string Rule => "每回合前3张剑气结算后，获得{Amount}点格挡。";
 }
 
 [CustomID("CQBZLY_DY_POWER_R22")]
 public sealed class MeridianUnityPower : DuanYuEffectPower
 {
     protected override string Title => "经脉归一";
-    protected override string Rule => "打出时及每回合开始生成异种真气；每回合前2次消耗状态牌后，获得{Amount}点格挡、运气1，并随机生成1张未升级剑气。";
+    protected override string Rule => "打出时及每回合开始生成异种真气。每回合前2次消耗状态牌后，获得{Amount}点格挡、运气1，每份经脉归一随机生成1张未升级剑气。";
 
     public override async Task AfterCardExhausted(PlayerChoiceContext choiceContext, CardModel card, bool causedByEthereal)
     {

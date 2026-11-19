@@ -267,7 +267,7 @@ internal static class SpecialCardSelfTests
         await SetQi(fixture, 0);
         fixture.Player.PlayerCombatState!.Energy = 1;
         var borrowing = EngineSelfTests.AddCard(fixture, "DY_U27", PileType.Hand, upgraded);
-        EngineSelfTests.Equal(true, borrowing.GetDescriptionForPile(PileType.Hand).Contains("并具有消耗", StringComparison.Ordinal), "borrowed attacks keep their exhaust instruction in rendered descriptions");
+        EngineSelfTests.Equal(true, borrowing.GetDescriptionForPile(PileType.Hand).Contains("具有消耗", StringComparison.Ordinal), "borrowed attacks keep their exhaust instruction in rendered descriptions");
         await PaidPlay(fixture, borrowing);
         var generated = GeneratedCards();
         var attacks = generated.Where(card => card.Type == CardType.Attack).ToArray();
