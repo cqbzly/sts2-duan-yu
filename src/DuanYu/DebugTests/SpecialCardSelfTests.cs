@@ -32,7 +32,7 @@ internal static class SpecialCardSelfTests
 {
     private static readonly (Type Type, int Damage, int UpgradedDamage)[] NativeAttacks =
     [
-        (typeof(Bash), 8, 10), (typeof(IronWave), 5, 7), (typeof(PommelStrike), 9, 10), (typeof(TwinStrike), 10, 14),
+        (typeof(IronWave), 5, 7), (typeof(PommelStrike), 9, 10), (typeof(TwinStrike), 10, 14),
         (typeof(Bludgeon), 32, 42),
         (typeof(DaggerSpray), 8, 12), (typeof(DaggerThrow), 9, 12), (typeof(Slice), 6, 9), (typeof(PoisonedStab), 6, 8),
         (typeof(BeamCell), 3, 4), (typeof(GoForTheEyes), 3, 4), (typeof(SweepingBeam), 6, 9), (typeof(RipAndTear), 14, 18),
@@ -228,7 +228,7 @@ internal static class SpecialCardSelfTests
         var characterPools = characters.Select(character => character.CardPool.Id).ToHashSet();
         var templates = characters.SelectMany(character => character.CardPool.AllCards.Concat(character.StartingDeck))
             .Concat(ModelDb.AllCards.Where(card => card.Type == CardType.Attack && characterPools.Contains(card.VisualCardPool.Id)))
-            .Where(card => card.Type == CardType.Attack && card is not DuanYuCard)
+            .Where(card => card.Type == CardType.Attack && card.Rarity != CardRarity.Basic && card is not DuanYuCard)
             .DistinctBy(card => card.Id).ToArray();
         var originals = templates.ToDictionary(card => card.Id, TemplateSnapshot);
         var rngBefore = fixture.Run.Rng.CombatCardGeneration.ToSerializable();
@@ -237,10 +237,11 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(rngBefore, fixture.Run.Rng.CombatCardGeneration.ToSerializable(), "nonpositive generation count consumes no RNG");
         await DuanYuForeignCards.GenerateAttacks(fixture.Player, new ThrowingPlayerChoiceContext(), int.MaxValue, upgraded);
         var cards = GeneratedCards();
-        EngineSelfTests.Equal(templates.Length, cards.Length, "foreign generation reaches every attack in all other complete character pools");
+        EngineSelfTests.Equal(templates.Length, cards.Length, "foreign generation reaches every non-basic attack in all other complete character pools");
         EngineSelfTests.Equal(templates.Length, cards.Select(card => card.Id).Distinct().Count(), "foreign generation samples without replacement");
-        EngineSelfTests.Equal(true, templates.Select(card => card.Id).ToHashSet().SetEquals(cards.Select(card => card.Id)), "generated attacks cover all other character attack models without exclusions");
+        EngineSelfTests.Equal(true, templates.Select(card => card.Id).ToHashSet().SetEquals(cards.Select(card => card.Id)), "generated attacks cover all other character non-basic attack models without further exclusions");
         EngineSelfTests.Equal(true, cards.All(card => card is not DuanYuCard && card.Type == CardType.Attack), "foreign cards use real native implementations");
+        EngineSelfTests.Equal(true, cards.All(card => card.Rarity != CardRarity.Basic), "borrowed attacks never include Basic-rarity attacks");
         EngineSelfTests.Equal(true, cards.All(card => !card.IsCanonical && card.Owner == fixture.Player && card.IsUpgraded == upgraded), "only owned generated copies receive upgrades");
         EngineSelfTests.Equal(true, cards.All(card => card.Keywords.Contains(CardKeyword.Exhaust) && (card.EnergyCost.CostsX || card.EnergyCost.GetWithModifiers(CostModifiers.All) == 0)), "generated copies receive temporary zero energy cost and exhaust, with native X costs preserved");
         EngineSelfTests.Equal(templates.Count(card => card.EnergyCost.CostsX), cards.Count(card => card.EnergyCost.CostsX), "all X-cost native attacks retain their native X-cost semantics");
@@ -384,7 +385,6 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SkillsPlayed, "native attack grants no first-skill reward");
         if (attack is IronWave) EngineSelfTests.Equal(upgraded ? 7 : 5, fixture.Player.Creature.Block, "borrowed Iron Wave keeps native block");
         if (attack is PoisonedStab) EngineSelfTests.Equal(upgraded ? 4 : 3, fixture.Enemy.GetPowerAmount<PoisonPower>(), "borrowed Poisoned Stab keeps native poison");
-        if (attack is Bash) EngineSelfTests.Equal(upgraded ? 3 : 2, fixture.Enemy.GetPowerAmount<VulnerablePower>(), "borrowed Bash keeps native vulnerability");
         if (attack is BeamCell) EngineSelfTests.Equal(upgraded ? 2 : 1, fixture.Enemy.GetPowerAmount<VulnerablePower>(), "borrowed Beam Cell keeps native vulnerability");
         if (attack is PommelStrike) EngineSelfTests.Equal(upgraded ? 2 : 1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "borrowed Pommel Strike keeps native draw");
         if (attack is SweepingBeam) EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "borrowed Sweeping Beam keeps native draw");

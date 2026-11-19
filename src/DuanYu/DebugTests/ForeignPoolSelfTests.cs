@@ -20,7 +20,7 @@ internal static class ForeignPoolSelfTests
     {
         get
         {
-            yield return ("foreign-pool:all-character-attacks-without-cost-or-resource-exclusions", CompleteSources);
+            yield return ("foreign-pool:all-nonbasic-character-attacks-without-cost-or-resource-exclusions", CompleteSources);
             foreach (bool upgraded in new[] { false, true })
             {
                 string suffix = upgraded ? "+" : "";
@@ -45,22 +45,29 @@ internal static class ForeignPoolSelfTests
         var ids = pool.Select(card => card.Id).ToHashSet();
         EngineSelfTests.Equal(pool.Count, ids.Count, "shared attacks are sampled once per card model rather than once per character");
         EngineSelfTests.Equal(true, pool.All(card => card.Type == CardType.Attack && card is not DuanYuCard), "borrowed pool contains other-character attacks");
+        EngineSelfTests.Equal(true, pool.All(card => card.Rarity != CardRarity.Basic), "borrowed pool excludes every Basic-rarity attack");
         foreach (var character in ModelDb.AllCharacters.Where(character => character is not DuanYuCharacter))
         {
             var attacks = character.CardPool.AllCards.Concat(character.StartingDeck).Where(card => card.Type == CardType.Attack && card is not DuanYuCard);
-            EngineSelfTests.Equal(true, attacks.All(card => ids.Contains(card.Id)), character.Id.Entry + " contributes all its attacks including basic cards");
+            EngineSelfTests.Equal(true, attacks.Where(card => card.Rarity != CardRarity.Basic).All(card => ids.Contains(card.Id)), character.Id.Entry + " contributes all its non-basic attacks");
+            EngineSelfTests.Equal(true, attacks.Where(card => card.Rarity == CardRarity.Basic).All(card => !ids.Contains(card.Id)), character.Id.Entry + " contributes no basic attacks, including starting-deck attacks");
         }
         foreach (var type in new[]
         {
             typeof(Bury), typeof(MeteorStrike), typeof(Coda), typeof(BansheesCry), typeof(Midnight),
-            typeof(Whirlwind), typeof(Skewer), typeof(AstralPulse), typeof(FallingStar),
+            typeof(Whirlwind), typeof(Skewer), typeof(AstralPulse),
             typeof(Squeeze), typeof(Feed), typeof(GrandFinale), typeof(Clash), typeof(Rebound), typeof(RipAndTear)
         })
-            EngineSelfTests.Equal(true, ids.Contains(ModelDb.GetId(type)), type.Name + " remains eligible regardless of cost, rarity, resource, multiplayer or native generation flags");
+            EngineSelfTests.Equal(true, ids.Contains(ModelDb.GetId(type)), type.Name + " remains eligible regardless of cost, non-basic rarity, resource, multiplayer or native generation flags");
+        foreach (var type in new[] { typeof(Bash), typeof(FallingStar) })
+        {
+            EngineSelfTests.Equal(CardRarity.Basic, ModelDb.GetById<CardModel>(ModelDb.GetId(type)).Rarity, type.Name + " is a native Basic-rarity attack");
+            EngineSelfTests.Equal(false, ids.Contains(ModelDb.GetId(type)), type.Name + " is excluded as a Basic-rarity attack");
+        }
         EngineSelfTests.Equal(false, ModelDb.Card<Feed>().CanBeGeneratedInCombat, "coverage includes attacks the generic native random generator excludes");
         EngineSelfTests.Equal(CardMultiplayerConstraint.MultiplayerOnly, ModelDb.Card<Midnight>().MultiplayerConstraint, "coverage includes a multiplayer-only card even in a singleplayer fixture");
         var characterPools = ModelDb.AllCharacters.Where(character => character is not DuanYuCharacter).Select(character => character.CardPool.Id).ToHashSet();
-        var associatedAttacks = ModelDb.AllCards.Where(card => card.Type == CardType.Attack && characterPools.Contains(card.VisualCardPool.Id));
+        var associatedAttacks = ModelDb.AllCards.Where(card => card.Type == CardType.Attack && card.Rarity != CardRarity.Basic && characterPools.Contains(card.VisualCardPool.Id));
         EngineSelfTests.Equal(true, associatedAttacks.All(card => ids.Contains(card.Id)), "shared event attacks with another character's visual pool remain included");
         Godot.GD.Print($"DUANYU_FOREIGN_POOL count={pool.Count}");
         return Task.CompletedTask;
@@ -89,7 +96,7 @@ internal static class ForeignPoolSelfTests
 
     private static async Task StarCosts(bool upgraded)
     {
-        foreach (var specification in new[] { (Type: typeof(AstralPulse), Stars: 3), (Type: typeof(FallingStar), Stars: 2) })
+        foreach (var specification in new[] { (Type: typeof(AstralPulse), Stars: 3) })
         {
             var (fixture, card) = await BorrowAttack(specification.Type, upgraded);
             EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState!.Stars, "generation grants no free native stars");

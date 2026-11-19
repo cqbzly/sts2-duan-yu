@@ -19,7 +19,7 @@ public static class DuanYuForeignCards
         var affiliatedAttacks = ModelDb.AllCards.Where(card => card.Type == CardType.Attack
             && card is not DuanYuCard && poolIds.Contains(card.VisualCardPool.Id));
         return characterCards.Concat(affiliatedAttacks)
-            .Where(card => card.Type == CardType.Attack && card is not DuanYuCard)
+            .Where(card => card.Type == CardType.Attack && card.Rarity != CardRarity.Basic && card is not DuanYuCard)
             .DistinctBy(card => card.Id)
             .OrderBy(card => card.Id.ToString(), StringComparer.Ordinal)
             .ToArray();
