@@ -62,7 +62,7 @@ internal static class SpecialCardSelfTests
             {
                 var suffix = upgraded ? "+" : "";
                 yield return ("special:attack-replay-creates-one-status-per-body" + suffix, () => AttackCreatesStatus(upgraded));
-                yield return ("special:foreign-native-whitelist-cost-and-overflow" + suffix, () => ForeignGeneration(upgraded));
+                yield return ("special:foreign-complete-pool-cost-and-overflow" + suffix, () => ForeignGeneration(upgraded));
                 yield return ("special:borrowed-attacks-paid-and-status-cost" + suffix, () => BorrowedAttacks(upgraded));
                 yield return ("special:secondary-borrow-card" + suffix, () => SecondaryBorrowedAttack(upgraded));
                 yield return ("special:x-resource-cards" + suffix, () => XResourceCards(upgraded));
@@ -224,27 +224,39 @@ internal static class SpecialCardSelfTests
     private static async Task ForeignGeneration(bool upgraded)
     {
         var fixture = await ReadyFixture();
-        var templates = NativeAttacks.Select(attack => ModelDb.GetById<CardModel>(ModelDb.GetId(attack.Type))).ToArray();
+        var characters = ModelDb.AllCharacters.Where(character => character is not DuanYuCharacter).ToArray();
+        var characterPools = characters.Select(character => character.CardPool.Id).ToHashSet();
+        var templates = characters.SelectMany(character => character.CardPool.AllCards.Concat(character.StartingDeck))
+            .Concat(ModelDb.AllCards.Where(card => card.Type == CardType.Attack && characterPools.Contains(card.VisualCardPool.Id)))
+            .Where(card => card.Type == CardType.Attack && card is not DuanYuCard)
+            .DistinctBy(card => card.Id).ToArray();
         var originals = templates.ToDictionary(card => card.Id, TemplateSnapshot);
         var rngBefore = fixture.Run.Rng.CombatCardGeneration.ToSerializable();
         await DuanYuForeignCards.GenerateAttacks(fixture.Player, new ThrowingPlayerChoiceContext(), 0, upgraded);
         await DuanYuForeignCards.GenerateAttacks(fixture.Player, new ThrowingPlayerChoiceContext(), -1, upgraded);
         EngineSelfTests.Equal(rngBefore, fixture.Run.Rng.CombatCardGeneration.ToSerializable(), "nonpositive generation count consumes no RNG");
-        await DuanYuForeignCards.GenerateAttacks(fixture.Player, new ThrowingPlayerChoiceContext(), 99, upgraded);
+        await DuanYuForeignCards.GenerateAttacks(fixture.Player, new ThrowingPlayerChoiceContext(), int.MaxValue, upgraded);
         var cards = GeneratedCards();
-        EngineSelfTests.Equal(NativeAttacks.Length, cards.Length, "foreign generation clamps to the finite whitelist");
-        EngineSelfTests.Equal(NativeAttacks.Length, cards.Select(card => card.Id).Distinct().Count(), "foreign generation samples without replacement");
-        EngineSelfTests.Equal(true, NativeAttacks.Select(attack => attack.Type).ToHashSet().SetEquals(cards.Select(card => card.GetType())), "generated attacks are exactly the native whitelist");
+        EngineSelfTests.Equal(templates.Length, cards.Length, "foreign generation reaches every attack in all other complete character pools");
+        EngineSelfTests.Equal(templates.Length, cards.Select(card => card.Id).Distinct().Count(), "foreign generation samples without replacement");
+        EngineSelfTests.Equal(true, templates.Select(card => card.Id).ToHashSet().SetEquals(cards.Select(card => card.Id)), "generated attacks cover all other character attack models without exclusions");
         EngineSelfTests.Equal(true, cards.All(card => card is not DuanYuCard && card.Type == CardType.Attack), "foreign cards use real native implementations");
         EngineSelfTests.Equal(true, cards.All(card => !card.IsCanonical && card.Owner == fixture.Player && card.IsUpgraded == upgraded), "only owned generated copies receive upgrades");
-        EngineSelfTests.Equal(true, cards.All(card => card.Keywords.Contains(CardKeyword.Exhaust) && (XCostAttacks.Contains(card.GetType()) && card.EnergyCost.CostsX || card.EnergyCost.GetWithModifiers(CostModifiers.All) == 0)), "generated copies receive temporary zero cost and exhaust, with native X costs preserved");
-        EngineSelfTests.Equal(1, cards.Count(card => XCostAttacks.Contains(card.GetType()) && card.EnergyCost.CostsX), "the X-cost native attack keeps its native X-cost semantics");
+        EngineSelfTests.Equal(true, cards.All(card => card.Keywords.Contains(CardKeyword.Exhaust) && (card.EnergyCost.CostsX || card.EnergyCost.GetWithModifiers(CostModifiers.All) == 0)), "generated copies receive temporary zero energy cost and exhaust, with native X costs preserved");
+        EngineSelfTests.Equal(templates.Count(card => card.EnergyCost.CostsX), cards.Count(card => card.EnergyCost.CostsX), "all X-cost native attacks retain their native X-cost semantics");
         EngineSelfTests.Equal(10, cards.Count(card => card.Pile?.Type == PileType.Hand), "native hand capacity remains ten");
-        EngineSelfTests.Equal(NativeAttacks.Length - 10, cards.Count(card => card.Pile?.Type == PileType.Discard), "foreign overflow goes to native discard");
-        EngineSelfTests.Equal(NativeAttacks.Length, fixture.Run.Rng.CombatCardGeneration.ToSerializable().counter - rngBefore.counter, "whitelist sampling consumes one native draw per card");
+        EngineSelfTests.Equal(templates.Length - 10, cards.Count(card => card.Pile?.Type == PileType.Discard), "foreign overflow goes to native discard");
+        EngineSelfTests.Equal(templates.Length, fixture.Run.Rng.CombatCardGeneration.ToSerializable().counter - rngBefore.counter, "complete-pool sampling consumes one native draw per card");
+        foreach (var card in cards)
+            EngineSelfTests.Equal(true, !string.IsNullOrWhiteSpace(card.GetDescriptionForPile(card.Pile!.Type)), card.Id.Entry + " keeps a renderable native card description in the complete pool");
         fixture.Player.PlayerCombatState!.EndOfTurnCleanup();
         foreach (var card in cards)
-            EngineSelfTests.Equal(card.EnergyCost.Canonical, card.EnergyCost.GetWithModifiers(CostModifiers.All), "native turn cleanup expires borrowed cost in hand and discard");
+        {
+            var nativeCopy = fixture.Combat.CreateCard(templates.Single(template => template.Id == card.Id), fixture.Player);
+            if (upgraded) CardCmd.Upgrade(nativeCopy);
+            EngineSelfTests.Equal(nativeCopy.EnergyCost.GetWithModifiers(CostModifiers.All), card.EnergyCost.GetWithModifiers(CostModifiers.All), "turn cleanup restores the native upgraded cost and keeps native discounts");
+            EngineSelfTests.Equal(nativeCopy.CurrentStarCost, card.CurrentStarCost, "borrowing never waives or replaces native star costs");
+        }
         foreach (var template in templates)
             EngineSelfTests.Equal(originals[template.Id], TemplateSnapshot(template), "foreign generation leaves native canonical models unchanged");
     }
@@ -330,7 +342,7 @@ internal static class SpecialCardSelfTests
         var volley = EngineSelfTests.AddCard(zero, "DY_R21", PileType.Hand, upgraded);
         var initialHp = zero.Enemy.CurrentHp;
         await PaidPlay(zero, volley);
-        EngineSelfTests.Equal(upgraded ? 7 : 5, initialHp - zero.Enemy.CurrentHp, "六脉齐发X为0仍造成一次基础伤害");
+        EngineSelfTests.Equal(upgraded ? 10 : 7, initialHp - zero.Enemy.CurrentHp, "六脉齐发X为0仍造成一次基础伤害");
         EngineSelfTests.Equal(0, DuanYuState.Get(zero.Player).Qi, "六脉齐发强制消耗三点真气");
         EngineSelfTests.Equal(PileType.Exhaust, volley.Pile!.Type, "六脉齐发自身消耗");
 
@@ -343,8 +355,8 @@ internal static class SpecialCardSelfTests
         var xInitialHp = combat.Enemy.CurrentHp;
         var secondInitialHp = secondEnemy.CurrentHp;
         await PaidPlay(combat, volleyWithX);
-        EngineSelfTests.Equal(3 * (upgraded ? 7 : 5), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按X加一计算单次总伤害");
-        EngineSelfTests.Equal(3 * (upgraded ? 7 : 5), secondInitialHp - secondEnemy.CurrentHp, "六脉齐发对全部敌人造成相同单次总伤害");
+        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按X加一计算单次总伤害");
+        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), secondInitialHp - secondEnemy.CurrentHp, "六脉齐发对全部敌人造成相同单次总伤害");
         EngineSelfTests.Equal(2, volleyWithX.EnergyCost.CapturedXValue, "六脉齐发捕获支付时的X值");
         EngineSelfTests.Equal(0, combat.Player.PlayerCombatState.Energy, "六脉齐发支付全部能量");
     }
@@ -353,7 +365,7 @@ internal static class SpecialCardSelfTests
     {
         var fixture = await ReadyFixture("DUANYUFOREIGNPLAY");
         await SetQi(fixture, 0);
-        await DuanYuForeignCards.GenerateAttacks(fixture.Player, new ThrowingPlayerChoiceContext(), NativeAttacks.Length, upgraded);
+        await DuanYuForeignCards.GenerateAttacks(fixture.Player, new ThrowingPlayerChoiceContext(), int.MaxValue, upgraded);
         var attack = GeneratedCards().Single(card => card.GetType() == attackType);
         foreach (var existing in PileType.Hand.GetPile(fixture.Player).Cards.ToArray())
             await CardPileCmd.Add(existing, PileType.Discard);

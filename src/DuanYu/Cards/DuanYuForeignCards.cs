@@ -1,37 +1,40 @@
+using DuanYu.Character;
 using DuanYu.Runtime;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Models.Cards;
 
 namespace DuanYu.Cards;
 
 public static class DuanYuForeignCards
 {
-    private static readonly Type[] AttackTypes =
-    [
-        typeof(Bash), typeof(IronWave), typeof(PommelStrike), typeof(TwinStrike),
-        typeof(Bludgeon),
-        typeof(DaggerSpray), typeof(DaggerThrow), typeof(Slice), typeof(PoisonedStab),
-        typeof(BeamCell), typeof(GoForTheEyes), typeof(SweepingBeam), typeof(RipAndTear),
-        typeof(KinglyKick), typeof(KinglyPunch),
-        typeof(DeathMarch), typeof(Defile), typeof(Graveblast),
-        typeof(Eradicate),
-        typeof(SorrowfulStrike), typeof(BowSmack), typeof(PunchOfJoy), typeof(KiWhip)
-    ];
+    internal static IReadOnlyList<CardModel> GetAttackPool()
+    {
+        var characters = ModelDb.AllCharacters.Where(character => character is not DuanYuCharacter).ToArray();
+        var poolIds = characters.Select(character => character.CardPool.Id).ToHashSet();
+        var characterCards = characters.SelectMany(character => character.CardPool.AllCards.Concat(character.StartingDeck));
+        // Some character attacks live in a shared event pool but retain their character's visual pool.
+        var affiliatedAttacks = ModelDb.AllCards.Where(card => card.Type == CardType.Attack
+            && card is not DuanYuCard && poolIds.Contains(card.VisualCardPool.Id));
+        return characterCards.Concat(affiliatedAttacks)
+            .Where(card => card.Type == CardType.Attack && card is not DuanYuCard)
+            .DistinctBy(card => card.Id)
+            .OrderBy(card => card.Id.ToString(), StringComparer.Ordinal)
+            .ToArray();
+    }
 
     public static async Task GenerateAttacks(Player player, PlayerChoiceContext context, int count, bool upgraded)
     {
         if (count <= 0 || !DuanYuState.CanAct(player)) return;
-        var candidates = AttackTypes.ToList();
+        var candidates = GetAttackPool().ToList();
         var generationCount = Math.Min(count, candidates.Count);
         for (var index = 0; index < generationCount; index++)
         {
             if (!DuanYuState.CanAct(player)) return;
             var choice = player.RunState.Rng.CombatCardGeneration.NextInt(candidates.Count);
-            var canonical = ModelDb.GetById<CardModel>(ModelDb.GetId(candidates[choice]));
+            var canonical = candidates[choice];
             candidates.RemoveAt(choice);
             var card = player.Creature.CombatState!.CreateCard(canonical, player);
             if (upgraded) CardCmd.Upgrade(card);

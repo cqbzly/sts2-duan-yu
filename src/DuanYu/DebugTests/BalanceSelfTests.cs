@@ -533,7 +533,7 @@ internal static class BalanceSelfTests
         await SetQi(attackFixture, 2);
         var initialHp = attackFixture.Enemy.CurrentHp;
         await PaidPlay(attackFixture, "DY_B05", true);
-        EngineSelfTests.Equal(19, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 combined damage");
+        EngineSelfTests.Equal(28, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 combined damage");
         EngineSelfTests.Equal(0, DuanYuState.Get(attackFixture.Player).Qi, "upgraded B05 spends exactly two Qi");
     }
 

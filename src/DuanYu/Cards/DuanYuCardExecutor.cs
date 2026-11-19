@@ -92,7 +92,7 @@ public static class DuanYuCardExecutor
             case "DY_B02": await Block(Value(5, 8)); break;
             case "DY_B03": await Block(Value(5, 7)); await Qi(Value(2, 3)); break;
             case "DY_B04": await Block(Value(4, 6)); await Lingbo(1); break;
-            case "DY_B05": await Attack(Value(14, 19)); break;
+            case "DY_B05": await Attack(Value(20, 28)); break;
             case "DY_C01": await Attack(Value(11, 15)); await Qi(1); break;
             case "DY_C02":
             {
@@ -105,7 +105,7 @@ public static class DuanYuCardExecutor
                 break;
             }
             case "DY_C03": await Attack(Value(7, 10)); await Debuff<VulnerablePower>(1); break;
-            case "DY_C04": await Attack(Value(8, 11), true); break;
+            case "DY_C04": await Attack(Value(10, 14), true); break;
             case "DY_C05": await Attack(Value(8, 11)); await Debuff<WeakPower>(1); break;
             case "DY_C06": await Attack(Value(11, 15)); if (state.Lingbo > 0) await Block(Value(5, 7)); break;
             case "DY_C07": await Attack(Value(11, 15)); await Block(Value(4, 6)); await Generate(1); break;
@@ -157,7 +157,7 @@ public static class DuanYuCardExecutor
                 await Qi(Value(1, 2));
                 break;
             }
-            case "DY_U07": await Attack(Value(22, 30)); break;
+            case "DY_U07": await Attack(Value(30, 42)); break;
             case "DY_U08": await Attack(Value(16, 23) + state.Qi); await GenerateStatus("DY_S01"); break;
             case "DY_U09": await DuanYuState.AddSwordDamage(player, Value(2, 3)); break;
             case "DY_U10": await Attack(Value(10, 14), true); await Generate(3, card.IsUpgraded); break;
@@ -192,7 +192,7 @@ public static class DuanYuCardExecutor
                 break;
             }
             case "DY_U16": await Attack(Value(13, 18)); if (state.SwordPlays > 0) await Draw(1); break;
-            case "DY_U17": await Attack(Value(18, 24), true); break;
+            case "DY_U17": await Attack(Value(23, 31), true); break;
             case "DY_U18": await Block(Value(7, 10)); await Lingbo(Value(1, 2)); break;
             case "DY_U19": await Retain(Value(2, 3)); await Lingbo(Value(1, 2)); break;
             case "DY_U20": await Attack(Value(11, 15)); await Block(Value(4, 6)); await Debuff<WeakPower>(2); break;
@@ -278,9 +278,9 @@ public static class DuanYuCardExecutor
             case "DY_R05":
             {
                 var otherEnemies = player.Creature.CombatState!.GetOpponentsOf(player.Creature).Where(enemy => enemy.IsAlive && enemy != target).ToArray();
-                await Attack(Value(40, 54));
+                await Attack(Value(54, 72));
                 foreach (var enemy in otherEnemies)
-                    await DealDamage(card, context, play, Value(16, 22), recipient: enemy);
+                    await DealDamage(card, context, play, Value(22, 29), recipient: enemy);
                 break;
             }
             case "DY_R06":
@@ -298,7 +298,7 @@ public static class DuanYuCardExecutor
             case "DY_R10": await Attack(Value(15, 20)); await Choose(3); break;
             case "DY_R11": await Block(Value(16, 21)); await Lingbo(3); break;
             case "DY_R12": await Block(Value(6, 9)); await Effect(Value(6, 9), 1); break;
-            case "DY_R13": await Attack(Value(42, 56)); break;
+            case "DY_R13": await Attack(Value(58, 79)); break;
             case "DY_R14":
                 await CreatureCmd.LoseBlock(context, player.Creature, player.Creature.Block, player.Creature);
                 await Draw(Value(3, 4));
@@ -348,7 +348,7 @@ public static class DuanYuCardExecutor
             case "DY_R21":
             {
                 var xValue = card.ResolveEnergyXValue();
-                await Attack(Value(5, 7), true, xValue + 1);
+                await Attack(Value(7, 10), true, xValue + 1);
                 break;
             }
             case "DY_R22": await GenerateStatus("DY_S02", PileType.Hand); await Effect(Value(5, 7), 1); break;

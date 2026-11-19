@@ -11,6 +11,7 @@ using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Hooks;
+using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Unlocks;
 
@@ -47,8 +48,18 @@ internal static class QiResourceSelfTests
         var player = fixture.Player;
         var combat = player.PlayerCombatState!;
         var card = EngineSelfTests.AddCard(fixture, id, PileType.Hand, upgraded);
+        var qiCost = CustomResources<QiResource>.Cost(card)
+            ?? throw new InvalidOperationException(id + " must retain its resource cost display registration");
+        EngineSelfTests.Equal(true, card.RequiredQi > 0, id + " retains a mandatory Qi fee after shortening its body text");
+        EngineSelfTests.Equal(card.QiCost, qiCost.Base, id + " resource icon retains its printed base fee");
+        EngineSelfTests.Equal(card.QiCost, qiCost.GetWithModifiers(CostModifiers.All), id + " resource icon displays the full Qi fee");
+        EngineSelfTests.Equal(card.QiCost, qiCost.GetAmountToSpend(), id + " resource cost still requires its full amount");
+        EngineSelfTests.Equal(false, card.GetDescriptionForPile(PileType.Hand).Contains($"需{card.QiCost}点真气", StringComparison.Ordinal),
+            id + " body text omits the fee already shown by its resource icon");
         await SetQi(player, card.RequiredQi - 1);
         int qi = DuanYuState.Get(player).Qi;
+        EngineSelfTests.Equal(true, card.HoverTips.OfType<HoverTip>().Any(tip => tip.Description.Contains($"当前{qi}/需要{card.RequiredQi}：", StringComparison.Ordinal)),
+            id + " hover still explains the current Qi and required fee when unaffordable");
         int energy = combat.Energy;
         int block = player.Creature.Block;
         int health = fixture.Enemy.CurrentHp;
@@ -77,6 +88,8 @@ internal static class QiResourceSelfTests
         EngineSelfTests.Equal(0, DuanYuState.Get(player).SwordPlays, id + " rejected play records no sword");
         await SetQi(player, card.RequiredQi);
         EngineSelfTests.Equal(true, card.CanPlay(), id + " is payable at its exact fee");
+        EngineSelfTests.Equal(true, card.HoverTips.OfType<HoverTip>().Any(tip => tip.Description.Contains($"当前真气：{card.RequiredQi}/9；出牌前支付{card.RequiredQi}点。", StringComparison.Ordinal)),
+            id + " hover still explains the current Qi and payment when affordable");
         await SetQi(player, card.RequiredQi);
         EngineSelfTests.Equal(true, card.CanPlay(), id + " is playable with its exact fee");
         await SetQi(player, card.RequiredQi + 1);
@@ -178,7 +191,7 @@ internal static class QiResourceSelfTests
         await SetQi(player, 3);
         await CardCmd.AutoPlay(new ThrowingPlayerChoiceContext(), card, fixture.Enemy, skipCardPileVisuals: true);
         EngineSelfTests.Equal(1, DuanYuState.Get(player).Qi, "auto-play pays its full Qi cost");
-        EngineSelfTests.Equal(14, health - fixture.Enemy.CurrentHp, "paid auto-play resolves the full card");
+        EngineSelfTests.Equal(20, health - fixture.Enemy.CurrentHp, "paid auto-play resolves the full card");
         EngineSelfTests.Equal(energy, player.PlayerCombatState.Energy, "auto-play leaves native energy free");
         await CardPileCmd.Add(card, PileType.Hand);
         health = fixture.Enemy.CurrentHp;

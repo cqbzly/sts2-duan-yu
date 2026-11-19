@@ -117,6 +117,7 @@ internal static class EngineSelfTests
             await RunCase("ascension:a10-rules", AscensionSelfTests.Run);
             foreach (var test in BalanceSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in SpecialCardSelfTests.Cases) await RunCase(test.Name, test.Action);
+            foreach (var test in ForeignPoolSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in StructureCardSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in MultiplayerAndFanSelfTests.Cases) await RunCase(test.Name, test.Action);
             await RunCase("runtime:architect-native-victory", AncientDialogueSelfTests.Run);
