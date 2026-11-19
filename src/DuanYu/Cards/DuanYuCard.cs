@@ -29,7 +29,7 @@ public abstract class DuanYuCard : CustomCardModel
     public CardDefinition Definition => Definitions[DesignId];
     public LocString SelectionPrompt => SelectionScreenPrompt;
     public DuanYuCardNumbers Numbers => DuanYuCardNumbers.For(DesignId);
-    public int RequiredQi => DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? 1 : 0;
+    public int RequiredQi => CustomResources<QiResource>.Cost(this)?.GetAmountToSpend() ?? QiCost;
     public int QiCost => DesignId switch
     {
         "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06" => 1,
@@ -47,6 +47,7 @@ public abstract class DuanYuCard : CustomCardModel
     protected DuanYuCard(string id) : base(Definitions[id].Cost, TypeOf(Definitions[id].Type), RarityOf(Definitions[id].Rarity), TargetOf(id, Definitions[id].Type))
     {
         DesignId = id;
+        if (QiCost > 0) CustomResources<QiResource>.SetCanonicalCost(this, QiCost);
     }
 
     protected override bool HasEnergyCostX => Definition.CostX;
@@ -83,7 +84,7 @@ public abstract class DuanYuCard : CustomCardModel
         get
         {
             if (Definition.Text.Contains("气", StringComparison.Ordinal))
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，最多9点。需N点真气：打出前必须拥有并支付N点真气，否则不能发动。耗气N：在该句结算时自动支付足额真气，否则跳过附加效果。" + QiPreview());
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，最多9点。需N点真气：打出整张牌前必须足额支付，不足时不能打出。能量免费仍需支付真气；同一次出牌的重放不重复支付。" + QiPreview());
             if (Definition.Text.Contains("凌波", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<LingboPower>();
             if (DuanYuState.IsSword(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
             if (Definition.Text.Contains("剑气", StringComparison.Ordinal))
@@ -112,9 +113,8 @@ public abstract class DuanYuCard : CustomCardModel
     {
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
-        if (RequiredQi > 0) return current >= RequiredQi ? $"当前真气：{current}/9；发动时支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：不能发动。";
-        if (QiCost == 0) return $"当前真气：{current}/9。";
-        return current >= QiCost ? $"按当前真气可发动：{current}→{current - QiCost}；实际以耗气句结算时为准。" : $"当前{current}/需要{QiCost}：附加效果不执行；实际以耗气句结算时为准。";
+        if (RequiredQi == 0) return $"当前真气：{current}/9。";
+        return current >= RequiredQi ? $"当前真气：{current}/9；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
     }
     private string DescriptionText(bool upgraded)
     {

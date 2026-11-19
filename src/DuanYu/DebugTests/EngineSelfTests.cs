@@ -86,6 +86,7 @@ internal static class EngineSelfTests
                 }
             }
             await RunCase("runtime:initial-deck-sequence", InitialDeckSequence);
+            foreach (var test in QiResourceSelfTests.Cases) await RunCase(test.Name, test.Action);
             await RunCase("runtime:spending-cannot-borrow-pendant", CannotBorrowPendant);
             await RunCase("runtime:pendant-first-skill-native-replay", PendantSkillReplay);
             await RunCase("runtime:pendant-third-sixth-native-replay", PendantSwordThresholds);
@@ -244,14 +245,18 @@ internal static class EngineSelfTests
         var fixture = await ReadyFixture();
         fixture.Player.PlayerCombatState!.Energy = 1;
         await SetQi(fixture, 1);
-        await PaidPlay(fixture, "DY_C15");
+        var unavailable = AddCard(fixture, "DY_C15", PileType.Hand);
+        Equal(false, unavailable.CanPlay(), "starting relic cannot fund a missing Qi fee");
+        Equal((0, 0), await unavailable.SpendResources(), "insufficient Qi preserves every resource");
+        await PlayCard(fixture, unavailable);
         Equal(1, DuanYuState.Get(fixture.Player).Qi, "starting relic does not refund a skill");
-        Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "insufficient Qi skips extra block");
-        Equal(0, fixture.Player.PlayerCombatState.Energy, "skill pays its energy normally");
-        fixture.Player.PlayerCombatState.Energy = 1;
-        await PaidPlay(fixture, "DY_C15");
-        Equal(1, DuanYuState.Get(fixture.Player).Qi, "repeated skills still receive no relic refund");
-        Equal(0, fixture.Player.PlayerCombatState.Energy, "repeated skill pays its energy normally");
+        Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "insufficient Qi does not count a spend");
+        Equal(0, fixture.Player.Creature.Block, "insufficient Qi prevents all block");
+        Equal(1, fixture.Player.PlayerCombatState.Energy, "rejected skill preserves energy");
+        await DuanYuState.GainQi(fixture.Player, 1);
+        await PaidPlay(fixture, unavailable);
+        Equal(0, DuanYuState.Get(fixture.Player).Qi, "funded skill pays its full fee without a relic refund");
+        Equal(0, fixture.Player.PlayerCombatState.Energy, "funded skill pays its energy normally");
     }
 
     internal static Task<DuanYuCard> PaidPlay(TestFixture fixture, string id, bool upgraded = false) =>
@@ -580,12 +585,12 @@ internal static class EngineSelfTests
         thirdKind.BaseReplayCount = 2;
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, thirdKind);
-        Equal(14, health - fixture.Enemy.CurrentHp, "native replay requires each body to have Qi");
-        Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "third-kind replay grants only completed-body momentum");
+        Equal(52, health - fixture.Enemy.CurrentHp, "native replay reuses the paid activation and gains momentum between bodies");
+        Equal(7, DuanYuState.Get(fixture.Player).SwordMomentum, "third-kind replay grants momentum for all three bodies");
         var plays = CombatManager.Instance.History.CardPlaysFinished.Where(entry => ReferenceEquals(entry.CardPlay.Card, thirdKind)).Select(entry => entry.CardPlay).ToArray();
         Equal(3, plays.Length, "third-kind test executes three native replay bodies");
         foreach (var play in plays) await DuanYuState.AfterCard(play, new ThrowingPlayerChoiceContext());
-        Equal(5, DuanYuState.Get(fixture.Player).SwordMomentum, "duplicate callbacks cannot grant momentum twice");
+        Equal(7, DuanYuState.Get(fixture.Player).SwordMomentum, "duplicate callbacks cannot grant momentum twice");
 
         var sixthFixture = await MomentumFixture();
         foreach (var id in new[] { "DY_T01", "DY_T04", "DY_T03", "DY_T02", "DY_T05" }) await PaidPlay(sixthFixture, id);

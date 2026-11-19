@@ -183,11 +183,12 @@ internal static class StructureCardSelfTests
         var attack = await Ready();
         await RelicCmd.Obtain<ChemicalX>(attack.Player);
         attack.Player.PlayerCombatState!.Energy = 1;
+        await DuanYuState.GainQi(attack.Player, 3);
         var volley = EngineSelfTests.AddCard(attack, "DY_R21", PileType.Hand, upgraded);
         volley.BaseReplayCount = 1;
         var health = attack.Enemy.CurrentHp;
         await PaidPlay(attack, volley);
-        EngineSelfTests.Equal(6 * (upgraded ? 10 : 7), health - attack.Enemy.CurrentHp, "native replay reuses captured X and Chemical X at each body without repaying energy");
+        EngineSelfTests.Equal(8 * (upgraded ? 10 : 7), health - attack.Enemy.CurrentHp, "native replay reuses captured X and its mandatory Qi-funded extra hit");
         EngineSelfTests.Equal(0, attack.Player.PlayerCombatState.Energy, "replayed X card pays only once");
     }
 

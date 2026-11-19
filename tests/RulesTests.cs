@@ -96,19 +96,18 @@ var cases = new (string Name, Action Check)[]
         Equal(false, ledger.TryProcessSpend(ledger.SpendingCount));
         Equal(false, ledger.TryProcessSpend(2));
     }),
-    ("Initial deck resource sequence leaves seven Qi", () =>
+    ("Initial deck resource sequence leaves four Qi", () =>
     {
         var ledger = new DuanYuCombatLedger();
         ledger.GainQi(3);
         ledger.BeginTurn();
-        var firstSkill = ledger.RegisterPlay(true, false, null);
-        ledger.GainQi(4);
-        if (firstSkill.Skill == 1) ledger.GainQi(2);
+        ledger.RegisterPlay(true, false, null);
+        ledger.GainQi(3);
         ledger.RegisterPlay(true, false, null);
         ledger.GainLingbo(1);
         ledger.RegisterPlay(false, true, null);
         Equal(true, ledger.TrySpendQi(2));
-        Equal(7, ledger.Qi);
+        Equal(4, ledger.Qi);
         Equal(1, ledger.Lingbo);
         Equal(2, ledger.SkillsPlayed);
     }),

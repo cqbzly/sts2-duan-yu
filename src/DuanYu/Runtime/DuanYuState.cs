@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using BaseLib.Abstracts;
 using DuanYu.Cards;
 using BaseLib.Patches.Saves;
 using MegaCrit.Sts2.Core.Combat;
@@ -30,6 +31,7 @@ public sealed class PlayerRuntimeState : DuanYuCombatLedger
     internal bool PreviousTurnWasPeaceful { get; set; }
     internal int StatusExhaustTriggers { get; set; }
     internal ICombatState? Combat { get; set; }
+    internal Dictionary<CardModel, DuanYuPlayRecord> PendingCardSpends { get; } = [];
 }
 
 internal sealed class DuanYuPlayRecord
@@ -102,11 +104,33 @@ public static class DuanYuState
         await SyncPower<QiPower>(player, state.Qi, source);
     }
 
-    public static async Task<bool> SpendQi(Player player, int amount, CardModel? source = null)
+    public static Task<bool> SpendQi(Player player, int amount, CardModel? source = null)
+    {
+        var state = Get(player);
+        DuanYuPlayRecord? record = null;
+        if (state.ActivePlays.TryPeek(out var active)) state.Plays.TryGetValue(active, out record);
+        return SpendQi(player, amount, source, record);
+    }
+
+    internal static async Task<bool> PayCardQi(DuanYuCard card, int amount)
+    {
+        var state = Get(card.Owner);
+        var record = new DuanYuPlayRecord { Effects = state.Effects.ToList() };
+        if (!await SpendQi(card.Owner, amount, card, record)) return false;
+        state.PendingCardSpends[card] = record;
+        return true;
+    }
+
+    internal static bool HasCardQiPayment(DuanYuCard card) =>
+        Get(card.Owner).PendingCardSpends.ContainsKey(card);
+
+    internal static void ClearCardQiPayment(DuanYuCard card) => Get(card.Owner).PendingCardSpends.Remove(card);
+
+    private static async Task<bool> SpendQi(Player player, int amount, CardModel? source, DuanYuPlayRecord? record)
     {
         var state = Get(player);
         if (!CanAct(player) || !state.TrySpendQi(amount)) return false;
-        if (state.ActivePlays.TryPeek(out var active) && state.Plays.TryGetValue(active, out var record))
+        if (record != null)
         {
             record.Spent = amount;
             record.SpendOrdinal = state.SpendingCount;
@@ -323,16 +347,21 @@ public static class DuanYuState
     internal static void BeforeCard(CardPlay play)
     {
         var state = Get(play.Player);
-        if (IsSword(play.Card) && state.Qi < 1) return;
         if (state.Plays.ContainsKey(play)) return;
         var ordinal = state.RegisterPlay(play.Card.Type == CardType.Skill, play.Card.Type == CardType.Attack, IsSword(play.Card) ? CardId(play.Card) : null);
+        DuanYuPlayRecord? payment = null;
+        if (play.IsFirstInSeries) state.PendingCardSpends.Remove(play.Card, out payment);
         state.Plays.Add(play, new DuanYuPlayRecord
         {
             SkillOrdinal = ordinal.Skill,
             SwordOrdinal = ordinal.Sword,
             ThirdSwordKind = ordinal.ThirdSwordKind,
             SixthSwordKind = ordinal.SixthSwordKind,
-            Effects = state.Effects.ToList()
+            Effects = payment?.Effects ?? state.Effects.ToList(),
+            Spent = payment?.Spent ?? 0,
+            SpendOrdinal = payment?.SpendOrdinal ?? 0,
+            GrantsSealEnergy = payment?.GrantsSealEnergy ?? false,
+            GrantsPrayerBlock = payment?.GrantsPrayerBlock ?? false
         });
         state.ActivePlays.Push(play);
     }
@@ -432,7 +461,7 @@ public static class DuanYuState
 
     private static void SyncQiCounter(Player player, int qi)
     {
-        if (IsDuanYu(player) && player.PlayerCombatState != null)
-            player.PlayerCombatState.Stars = qi;
+        if (player.PlayerCombatState != null)
+            CustomResources<QiResource>.Get(player.PlayerCombatState).Amount = qi;
     }
 }

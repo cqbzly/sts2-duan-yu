@@ -125,9 +125,10 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "Qi loss grants no refund block");
         EngineSelfTests.Equal(0, PileType.Hand.GetPile(fixture.Player).Cards.Count, "Qi loss grants no spend-triggered draw");
         await DuanYuState.GainQi(fixture.Player, 1);
-        EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Stars, "Qi mirrors native left-corner resource counter");
+        fixture.Player.PlayerCombatState.Stars = 4;
+        EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Stars, "native star resource remains independent from Qi");
         EngineSelfTests.Equal(true, await DuanYuState.SpendQi(fixture.Player, 1), "a later real spend remains payable");
-        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Stars, "spending Qi updates native resource counter");
+        EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Stars, "spending Qi does not change native star resource");
         await DuanYuState.AfterQiSpent(fixture.Player, new ThrowingPlayerChoiceContext());
         EngineSelfTests.Equal(2, state.Qi, "first actual spend still receives Beiming refund");
         EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "first actual spend retains its energy reward");

@@ -12,6 +12,13 @@ const rarityDefinitions = [
 ];
 const allowedTypes = new Set(['攻击', '技能', '能力', '状态']);
 const allowedTags = new Set(['北冥', '凌波', '六脉', '通用']);
+const requiredQiCosts = new Map([
+  ['DY_T01', 1], ['DY_T02', 1], ['DY_T03', 1], ['DY_T04', 1], ['DY_T05', 1], ['DY_T06', 1],
+  ['DY_C17', 1],
+  ['DY_B05', 2], ['DY_C02', 2], ['DY_C15', 2], ['DY_U32', 2], ['DY_R06', 2],
+  ['DY_C14', 3], ['DY_U07', 3], ['DY_U17', 3], ['DY_U33', 3], ['DY_R03', 3], ['DY_R05', 3], ['DY_R20', 3], ['DY_R21', 3],
+  ['DY_R13', 5],
+]);
 const errors = [];
 
 function requireCondition(condition, message) {
@@ -30,7 +37,7 @@ function isCost(value, cardId) {
   return Number.isInteger(value) && (value >= 0 && value <= 3 || cardId === 'DY_S01' && value === -1);
 }
 
-function validateEffect(text, label, qiCap) {
+function validateEffect(text, label, qiCap, expectedQiCost = 0) {
   requireCondition(isNonemptyText(text), `${label}必须提供完整效果文本。`);
   if (!isNonemptyText(text)) return;
   requireCondition(
@@ -38,12 +45,16 @@ function validateEffect(text, label, qiCap) {
       !/(其余|其他)效果不变/.test(text),
     `${label}不能用省略式说明替代完整文本。`,
   );
-  const spendingClauses = [...text.matchAll(/耗气\s*(\d+)\s*[：:]/g)];
-  requireCondition(spendingClauses.length <= 1, `${label}最多只能有一条耗气效果。`);
-  for (const clause of spendingClauses) {
+  const obsoleteSpendingClauses = [...text.matchAll(/耗气\s*(\d+)\s*[：:]/g)];
+  requireCondition(obsoleteSpendingClauses.length === 0, `${label}仍使用旧的条件耗气格式；应改为出牌前的“需支付N点真气”。`);
+  const requiredQiClauses = [...text.matchAll(/需(?:支付)?\s*(\d+)\s*点真气/g)];
+  requireCondition(requiredQiClauses.length <= 1, `${label}最多只能有一条真气费用。`);
+  for (const clause of requiredQiClauses) {
     const amount = Number(clause[1]);
-    requireCondition(amount > 0 && amount <= qiCap, `${label}的耗气量必须介于1与真气上限之间。`);
+    requireCondition(amount > 0 && amount <= qiCap, `${label}的真气费用必须介于1与真气上限之间。`);
+    requireCondition(expectedQiCost === 0 || amount === expectedQiCost, `${label}的真气费用应为${expectedQiCost}点。`);
   }
+  requireCondition(expectedQiCost === 0 || requiredQiClauses.length === 1, `${label}必须明确写出需支付${expectedQiCost}点真气。`);
 }
 
 function validateCharacter(character, cardsById) {
@@ -103,11 +114,11 @@ function validateCards(design) {
     requireCondition(card.costX === undefined || typeof card.costX === 'boolean', `${label}.costX必须为布尔值。`);
     requireCondition(Boolean(card.costX) === ['DY_U37', 'DY_R21'].includes(card.id), `${label}的X费用配置不正确。`);
     if (card.costX) requireCondition(card.cost === 0 && card.upgrade?.cost === 0, `${label}的X费用占位值必须为0。`);
-    validateEffect(card.text, `${label}基础效果`, design.character?.qiCap ?? 9);
+    validateEffect(card.text, `${label}基础效果`, design.character?.qiCap ?? 9, requiredQiCosts.get(card.id) ?? 0);
     requireCondition(isObject(card.upgrade), `${label}必须有upgrade对象。`);
     if (isObject(card.upgrade)) {
       requireCondition(isCost(card.upgrade.cost, card.id), `${label}的升级费用必须是0至3的整数，只有气滞允许-1。`);
-      validateEffect(card.upgrade.text, `${label}升级效果`, design.character?.qiCap ?? 9);
+      validateEffect(card.upgrade.text, `${label}升级效果`, design.character?.qiCap ?? 9, requiredQiCosts.get(card.id) ?? 0);
     }
     requireCondition(Array.isArray(card.tags) && card.tags.length >= 1 && card.tags.length <= 2, `${label}必须有1至2个标签。`);
     if (Array.isArray(card.tags)) {
