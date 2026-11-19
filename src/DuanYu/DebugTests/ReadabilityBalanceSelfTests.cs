@@ -1,10 +1,15 @@
 #if DEBUG
 using DuanYu.Cards;
+using DuanYu.Relics;
 using DuanYu.Runtime;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Monsters;
 using MegaCrit.Sts2.Core.Models.Powers;
+using MegaCrit.Sts2.Core.Models.Relics;
 
 namespace DuanYu.DebugTests;
 
@@ -19,7 +24,11 @@ internal static class ReadabilityBalanceSelfTests
                 var suffix = upgraded ? "+" : "";
                 foreach (var id in new[] { "DY_C15", "DY_R20" })
                     yield return ("readability:single-block-preview-" + id + suffix, () => SingleBlock(id, upgraded));
-                yield return ("readability:concise-multihit-retains-strength" + suffix, () => MultiHitStrength(upgraded));
+                foreach (var id in new[] { "DY_B05", "DY_C02", "DY_U07", "DY_U17", "DY_U33", "DY_R13", "DY_T01", "DY_T03" })
+                    yield return ("readability:single-damage-packet-" + id + suffix, () => SingleDamage(id, upgraded));
+                yield return ("readability:single-primary-and-secondary-damage" + suffix, () => PrimaryAndSecondaryDamage(upgraded));
+                yield return ("readability:x-damage-preview-and-single-packet" + suffix, () => XDamage(upgraded));
+                yield return ("readability:x-block-preview-and-single-packet" + suffix, () => XBlock(upgraded));
             }
         }
     }
@@ -48,24 +57,133 @@ internal static class ReadabilityBalanceSelfTests
         }
     }
 
-    private static async Task MultiHitStrength(bool upgraded)
+    private static async Task SingleDamage(string id, bool upgraded)
     {
-        var specifications = new (string Id, int BaseDamage, int UpgradedDamage, int Hits)[]
+        var specifications = new (string Id, int BaseDamage, int UpgradedDamage, bool All)[]
         {
-            ("DY_B05", 10, 14, 2), ("DY_C02", 10, 14, 2),
-            ("DY_U07", 15, 21, 2), ("DY_U33", 11, 15, 3)
+            ("DY_B05", 20, 28, false), ("DY_C02", 20, 28, false),
+            ("DY_U07", 30, 42, false), ("DY_U17", 23, 31, true),
+            ("DY_U33", 33, 45, false), ("DY_R13", 58, 79, false),
+            ("DY_T01", 7, 10, false), ("DY_T03", 5, 7, true)
         };
-        foreach (var specification in specifications)
+        var specification = specifications.Single(value => value.Id == id);
+        var fixture = await EngineSelfTests.ReadyFixture();
+        var context = new ThrowingPlayerChoiceContext();
+        var secondEnemy = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
+        fixture.Combat.AddCreature(secondEnemy);
+        await PowerCmd.Apply<StrengthPower>(context, fixture.Player.Creature, 2, fixture.Player.Creature, null);
+        await PowerCmd.Apply<ThornsPower>(context, fixture.Enemy, 1, fixture.Enemy, null);
+        await PowerCmd.Apply<ThornsPower>(context, secondEnemy, 1, secondEnemy, null);
+        var card = EngineSelfTests.AddCard(fixture, id, PileType.Hand, upgraded);
+        int printed = upgraded ? specification.UpgradedDamage : specification.BaseDamage;
+        EngineSelfTests.Equal((decimal)printed, card.DynamicVars.Damage.BaseValue, id + " canonical preview stores the complete combined damage");
+        EngineSelfTests.Equal(false, card.DynamicVars.ContainsKey("ExtraDamage"), id + " no longer exposes a legacy second damage packet");
+        EngineSelfTests.Equal(true, card.Localization.Any(entry => entry.Item2.Contains("{Damage:diff()}", StringComparison.Ordinal)), id + " concise text retains a live combined damage preview");
+        card.DynamicVars.Damage.UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
+        EngineSelfTests.Equal((decimal)printed + 2, card.DynamicVars.Damage.PreviewValue, id + " preview applies Strength once to combined damage");
+        int health = fixture.Enemy.CurrentHp;
+        int secondHealth = secondEnemy.CurrentHp;
+        int playerHealth = fixture.Player.Creature.CurrentHp;
+        await BalanceSelfTests.PaidPlay(fixture, card);
+        EngineSelfTests.Equal(printed + 2, health - fixture.Enemy.CurrentHp, id + " combined damage applies Strength once");
+        EngineSelfTests.Equal(specification.All ? printed + 2 : 0, secondHealth - secondEnemy.CurrentHp, id + " retains its target selection");
+        EngineSelfTests.Equal(specification.All ? 2 : 1, playerHealth - fixture.Player.Creature.CurrentHp, id + " triggers Thorns once per affected target");
+        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, id + " combined damage retains one mandatory Qi payment");
+    }
+
+    private static async Task PrimaryAndSecondaryDamage(bool upgraded)
+    {
+        var fixture = await EngineSelfTests.ReadyFixture();
+        var context = new ThrowingPlayerChoiceContext();
+        var other = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
+        fixture.Combat.AddCreature(other);
+        await PowerCmd.Apply<StrengthPower>(context, fixture.Player.Creature, 2, fixture.Player.Creature, null);
+        await PowerCmd.Apply<ThornsPower>(context, fixture.Enemy, 1, fixture.Enemy, null);
+        await PowerCmd.Apply<ThornsPower>(context, other, 1, other, null);
+        var card = EngineSelfTests.AddCard(fixture, "DY_R05", PileType.Hand, upgraded);
+        int health = fixture.Enemy.CurrentHp;
+        int otherHealth = other.CurrentHp;
+        int playerHealth = fixture.Player.Creature.CurrentHp;
+        int primary = upgraded ? 72 : 54;
+        int secondary = upgraded ? 29 : 22;
+        card.DynamicVars.Damage.UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
+        card.DynamicVars["ExtraDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, other, true);
+        EngineSelfTests.Equal((decimal)primary + 2, card.DynamicVars.Damage.PreviewValue, "R05 primary preview includes the combined damage with Strength once");
+        EngineSelfTests.Equal((decimal)secondary + 2, card.DynamicVars["ExtraDamage"].PreviewValue, "R05 other-enemy preview retains its separate target amount");
+        await BalanceSelfTests.PaidPlay(fixture, card);
+        EngineSelfTests.Equal(primary + 2, health - fixture.Enemy.CurrentHp, "R05 primary receives one combined damage packet");
+        EngineSelfTests.Equal(secondary + 2, otherHealth - other.CurrentHp, "R05 other enemy receives only its own damage packet");
+        EngineSelfTests.Equal(2, playerHealth - fixture.Player.Creature.CurrentHp, "R05 triggers Thorns once per affected enemy");
+        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "R05 pays Qi once for both distinct target amounts");
+
+        var victory = await EngineSelfTests.ReadyFixture();
+        await CreatureCmd.SetCurrentHp(victory.Enemy, 1);
+        await BalanceSelfTests.PaidPlay(victory, EngineSelfTests.AddCard(victory, "DY_R05", PileType.Hand, upgraded));
+        EngineSelfTests.Equal(false, victory.Enemy.IsAlive, "R05 safely finishes when combined primary damage kills the last enemy");
+
+        var lethalRetaliation = await EngineSelfTests.ReadyFixture();
+        var survivor = lethalRetaliation.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
+        lethalRetaliation.Combat.AddCreature(survivor);
+        await PowerCmd.Apply<ThornsPower>(context, lethalRetaliation.Enemy, 1, lethalRetaliation.Enemy, null);
+        await CreatureCmd.SetCurrentHp(lethalRetaliation.Player.Creature, 1);
+        int survivorHealth = survivor.CurrentHp;
+        await BalanceSelfTests.PaidPlay(lethalRetaliation, EngineSelfTests.AddCard(lethalRetaliation, "DY_R05", PileType.Hand, upgraded));
+        EngineSelfTests.Equal(false, lethalRetaliation.Player.Creature.IsAlive, "R05 primary Thorns can kill its owner");
+        EngineSelfTests.Equal(survivorHealth, survivor.CurrentHp, "R05 stops further enemy damage after its owner dies");
+    }
+
+    private static async Task XDamage(bool upgraded)
+    {
+        foreach (var paidX in new[] { 0, 3 })
+        foreach (var chemicalX in new[] { false, true })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
-            await PowerCmd.Apply<StrengthPower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 2, fixture.Player.Creature, null);
-            var card = EngineSelfTests.AddCard(fixture, specification.Id, PileType.Hand, upgraded);
-            EngineSelfTests.Equal(true, card.Localization.Any(entry => entry.Item2.Contains("{Damage:diff()}", StringComparison.Ordinal)), specification.Id + " concise text retains its live per-hit damage preview");
+            var context = new ThrowingPlayerChoiceContext();
+            if (chemicalX) await RelicCmd.Obtain<ChemicalX>(fixture.Player);
+            await PowerCmd.Apply<StrengthPower>(context, fixture.Player.Creature, 2, fixture.Player.Creature, null);
+            await PowerCmd.Apply<ThornsPower>(context, fixture.Enemy, 1, fixture.Enemy, null);
+            var second = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
+            fixture.Combat.AddCreature(second);
+            await PowerCmd.Apply<ThornsPower>(context, second, 1, second, null);
+            fixture.Player.PlayerCombatState!.Energy = paidX;
+            var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand, upgraded);
+            int expected = (upgraded ? 10 : 7) * (paidX + (chemicalX ? 2 : 0) + 1) + 2;
+            card.DynamicVars["XDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
+            EngineSelfTests.Equal((decimal)expected, card.DynamicVars["XDamage"].PreviewValue, "R21 total preview multiplies resolved X before applying Strength once");
             int health = fixture.Enemy.CurrentHp;
+            int secondHealth = second.CurrentHp;
+            int playerHealth = fixture.Player.Creature.CurrentHp;
             await BalanceSelfTests.PaidPlay(fixture, card);
-            int perHit = (upgraded ? specification.UpgradedDamage : specification.BaseDamage) + 2;
-            EngineSelfTests.Equal(perHit * specification.Hits, health - fixture.Enemy.CurrentHp, specification.Id + " concise repetition text preserves Strength on every actual hit");
-            EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, specification.Id + " repeated hits pay their Qi cost once");
+            EngineSelfTests.Equal(expected, health - fixture.Enemy.CurrentHp, "R21 primary takes one X-scaled packet matching its total preview");
+            EngineSelfTests.Equal(expected, secondHealth - second.CurrentHp, "R21 second enemy takes the same combined packet");
+            EngineSelfTests.Equal(2, playerHealth - fixture.Player.Creature.CurrentHp, "R21 triggers Thorns once per enemy regardless of X");
+            EngineSelfTests.Equal(paidX, card.EnergyCost.CapturedXValue, "R21 captures actual paid X before any effect");
+            EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "R21 mandatory Qi payment occurs once");
+        }
+    }
+
+    private static async Task XBlock(bool upgraded)
+    {
+        foreach (var paidX in new[] { 0, 3 })
+        foreach (var chemicalX in new[] { false, true })
+        foreach (var frail in new[] { false, true })
+        {
+            var fixture = await EngineSelfTests.ReadyFixture();
+            var context = new ThrowingPlayerChoiceContext();
+            if (chemicalX) await RelicCmd.Obtain<ChemicalX>(fixture.Player);
+            await PowerCmd.Apply<DexterityPower>(context, fixture.Player.Creature, 3, fixture.Player.Creature, null);
+            if (frail) await PowerCmd.Apply<FrailPower>(context, fixture.Player.Creature, 1, fixture.Enemy, null);
+            fixture.Player.PlayerCombatState!.Energy = paidX;
+            var card = EngineSelfTests.AddCard(fixture, "DY_U37", PileType.Hand, upgraded);
+            int resolvedX = paidX + (chemicalX ? 2 : 0);
+            int raw = (upgraded ? 6 : 4) * resolvedX;
+            int expected = resolvedX == 0 ? 0 : frail ? (int)decimal.Floor((raw + 3) * 0.75m) : raw + 3;
+            card.DynamicVars["XBlock"].UpdateCardPreview(card, CardPreviewMode.Normal, null, true);
+            EngineSelfTests.Equal((decimal)expected, decimal.Floor(card.DynamicVars["XBlock"].PreviewValue), "U37 total preview applies Dexterity and Frail once after scaling by resolved X");
+            EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "U37 preview does not grant block");
+            await BalanceSelfTests.PaidPlay(fixture, card);
+            EngineSelfTests.Equal(expected, fixture.Player.Creature.Block, "U37 one combined block packet matches its total preview, including X zero");
+            EngineSelfTests.Equal(paidX, card.EnergyCost.CapturedXValue, "U37 captures actual X without Chemical X pretending to spend energy");
         }
     }
 }

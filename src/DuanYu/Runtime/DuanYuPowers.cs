@@ -59,7 +59,7 @@ public sealed class VermilionWardPower : DuanYuPower
 [CustomID("CQBZLY_DY_SWORD_MOMENTUM")]
 public sealed class SwordMomentumPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("剑势", "六种剑气的每段攻击伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。", "六种剑气的每段攻击伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。");
+    public override List<(string, string)> Localization => new PowerLoc("剑势", "六种剑气伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。", "六种剑气伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。");
     public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
         dealer == Owner && props.IsPoweredAttack() && cardSource != null && DuanYuState.IsSword(cardSource) ? Amount : 0;
 }

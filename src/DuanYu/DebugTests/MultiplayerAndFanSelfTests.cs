@@ -46,7 +46,7 @@ internal static class MultiplayerAndFanSelfTests
         EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "fan does not activate before the third attack card");
         await DuanYuStateForTest.GainQi(fixture.Player, 1);
         await EngineSelfTests.PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_T03", PileType.Hand));
-        EngineSelfTests.Equal(4, fixture.Player.Creature.Block, "fan counts the multi-hit sword as one played attack card");
+        EngineSelfTests.Equal(4, fixture.Player.Creature.Block, "fan counts the AOE sword as one played attack card");
     }
 
     private static class DuanYuStateForTest

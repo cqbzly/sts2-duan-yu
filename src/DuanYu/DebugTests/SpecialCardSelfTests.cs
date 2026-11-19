@@ -330,8 +330,8 @@ internal static class SpecialCardSelfTests
         var volley = EngineSelfTests.AddCard(zero, "DY_R21", PileType.Hand, upgraded);
         var initialHp = zero.Enemy.CurrentHp;
         await PaidPlay(zero, volley);
-        EngineSelfTests.Equal(upgraded ? 10 : 7, initialHp - zero.Enemy.CurrentHp, "六脉齐发X为0仍可耗气追加一击");
-        EngineSelfTests.Equal(0, DuanYuState.Get(zero.Player).Qi, "六脉齐发追加攻击消耗三点真气");
+        EngineSelfTests.Equal(upgraded ? 10 : 7, initialHp - zero.Enemy.CurrentHp, "六脉齐发X为0仍造成一次基础伤害");
+        EngineSelfTests.Equal(0, DuanYuState.Get(zero.Player).Qi, "六脉齐发强制消耗三点真气");
         EngineSelfTests.Equal(PileType.Exhaust, volley.Pile!.Type, "六脉齐发自身消耗");
 
         var combat = await ReadyFixture("DUANYUXHITS" + (upgraded ? "U" : ""));
@@ -343,8 +343,8 @@ internal static class SpecialCardSelfTests
         var xInitialHp = combat.Enemy.CurrentHp;
         var secondInitialHp = secondEnemy.CurrentHp;
         await PaidPlay(combat, volleyWithX);
-        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按X命中并可追加一击");
-        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), secondInitialHp - secondEnemy.CurrentHp, "六脉齐发对全部敌人造成相同段数伤害");
+        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按X加一计算单次总伤害");
+        EngineSelfTests.Equal(3 * (upgraded ? 10 : 7), secondInitialHp - secondEnemy.CurrentHp, "六脉齐发对全部敌人造成相同单次总伤害");
         EngineSelfTests.Equal(2, volleyWithX.EnergyCost.CapturedXValue, "六脉齐发捕获支付时的X值");
         EngineSelfTests.Equal(0, combat.Player.PlayerCombatState.Energy, "六脉齐发支付全部能量");
     }

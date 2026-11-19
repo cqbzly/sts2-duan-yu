@@ -176,19 +176,24 @@ internal static class StructureCardSelfTests
         var source = EngineSelfTests.AddCard(fixture, "DY_U37", PileType.Hand, upgraded);
         await PaidPlay(fixture, source);
         EngineSelfTests.Equal(0, source.EnergyCost.CapturedXValue, "Chemical X does not pretend two energy were paid");
-        EngineSelfTests.Equal(2 * (upgraded ? 6 : 4), fixture.Player.Creature.Block, "Chemical X adds two resolved repetitions");
+        EngineSelfTests.Equal(2 * (upgraded ? 6 : 4), fixture.Player.Creature.Block, "Chemical X adds two to X before combined block is calculated");
         EngineSelfTests.Equal(PileType.Exhaust, fuel.Pile!.Type, "Chemical X permits status conversion at zero paid energy");
         EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "status conversion uses actual exhaust count and fixed resolved X");
 
         var attack = await Ready();
         await RelicCmd.Obtain<ChemicalX>(attack.Player);
+        await PowerCmd.Apply<StrengthPower>(new ThrowingPlayerChoiceContext(), attack.Player.Creature, 2, attack.Player.Creature, null);
+        await PowerCmd.Apply<ThornsPower>(new ThrowingPlayerChoiceContext(), attack.Enemy, 1, attack.Enemy, null);
         attack.Player.PlayerCombatState!.Energy = 1;
         await DuanYuState.GainQi(attack.Player, 3);
         var volley = EngineSelfTests.AddCard(attack, "DY_R21", PileType.Hand, upgraded);
         volley.BaseReplayCount = 1;
         var health = attack.Enemy.CurrentHp;
+        var playerHealth = attack.Player.Creature.CurrentHp;
         await PaidPlay(attack, volley);
-        EngineSelfTests.Equal(8 * (upgraded ? 10 : 7), health - attack.Enemy.CurrentHp, "native replay reuses captured X and its mandatory Qi-funded extra hit");
+        EngineSelfTests.Equal(8 * (upgraded ? 10 : 7) + 4, health - attack.Enemy.CurrentHp, "native replay reuses captured X and applies Strength once per replay body");
+        EngineSelfTests.Equal(2, playerHealth - attack.Player.Creature.CurrentHp, "native replay triggers Thorns once per combined body");
+        EngineSelfTests.Equal(1, DuanYuState.Get(attack.Player).SpendingCount, "native X replay pays mandatory Qi once for the activation");
         EngineSelfTests.Equal(0, attack.Player.PlayerCombatState.Energy, "replayed X card pays only once");
     }
 

@@ -413,9 +413,10 @@ internal static class FullRunPolicy
             var remainingHp = (double)enemy.CurrentHp;
             var slippery = enemy.GetPowerAmount<SlipperyPower>();
             var enemyValue = 0d;
-            foreach (var (amount, allEnemies) in segments)
+            foreach (var (amount, allEnemies, otherEnemiesOnly) in segments)
             {
                 if (!allEnemies && enemy != target) continue;
+                if (otherEnemiesOnly && enemy == target) continue;
                 var damage = (double)decimal.Floor(Hook.ModifyDamage(player.RunState, state, enemy, player.Creature, amount,
                     ValueProp.Move, card, null, ModifyDamageHookType.All, CardPreviewMode.Normal, out _));
                 var hpLoss = Math.Min(remainingHp, Math.Max(0, damage - block));
@@ -443,36 +444,29 @@ internal static class FullRunPolicy
         return score;
     }
 
-    private static IEnumerable<(decimal Damage, bool AllEnemies)> DamageSegments(DuanYuCard card, int qi)
+    private static IEnumerable<(decimal Damage, bool AllEnemies, bool OtherEnemiesOnly)> DamageSegments(DuanYuCard card, int qi)
     {
         if (card.Numbers.Damage <= 0) yield break;
         if (card.DesignId == "DY_R21")
         {
             var combat = card.Owner?.Creature.CombatState as CombatState;
-            var hits = combat == null ? 0 : PlannedXValue(card, card.Owner!, combat);
-            for (var index = 0; index < hits; index++) yield return (card.DynamicVars.Damage.BaseValue, true);
-            if (qi >= 3) yield return (card.DynamicVars.Damage.BaseValue, true);
+            var xValue = combat == null ? 0 : PlannedXValue(card, card.Owner!, combat);
+            yield return (card.DynamicVars.Damage.BaseValue * (xValue + 1), true, false);
             yield break;
         }
-        var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + qi * 2 : card.DynamicVars.Damage.BaseValue;
+        var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + qi : card.DynamicVars.Damage.BaseValue;
         var allEnemies = card.TargetType == TargetType.AllEnemies;
-        yield return (damage, allEnemies);
-        if (card.DesignId == "DY_U33") yield return (damage, false);
-        if (card.QiCost > 0 && qi >= card.QiCost)
-        {
-            if (card.DesignId is "DY_B05" or "DY_C02" or "DY_U07" or "DY_U33") yield return (damage, false);
-            if (card.DesignId is "DY_U17" or "DY_R05" or "DY_R13" or "DY_T01" or "DY_T03")
-                yield return (card.DynamicVars["ExtraDamage"].BaseValue, card.DesignId is "DY_U17" or "DY_R05" or "DY_T03");
-        }
+        yield return (damage, allEnemies, false);
+        if (card.DesignId == "DY_R05")
+            yield return (card.DynamicVars["ExtraDamage"].BaseValue, true, true);
     }
 
     private static double ModifiedBlock(DuanYuCard card, Player player, CombatState state, int qi, int lingbo)
     {
         if (card.Numbers.Block <= 0 || card.DesignId == "DY_C06" && lingbo == 0) return 0;
-        var block = (double)decimal.Floor(Hook.ModifyBlock(state, player.Creature, card.DynamicVars.Block.BaseValue, ValueProp.Move, card, null, out _));
-        if (card.DesignId == "DY_U37") return block * PlannedXValue(card, player, state);
-        if (card.DesignId == "DY_C15" && qi >= 2 || card.DesignId == "DY_R20" && qi >= 3) block *= 2;
-        return block;
+        var multiplier = card.DesignId == "DY_U37" ? PlannedXValue(card, player, state) : 1;
+        if (multiplier <= 0) return 0;
+        return (double)decimal.Floor(Hook.ModifyBlock(state, player.Creature, card.DynamicVars.Block.BaseValue * multiplier, ValueProp.Move, card, null, out _));
     }
 
     private static double EndTurnBlock(Player player, CombatState combat, int qi)

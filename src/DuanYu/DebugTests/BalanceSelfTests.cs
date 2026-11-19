@@ -43,7 +43,7 @@ internal static class BalanceSelfTests
             yield return ("balance:self-damage-stops-after-death", SelfDamageStopsAfterDeath);
             yield return ("balance:basic-upgrade-values", BasicUpgradeValues);
             yield return ("balance:damage-preview-does-not-spend-qi", DamagePreviewNoQi);
-            yield return ("balance:extra-damage-enchantment-applies-per-hit", ExtraDamageEnchantment);
+            yield return ("balance:combined-damage-enchantment-and-bonuses-once", CombinedDamageEnchantment);
             foreach (var test in RandomCardSelfTests.Cases) yield return test;
         }
     }
@@ -226,7 +226,7 @@ internal static class BalanceSelfTests
             await SetQi(fixture, 0);
             var health = fixture.Enemy.CurrentHp;
             await PaidPlay(fixture, "DY_T01");
-            var expected = 7 + 2 * (ordinal - 1) + (ordinal <= 2 ? 2 * (upgraded ? 3 : 2) : 0);
+            var expected = 7 + ordinal - 1 + (ordinal <= 2 ? upgraded ? 3 : 2 : 0);
             EngineSelfTests.Equal(expected, health - fixture.Enemy.CurrentHp, "proficiency adds its reduced bonus only to the first two swords");
         }
     }
@@ -349,8 +349,8 @@ internal static class BalanceSelfTests
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, sword);
         AssertNativeReplaySeries(fixture, sword, 3);
-        EngineSelfTests.Equal(27, health - fixture.Enemy.CurrentHp, "native replay executes three bodies using one paid activation with increasing momentum");
-        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordMomentum, "each replay adds momentum after both damage segments");
+        EngineSelfTests.Equal(24, health - fixture.Enemy.CurrentHp, "native replay executes three single-hit bodies using one paid activation with increasing momentum");
+        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordMomentum, "each replay adds momentum after its combined damage");
         EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "native replay pays Qi once per activation");
         EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).Qi, "the replay activation receives one Beiming refund");
         EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Energy, "Beiming first spend and simplicity first sword each refund energy once per series");
@@ -376,7 +376,7 @@ internal static class BalanceSelfTests
         var health = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, thirdKind);
         AssertNativeReplaySeries(fixture, thirdKind, 3);
-        EngineSelfTests.Equal(43, health - fixture.Enemy.CurrentHp, "third-kind activation is paid once and momentum increases between replays");
+        EngineSelfTests.Equal(32, health - fixture.Enemy.CurrentHp, "third-kind activation is paid once and momentum increases between single-hit replays");
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).SwordMomentum, "third-kind replay grants its extra momentum only once");
         EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "third-kind native replay retains unity energy");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "third-kind native replay grants unity draw once");
@@ -533,7 +533,7 @@ internal static class BalanceSelfTests
         await SetQi(attackFixture, 2);
         var initialHp = attackFixture.Enemy.CurrentHp;
         await PaidPlay(attackFixture, "DY_B05", true);
-        EngineSelfTests.Equal(28, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 two paid segments");
+        EngineSelfTests.Equal(28, initialHp - attackFixture.Enemy.CurrentHp, "upgraded B05 combined damage");
         EngineSelfTests.Equal(0, DuanYuState.Get(attackFixture.Player).Qi, "upgraded B05 spends exactly two Qi");
     }
 
@@ -547,14 +547,14 @@ internal static class BalanceSelfTests
             ValueProp.Move, first, null, ModifyDamageHookType.All, CardPreviewMode.Normal, out _);
         var secondPreview = Hook.ModifyDamage(fixture.Run, fixture.Combat, fixture.Enemy, fixture.Player.Creature, second.DynamicVars.Damage.BaseValue,
             ValueProp.Move, second, null, ModifyDamageHookType.All, CardPreviewMode.Normal, out _);
-        EngineSelfTests.Equal(5m, firstPreview, "T01 preview damage");
-        EngineSelfTests.Equal(3m, secondPreview, "T03 preview damage");
+        EngineSelfTests.Equal(7m, firstPreview, "T01 preview includes all combined damage");
+        EngineSelfTests.Equal(5m, secondPreview, "T03 preview includes all combined damage");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "T01 and T03 previews never spend Qi");
-        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "extra damage preview never registers a spend");
+        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "combined damage preview never registers a spend");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "damage preview never registers a sword play");
     }
 
-    private static async Task ExtraDamageEnchantment()
+    private static async Task CombinedDamageEnchantment()
     {
         foreach (var id in new[] { "DY_T01", "DY_T03" })
         {
@@ -570,11 +570,11 @@ internal static class BalanceSelfTests
                 CardCmd.Enchant<Instinct>(card, 1);
                 var initialHp = fixture.Enemy.CurrentHp;
                 await PaidPlay(fixture, card);
-                var expected = id == "DY_T01" ? upgraded ? 34 : 28 : upgraded ? 28 : 24;
-                EngineSelfTests.Equal(expected, initialHp - fixture.Enemy.CurrentHp, id + " each segment doubles its base then adds Strength, temporary bonus and proficiency");
+                var expected = id == "DY_T01" ? upgraded ? 27 : 21 : upgraded ? 21 : 17;
+                EngineSelfTests.Equal(expected, initialHp - fixture.Enemy.CurrentHp, id + " doubles its combined base then adds Strength, temporary bonus and proficiency once");
                 EngineSelfTests.Equal(id == "DY_T01" ? 0 : 1, DuanYuState.Get(fixture.Player).Qi, id + " retains no extra Qi beyond its payment");
-                EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, id + " two hits are one spend");
-                EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SwordPlays, id + " two hits are one sword play");
+                EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, id + " one hit retains one mandatory spend");
+                EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SwordPlays, id + " combined damage is one sword play");
             }
         }
     }
@@ -602,7 +602,7 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(true, fixture.Player.Relics.Any(relic => !relic.IsMelted && relic.Id.Entry == "CQBZLY_DY_RELIC01"), "balance fixture includes the native starting pendant");
         EngineSelfTests.Equal(true, PileType.Hand.GetPile(fixture.Player).Cards.Contains(card), card.DesignId + " starts in hand");
         EngineSelfTests.Equal(true, card.CanPlay(), card.DesignId + " has resources before effects");
-        var energyValue = card.EnergyCost.GetWithModifiers(CostModifiers.All);
+        var energyValue = card.EnergyCost.GetAmountToSpend();
         var beforeEnergy = fixture.Player.PlayerCombatState!.Energy;
         var (energySpent, starsSpent) = await card.SpendResources();
         EngineSelfTests.Equal(energyValue, energySpent, card.DesignId + " native energy payment");

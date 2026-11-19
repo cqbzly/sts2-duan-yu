@@ -66,6 +66,8 @@ public abstract class DuanYuCard : CustomCardModel
             else if (Numbers.Damage > 0) yield return new DamageVar(Numbers.Damage, ValueProp.Move);
             if (Numbers.ExtraDamage > 0) yield return new DamageVar("ExtraDamage", Numbers.ExtraDamage, ValueProp.Move);
             if (Numbers.Block > 0) yield return new DuanYuBlockVar(Numbers.Block);
+            if (DesignId == "DY_R21") yield return new DuanYuXTotalVar(true, Numbers.Damage);
+            if (DesignId == "DY_U37") yield return new DuanYuXTotalVar(false, Numbers.Block);
         }
     }
     protected override HashSet<CardTag> CanonicalTags => DesignId switch
@@ -88,7 +90,7 @@ public abstract class DuanYuCard : CustomCardModel
             if (Definition.Text.Contains("凌波", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<LingboPower>();
             if (DuanYuState.IsSword(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
             if (Definition.Text.Contains("剑气", StringComparison.Ordinal))
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".swordTipTitle"), "六种0费衍生攻击牌，每次发动必须支付1点真气，均具有消耗、虚无。每层剑势令剑气每段伤害增加1点，最多8层，在你的下回合开始时清除。每张剑气全部结算后获得1层剑势；每回合第3、第6种不同剑式各额外获得1层。升级版本仍算同一种剑式。手牌已满时生成牌进入弃牌堆。");
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".swordTipTitle"), "六种0费衍生攻击牌，每次发动必须支付1点真气，均具有消耗、虚无。每层剑势令剑气伤害增加1点，最多8层，在你的下回合开始时清除。每张剑气结算后获得1层剑势；每回合第3、第6种不同剑式各额外获得1层。升级版本仍算同一种剑式。手牌已满时生成牌进入弃牌堆。");
             if (Definition.Text.Contains("虚弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<WeakPower>();
             if (Definition.Text.Contains("易伤", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<VulnerablePower>();
             if (Definition.Text.Contains("气滞", StringComparison.Ordinal) || Definition.Text.Contains("异种真气", StringComparison.Ordinal) || Type == CardType.Status)
@@ -104,6 +106,8 @@ public abstract class DuanYuCard : CustomCardModel
         else if (Numbers.Damage > 0) DynamicVars.Damage.UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
         if (Numbers.ExtraDamage > 0) DynamicVars["ExtraDamage"].UpgradeValueBy(Numbers.ExtraDamageUp - Numbers.ExtraDamage);
         if (Numbers.Block > 0) DynamicVars.Block.UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
+        if (DesignId == "DY_R21") DynamicVars["XDamage"].UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
+        if (DesignId == "DY_U37") DynamicVars["XBlock"].UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
     }
     protected override Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay) => DuanYuCardExecutor.Play(this, choiceContext, cardPlay);
 
@@ -118,8 +122,18 @@ public abstract class DuanYuCard : CustomCardModel
     }
     private string DescriptionText(bool upgraded)
     {
-        if (DesignId == "DY_U08") return "造成{CalculatedDamage:diff()}点伤害（基础伤害加当前真气）。将1张气滞加入弃牌堆。";
+        if (DesignId == "DY_U08") return $"造成{{CalculatedDamage:diff()}}点伤害（{(upgraded ? 23 : 16)}+真气）。将1张气滞加入弃牌堆。";
         string result = Clean(upgraded ? Definition.Upgrade.Text : Definition.Text);
+        if (DesignId == "DY_R21")
+        {
+            int coefficient = upgraded ? Numbers.DamageUp : Numbers.Damage;
+            result = result.Replace($"造成{coefficient}点伤害×(X+1)", $"造成{{XDamage:diff()}}点伤害（{coefficient}×(X+1)）");
+        }
+        if (DesignId == "DY_U37")
+        {
+            int coefficient = upgraded ? Numbers.BlockUp : Numbers.Block;
+            result = result.Replace($"获得{coefficient}点格挡×X", $"获得{{XBlock:diff()}}点格挡（{coefficient}×X）");
+        }
         if (Numbers.Damage > 0) result = result.Replace($"造成{(upgraded ? Numbers.DamageUp : Numbers.Damage)}点伤害", "造成{Damage:diff()}点伤害");
         if (Numbers.ExtraDamage > 0) result = result.Replace($"造成{(upgraded ? Numbers.ExtraDamageUp : Numbers.ExtraDamage)}点伤害", "造成{ExtraDamage:diff()}点伤害");
         if (Numbers.Block > 0) result = result.Replace($"获得{(upgraded ? Numbers.BlockUp : Numbers.Block)}点格挡", "获得{Block:diff()}点格挡");

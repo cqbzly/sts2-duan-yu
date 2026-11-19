@@ -1,6 +1,6 @@
-# 段誉模组 v0.5.4 安装说明
+# 段誉模组 v0.5.5 安装说明
 
-这是 v0.5.4 的安装与构建说明。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta、BaseLib 3.4.8；其他游戏版本和全部第三方模组组合尚未验证。
+这是 v0.5.5 的安装与构建说明。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta、BaseLib 3.4.8；其他游戏版本和全部第三方模组组合尚未验证。
 
 ## 玩家安装
 
@@ -22,7 +22,7 @@
 .\scripts\package.ps1 -Sts2Path 'D:\steam\steamapps\common\Slay the Spire 2'
 ```
 
-输出：`dist/DuanYu-0.5.4.zip`。构建与打包不会改动游戏目录。
+输出：`dist/DuanYu-0.5.5.zip`。构建与打包不会改动游戏目录。
 
 若需要直接安装本地构建：
 
@@ -42,8 +42,8 @@
 
 ## 发布状态
 
-当前版本为 v0.5.4 牌面精简版，下载见 [GitHub v0.5.4](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.5.4) 或公开的 [Steam 创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。本版精简牌面、合并抱元守一与慈悲为怀的重复格挡，回调百川归海，并在玉佩说明补全已有的回合末失去1真气规则；其他卡牌数值沿用v0.5.3。本轮23/23项规则、401/401项真实游戏引擎回归、96张卡牌及10张初始牌组校验通过；Debug、Release构建均0警告、0错误。127项资源检查沿用v0.5.1，未重跑。详情见[本版更新记录](releases/v0.5.4.md)和[运行时校验说明](runtime-verification.md)。
+当前版本为 v0.5.5 牌面精简版，下载见 [GitHub v0.5.5](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.5.5) 或公开的 [Steam 创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。本版逐张精简96种卡牌的基础与升级说明，并将固定重复伤害与X费用攻防合为一次结算。玉佩继续写明回合结束失去1真气。本轮23/23项规则、421/421项真实游戏引擎回归、96张卡牌及10张初始牌组校验通过；Debug、Release构建均0警告、0错误。127项资源检查沿用v0.5.1，未重跑。详情见[本版更新记录](releases/v0.5.5.md)和[运行时校验说明](runtime-verification.md)。
 
-本地工坊目录曾安装旧版；安装 v0.5.4 前应关闭游戏并更新同一目录。使用工坊版本时，不要再安装第二份到 `mods`。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。
+本地工坊目录曾安装旧版；安装 v0.5.5 前应关闭游戏并更新同一目录。使用工坊版本时，不要再安装第二份到 `mods`。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。
 
-历史v0.2.1安装DLL的SHA256为 `6C5390A760B4FAB96E1F270C9BB4D89DFA0E7FF4E502DC80F840FCA1D43BF37A`，其替换前备份为 `artifacts/install-backups/20261118-161142-before-v021`。该哈希仅用于旧版追溯，不能用于核验 v0.5.4。
+历史v0.2.1安装DLL的SHA256为 `6C5390A760B4FAB96E1F270C9BB4D89DFA0E7FF4E502DC80F840FCA1D43BF37A`，其替换前备份为 `artifacts/install-backups/20261118-161142-before-v021`。该哈希仅用于旧版追溯，不能用于核验 v0.5.5。
