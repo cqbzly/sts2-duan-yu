@@ -36,9 +36,9 @@ public sealed class LingboPower : DuanYuPower
 [CustomID("CQBZLY_DY_QI_BLADE")]
 public sealed class QiBladePower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("凝气成锋", "本回合剑气造成的伤害增加{Amount}点。", "本回合剑气造成的伤害增加{Amount}点。");
+    public override List<(string, string)> Localization => new PowerLoc("凝气成锋", "本回合剑气与六脉齐发伤害增加{Amount}点。", "本回合剑气与六脉齐发伤害增加{Amount}点。");
     public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
-        dealer == Owner && props.IsPoweredAttack() && cardSource != null && DuanYuState.IsSword(cardSource) ? Amount : 0;
+        dealer == Owner && props.IsPoweredAttack() && cardSource != null && DuanYuState.ReceivesSwordDamageBonus(cardSource) ? Amount : 0;
 }
 
 [CustomID("CQBZLY_DY_VERMILION_WARD")]
@@ -58,9 +58,9 @@ public sealed class VermilionWardPower : DuanYuPower
 [CustomID("CQBZLY_DY_SWORD_MOMENTUM")]
 public sealed class SwordMomentumPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("剑势", "六种剑气伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。", "六种剑气伤害增加{Amount}点。最多8层，在你的下回合开始时清除。每次剑气结算后获得1层；每回合第3、第6种不同剑气各额外获得1层。");
+    public override List<(string, string)> Localization => new PowerLoc("剑势", "剑气与六脉齐发伤害增加{Amount}点。最多8层，下回合开始时清除。每张剑气结算后获得1层。每回合第3、第6种不同剑气各额外获得1层。", "剑气与六脉齐发伤害增加{Amount}点。最多8层，下回合开始时清除。每张剑气结算后获得1层。每回合第3、第6种不同剑气各额外获得1层。");
     public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
-        dealer == Owner && props.IsPoweredAttack() && cardSource != null && DuanYuState.IsSword(cardSource) ? Amount : 0;
+        dealer == Owner && props.IsPoweredAttack() && cardSource != null && DuanYuState.ReceivesSwordDamageBonus(cardSource) ? Amount : 0;
 }
 
 public abstract class DuanYuEffectPower : DuanYuPower
@@ -96,7 +96,7 @@ public sealed class QiGuardPower : DuanYuEffectPower
 public sealed class SwordProficiencyPower : DuanYuEffectPower
 {
     protected override string Title => "指法纯熟";
-    protected override string Rule => "每回合打出的前2张剑气伤害增加{Amount}点。";
+    protected override string Rule => "剑气与六脉齐发伤害增加{Amount}点。";
     public override decimal ModifyDamageAdditive(Creature? target, decimal amount, ValueProp props, Creature? dealer, CardModel? cardSource, CardPlay? cardPlay) =>
         dealer == Owner && props.IsPoweredAttack() && cardSource != null ? DuanYuState.SwordBonus(cardSource, cardPlay) : 0;
 }

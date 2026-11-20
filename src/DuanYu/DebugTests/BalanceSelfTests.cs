@@ -28,7 +28,7 @@ internal static class BalanceSelfTests
                 yield return ("balance:qi-before-pendant" + suffix, () => QiBeforePendant(upgraded));
                 yield return ("balance:six-swords-paid" + suffix, () => SixSwordPayment(upgraded));
                 yield return ("balance:sword-resource-boundaries" + suffix, () => SwordResourceBoundaries(upgraded));
-                yield return ("balance:proficiency-three-swords" + suffix, () => ProficiencyLimit(upgraded));
+                yield return ("balance:proficiency-all-swords" + suffix, () => ProficiencyAllSwords(upgraded));
                 yield return ("balance:expanded-attacks-and-original-effects" + suffix, () => ExpandedAttacks(upgraded));
                 yield return ("balance:seven-star-step" + suffix, () => SevenStarStep(upgraded));
                 yield return ("balance:rebalanced-rare-defense" + suffix, () => RareDefense(upgraded));
@@ -239,18 +239,21 @@ internal static class BalanceSelfTests
         }
     }
 
-    private static async Task ProficiencyLimit(bool upgraded)
+    private static async Task ProficiencyAllSwords(bool upgraded)
     {
         var fixture = await EngineSelfTests.ReadyFixture();
-        fixture.Player.PlayerCombatState!.Energy = 1;
+        fixture.Player.PlayerCombatState!.Energy = 2;
         await PaidPlay(fixture, "DY_U14", upgraded);
+        int ordinaryHealth = fixture.Enemy.CurrentHp;
+        await PaidPlay(fixture, "DY_B01");
+        EngineSelfTests.Equal(6, ordinaryHealth - fixture.Enemy.CurrentHp, "proficiency excludes ordinary attacks");
         for (var ordinal = 1; ordinal <= 4; ordinal++)
         {
             await SetQi(fixture, 0);
             var health = fixture.Enemy.CurrentHp;
             await PaidPlay(fixture, "DY_T01");
-            var expected = 7 + ordinal - 1 + (ordinal <= 2 ? upgraded ? 3 : 2 : 0);
-            EngineSelfTests.Equal(expected, health - fixture.Enemy.CurrentHp, "proficiency adds its reduced bonus only to the first two swords");
+            var expected = 7 + ordinal - 1 + (upgraded ? 3 : 2);
+            EngineSelfTests.Equal(expected, health - fixture.Enemy.CurrentHp, "proficiency adds damage to every sword");
         }
     }
 

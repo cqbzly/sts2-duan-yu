@@ -59,6 +59,7 @@ public static class DuanYuState
     public static bool CanAct(Player player) => player.Creature.IsAlive && player.Creature.CombatState != null && !CombatManager.Instance.IsEnding;
     public static string CardId(CardModel card) => card.Id.Entry.StartsWith("CQBZLY_", StringComparison.Ordinal) ? card.Id.Entry[7..] : card.Id.Entry;
     public static bool IsSword(CardModel card) => CardId(card) is "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06";
+    internal static bool ReceivesSwordDamageBonus(CardModel card) => IsSword(card) || CardId(card) == "DY_R21";
 
     public static void Initialize()
     {
@@ -414,16 +415,10 @@ public static class DuanYuState
 
     internal static int SwordBonus(CardModel card, CardPlay? play)
     {
-        if (!IsSword(card) || card.IsCanonical || card.Owner == null) return 0;
+        if (!ReceivesSwordDamageBonus(card) || card.IsCanonical || card.Owner == null) return 0;
         var state = Get(play?.Player ?? card.Owner);
-        var ordinal = state.SwordPlays + 1;
-        IEnumerable<DuanYuEffect> effects = state.Effects;
-        if (play != null && state.Plays.TryGetValue(play, out var record))
-        {
-            ordinal = record.SwordOrdinal;
-            effects = record.Effects;
-        }
-        return ordinal is > 0 and <= 2 ? effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount) : 0;
+        var effects = play != null && state.Plays.TryGetValue(play, out var record) ? record.Effects : state.Effects;
+        return effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount);
     }
 
     private static Task<decimal> GainBlock(Player player, decimal amount) => CreatureCmd.GainBlock(player.Creature, amount, ValueProp.Move, null);

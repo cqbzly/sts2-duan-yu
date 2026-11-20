@@ -95,7 +95,7 @@ public abstract class DuanYuCard : CustomCardModel
             if (Definition.Text.Contains("气", StringComparison.Ordinal))
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，无上限，跨回合保留。需N点真气：打出整张牌前必须足额支付，不足时不能打出。能量免费仍需支付真气；同一次出牌的重放不重复支付。" + QiPreview());
             if (Definition.Text.Contains("凌波", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<LingboPower>();
-            if (DuanYuState.IsSword(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
+            if (DuanYuState.ReceivesSwordDamageBonus(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
             if (Definition.Text.Contains("剑气", StringComparison.Ordinal))
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".swordTipTitle"), "六种0费衍生攻击牌，每次发动必须支付1点真气，均具有消耗、虚无。每层剑势令剑气伤害增加1点，最多8层，在你的下回合开始时清除。每张剑气结算后获得1层剑势；每回合第3、第6种不同剑式各额外获得1层。升级版本仍算同一种剑式。手牌已满时生成牌进入弃牌堆。");
             if (Definition.Text.Contains("虚弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<WeakPower>();

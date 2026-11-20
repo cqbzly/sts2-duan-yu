@@ -173,7 +173,7 @@ internal static class QiResourceSelfTests
         EngineSelfTests.Equal(12, qiCost.CapturedXValue, "Qi-X captures actual payment before any refund");
         EngineSelfTests.Equal(0, player.PlayerCombatState.Energy, "Qi-X payment spends zero energy");
         await Resolve(fixture, card, false, paid.Item1, paid.Item2);
-        EngineSelfTests.Equal(24 * (upgraded ? 8 : 6), health - fixture.Enemy.CurrentHp, "both replay bodies use the twelve-Qi payment without adding refund Qi");
+        EngineSelfTests.Equal(2 * (12 * (upgraded ? 8 : 6) + 1), health - fixture.Enemy.CurrentHp, "both replay bodies use the twelve-Qi payment and the existing one stack of Sword Momentum");
         AssertQi(player, 1, "second payment receives one Beiming refund despite replay");
         EngineSelfTests.Equal(2, player.PlayerCombatState.Energy, "second payment receives Beiming and the empty-Qi seal energy once each");
         EngineSelfTests.Equal(2, DuanYuState.Get(player).SpendingCount, "Qi-X activation counts one payment after the priming sword");
