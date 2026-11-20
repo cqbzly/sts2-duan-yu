@@ -202,7 +202,7 @@ internal static class EngineSelfTests
         var card = await Play(fixture, id, upgraded);
         var state = DuanYuState.Get(player);
         Equal(true, state.Qi >= 0, id + " Qi remains nonnegative without a gameplay cap");
-        Equal(true, state.Lingbo is >= 0 and <= 3, id + " Lingbo bounds");
+        Equal(true, state.Lingbo >= 0, id + " Lingbo bounds");
         Equal(true, player.Creature.IsAlive, id + " player survives");
         Equal(true, !PileType.Play.GetPile(player).Cards.Contains(card), id + " leaves play pile");
         if (card.Type != CardType.Power && card.Keywords.Contains(CardKeyword.Exhaust))
@@ -663,26 +663,27 @@ internal static class EngineSelfTests
         Equal(1, fixture.Player.Creature.Block, "taking damage grants no further wind block");
         await Play(fixture, "DY_U23", true);
         await DuanYuState.GainLingbo(fixture.Player, 5);
-        Equal(25, fixture.Player.Creature.Block, "stacked wind grants twelve block for each of two actual new layers");
+        Equal(61, fixture.Player.Creature.Block, "stacked wind grants twelve block for each of five new layers");
         await DuanYuState.GainLingbo(fixture.Player, 1);
-        Equal(25, fixture.Player.Creature.Block, "a capped layer grants no wind block");
+        Equal(73, fixture.Player.Creature.Block, "gaining another layer above three still grants wind block");
+        Equal(7, fixture.Player.Creature.GetPowerAmount<LingboPower>(), "Lingbo power displays all seven layers");
         var companion = Player.CreateForNewRun(ModelDb.Character<DuanYuCharacter>(), UnlockState.all, 2);
         fixture.Run.AddPlayerDebug(companion, -1);
         companion.ResetCombatState();
         fixture.Combat.AddPlayer(companion);
         await DuanYuState.GainLingbo(companion, 1);
         Equal(0, companion.Creature.Block, "another player's Lingbo does not borrow wind powers");
-        Equal(25, fixture.Player.Creature.Block, "another player's Lingbo does not reward the wind owner");
+        Equal(73, fixture.Player.Creature.Block, "another player's Lingbo does not reward the wind owner");
     }
 
     private static async Task LingboCapOnlyHit()
     {
         var fixture = await ReadyFixture();
-        await DuanYuState.GainLingbo(fixture.Player, 2);
+        await DuanYuState.GainLingbo(fixture.Player, 4);
         var initialHp = fixture.Player.Creature.CurrentHp;
         await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), new[] { fixture.Player.Creature }, 5, ValueProp.Move, fixture.Enemy, null, null, ModifyDamageHookType.Cap);
-        Equal(3, initialHp - fixture.Player.Creature.CurrentHp, "cap-only copied attack receives all target Lingbo");
-        Equal(2, DuanYuState.Get(fixture.Player).Lingbo, "cap-only attack preserves every layer");
+        Equal(1, initialHp - fixture.Player.Creature.CurrentHp, "cap-only copied attack receives all four Lingbo");
+        Equal(4, DuanYuState.Get(fixture.Player).Lingbo, "cap-only attack preserves every layer");
     }
 
     private static async Task LingboPreview()

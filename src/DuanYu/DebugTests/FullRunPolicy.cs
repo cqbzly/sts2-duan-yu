@@ -110,7 +110,7 @@ internal static class FullRunPolicy
         if (custom.DesignId == "DY_R01") rating += Math.Min(10, spenders * 2) - Math.Max(0, 2 - spenders) * 5;
         if (custom.DesignId == "DY_R15") rating += Math.Min(8, spenders + swordSources * 2) - Math.Max(0, 2 - spenders - swordSources) * 4;
         if (custom.DesignId == "DY_U05") rating -= Math.Max(0, 3 - qiSources) * 3;
-        if (custom.DesignId == "DY_U23") rating += Math.Min(6, deck.Count(existing => LingboGain(existing, 0) > 0 || existing.DesignId == "DY_R02") * 2);
+        if (custom.DesignId == "DY_U23") rating += Math.Min(6, deck.Count(existing => LingboGain(existing) > 0 || existing.DesignId == "DY_R02") * 2);
         if (custom.DesignId == "DY_U28") rating += Math.Min(10, swordSources * 2 + deck.Count(existing => existing.DesignId is "DY_U06" or "DY_U35" or "DY_R16" or "DY_R19") * 2);
         if (custom.DesignId is "DY_U09" or "DY_U14" or "DY_R08" or "DY_R18") rating += swordSources == 0 ? -10 : Math.Min(10, swordSources * 2);
         if (custom.DesignId == "DY_R08") rating += deck.Any(existing => existing.DesignId is "DY_R03" or "DY_R10") ? 7 : swordSources < 3 ? -6 : 0;
@@ -147,7 +147,7 @@ internal static class FullRunPolicy
             block += ModifiedPassiveBlock(player, combat, state.Effects.Where(effect => effect.CardId == "DY_R18").Sum(effect => effect.Amount));
         var attacks = combat.Enemies.Where(enemy => enemy.IsAlive).Sum(enemy => enemy.Monster!.NextMove.Intents.OfType<AttackIntent>().Sum(intent => intent.Repeats));
         var availableLingbo = Math.Max(0, attacks - state.Lingbo);
-        block += Math.Min(availableLingbo, LingboGain(duanYuCard, state.Lingbo)) * DuanYuState.LingboReduction;
+        block += Math.Min(availableLingbo, LingboGain(duanYuCard)) * DuanYuState.LingboReduction;
         if (card.Type == CardType.Skill && state.SkillsPlayed < 2)
             block += Math.Min(availableLingbo, state.Effects.Where(effect => effect.CardId == "DY_R02").Sum(effect => effect.Amount)) * DuanYuState.LingboReduction;
         var gainQi = QiGain(duanYuCard);
@@ -644,12 +644,12 @@ internal static class FullRunPolicy
         _ => 0
     };
 
-    private static int LingboGain(DuanYuCard card, int lingbo) => card.DesignId switch
+    private static int LingboGain(DuanYuCard card) => card.DesignId switch
     {
-        "DY_B04" or "DY_U34" => Math.Min(3 - lingbo, 1),
-        "DY_C11" or "DY_C12" or "DY_U18" or "DY_U19" or "DY_U25" => Math.Min(3 - lingbo, card.IsUpgraded ? 2 : 1),
-        "DY_U21" => Math.Min(3 - lingbo, 2),
-        "DY_R11" => Math.Min(3 - lingbo, card.Value(2, 3)),
+        "DY_B04" or "DY_U34" => 1,
+        "DY_C11" or "DY_C12" or "DY_U18" or "DY_U19" or "DY_U25" => card.IsUpgraded ? 2 : 1,
+        "DY_U21" => 2,
+        "DY_R11" => card.Value(2, 3),
         _ => 0
     };
 
@@ -672,7 +672,7 @@ internal static class FullRunPolicy
         {
             "DY_U01" => Math.Min(9, spenders * 2),
             "DY_U05" => card.IsUpgraded ? 11 : 7,
-            "DY_U23" => Math.Min(8, deck.Count(existing => LingboGain(existing, 0) > 0 || existing.DesignId == "DY_R02") * 2),
+            "DY_U23" => Math.Min(8, deck.Count(existing => LingboGain(existing) > 0 || existing.DesignId == "DY_R02") * 2),
             "DY_R02" => 8,
             "DY_R08" => deck.Any(existing => existing.DesignId is "DY_R03" or "DY_R10") ? card.Value(12, 15) : Math.Max(0, Math.Min(12, (swordSources - 1) * 3)),
             "DY_R12" => 14,

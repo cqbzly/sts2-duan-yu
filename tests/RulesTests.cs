@@ -124,7 +124,7 @@ var cases = new (string Name, Action Check)[]
     ("Lingbo reduces every hit without consuming layers", () =>
     {
         var ledger = new DuanYuCombatLedger();
-        ledger.GainLingbo(9);
+        ledger.GainLingbo(4);
         var block = 4m;
         var hpLost = 0m;
         for (var hit = 0; hit < 5; hit++)
@@ -134,8 +134,8 @@ var cases = new (string Name, Action Check)[]
             block -= absorbed;
             hpLost += damage - absorbed;
         }
-        Equal(6m, hpLost);
-        Equal(3, ledger.Lingbo);
+        Equal(1m, hpLost);
+        Equal(4, ledger.Lingbo);
     }),
     ("Only a new turn restores the first-skill ordinal", () =>
     {
@@ -165,15 +165,15 @@ var cases = new (string Name, Action Check)[]
         Equal(4m, DuanYuCombatLedger.ReduceDamage(5.9m, false, 1));
         Equal(2m, DuanYuCombatLedger.ReduceDamage(5, false, 3));
     }),
-    ("Lingbo gains report only actual layers below the cap", () =>
+    ("Lingbo grows past three without integer overflow", () =>
     {
         var ledger = new DuanYuCombatLedger();
         Equal(1, ledger.GainLingbo(1));
-        Equal(2, ledger.GainLingbo(int.MaxValue));
+        Equal(int.MaxValue - 1, ledger.GainLingbo(int.MaxValue));
         Equal(0, ledger.GainLingbo(1));
         Equal(0, ledger.GainLingbo(0));
         Equal(0, ledger.GainLingbo(-1));
-        Equal(3, ledger.Lingbo);
+        Equal(int.MaxValue, ledger.Lingbo);
         ledger.BeginTurn();
         Equal(0, ledger.Lingbo);
         Equal(2, ledger.GainLingbo(2));

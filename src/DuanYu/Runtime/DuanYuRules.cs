@@ -47,7 +47,7 @@ public class DuanYuCombatLedger
     public int GainLingbo(int amount)
     {
         var previous = Lingbo;
-        if (amount > 0) Lingbo = (int)Math.Min(3L, (long)Lingbo + amount);
+        if (amount > 0) Lingbo = (int)Math.Min(int.MaxValue, (long)Lingbo + amount);
         return Lingbo - previous;
     }
 
@@ -86,6 +86,6 @@ public class DuanYuCombatLedger
     public static decimal ReduceDamage(decimal damage, bool hpLoss, int lingbo)
     {
         if (hpLoss || lingbo <= 0 || damage < 1) return damage;
-        return Math.Max(0, decimal.Floor(damage) - (long)Math.Min(3, lingbo) * LingboReduction);
+        return Math.Max(0, decimal.Floor(damage) - (long)lingbo * LingboReduction);
     }
 }

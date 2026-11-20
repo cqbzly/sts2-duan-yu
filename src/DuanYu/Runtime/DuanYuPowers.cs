@@ -30,7 +30,7 @@ public sealed class QiPower : DuanYuPower
 [CustomID("CQBZLY_DY_LINGBO")]
 public sealed class LingboPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("凌波", "本回合受到的伤害每段降低{Amount}点。最多3层，下个自己的回合开始清除。失去生命不受影响。", "本回合受到的伤害每段降低{Amount}点。最多3层，下个自己的回合开始清除。失去生命不受影响。");
+    public override List<(string, string)> Localization => new PowerLoc("凌波", "本回合受到的伤害每段降低{Amount}点。下个自己的回合开始清除。失去生命不受影响。", "本回合受到的伤害每段降低{Amount}点。下个自己的回合开始清除。失去生命不受影响。");
 }
 
 [CustomID("CQBZLY_DY_QI_BLADE")]

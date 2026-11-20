@@ -169,7 +169,7 @@ internal static class A10CombatSimulation
                     energySpent += energy;
                     var resources = DuanYuState.Get(player);
                     EngineSelfTests.Equal(true, resources.Qi >= 0, "combat Qi remains nonnegative");
-                    EngineSelfTests.Equal(true, resources.Lingbo is >= 0 and <= 3, "combat Lingbo bounds");
+                    EngineSelfTests.Equal(true, resources.Lingbo >= 0, "combat Lingbo bounds");
                     EngineSelfTests.Equal(true, player.PlayerCombatState.Energy >= 0, "nonnegative combat energy");
                     plays.Add(new PlaySnapshot(CardId(candidate.Card), candidate.Target?.Monster?.Id.Entry, energyBefore, energy, player.PlayerCombatState.Energy, resources.Qi, resources.Lingbo));
                     await manager.CheckWinCondition();
@@ -228,7 +228,7 @@ internal static class A10CombatSimulation
         if (card.DesignId == "DY_C15" && resources.Qi >= 2) block *= 2;
         if (card.DesignId == "DY_C06" && resources.Lingbo == 0) block = 0;
         var lingbo = Regex.Match(text, @"获得(\d+)层凌波");
-        if (lingbo.Success) block += Math.Min(3 - resources.Lingbo, int.Parse(lingbo.Groups[1].Value)) * 3;
+        if (lingbo.Success) block += int.Parse(lingbo.Groups[1].Value) * 3;
         double score = damage + 1.3 * Math.Min(neededBlock, block);
         if (target != null && damage >= target.CurrentHp + target.Block) score += 100;
         var gainQi = Regex.Match(text, @"运气(\d+)");

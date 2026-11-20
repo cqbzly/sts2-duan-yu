@@ -47,7 +47,6 @@ internal sealed class DuanYuPlayRecord
 
 public static class DuanYuState
 {
-    public const int LingboCap = 3;
     public const int LingboReduction = DuanYuCombatLedger.LingboReduction;
     public const int SwordMomentumCap = DuanYuCombatLedger.SwordMomentumCap;
     private static readonly ConditionalWeakTable<Player, PlayerRuntimeState> States = new();
