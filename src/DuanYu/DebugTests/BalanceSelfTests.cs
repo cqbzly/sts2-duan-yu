@@ -138,12 +138,12 @@ internal static class BalanceSelfTests
             fixture.Player.PlayerCombatState!.Energy = paid;
             var health = fixture.Player.Creature.CurrentHp;
             await PaidPlay(fixture, card);
-            var energy = id switch { "DY_U02" when upgraded => 2, "DY_U02" => 1, "DY_U04" when upgraded => 2, "DY_U04" => 1, "DY_R04" when upgraded => 2, "DY_R04" => 1, _ => 0 };
+            var energy = id switch { "DY_U02" when upgraded => 3, "DY_U02" => 2, "DY_U04" when upgraded => 2, "DY_U04" => 1, "DY_R04" when upgraded => 2, "DY_R04" => 1, _ => 0 };
             EngineSelfTests.Equal(energy, fixture.Player.PlayerCombatState.Energy, id + " energy after actual payment");
             var qi = upgraded ? 3 : 2;
             EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, id + " printed Qi");
             EngineSelfTests.Equal(id == "DY_U04" ? upgraded ? 2 : 3 : 0, health - fixture.Player.Creature.CurrentHp, id + " HP payment");
-            EngineSelfTests.Equal(true, PileType.Exhaust.GetPile(fixture.Player).Cards.Contains(card), id + " resource card exhausts");
+            EngineSelfTests.Equal(id == "DY_U04" ? PileType.Discard : PileType.Exhaust, card.Pile!.Type, id + " resource card lifecycle");
         }
         var empty = await EngineSelfTests.ReadyFixture();
         empty.Player.PlayerCombatState!.Energy = 0;
@@ -595,7 +595,7 @@ internal static class BalanceSelfTests
             var sword = PileType.Hand.GetPile(fixture.Player).Cards.OfType<DuanYuCard>().Single(card => card.DesignId == id);
             await PaidPlay(fixture, sword);
         }
-        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "energy is fully paid across the six-sword cycle");
+        EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "Qi Sea leaves one energy after the six-sword cycle");
         EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "cycle preserves the uncapped two-Qi setup gain after paying all seven fees");
         EngineSelfTests.Equal(7, DuanYuState.Get(fixture.Player).SpendingCount, "cycle has exactly seven successful spends");
         EngineSelfTests.Equal(8, DuanYuState.Get(fixture.Player).SwordMomentum, "one complete six-sword cycle reaches the momentum cap");

@@ -15,7 +15,7 @@ using MegaCrit.Sts2.Core.ValueProps;
 
 namespace DuanYu.Runtime;
 
-public sealed record DuanYuEffect(string CardId, int Amount, int SecondaryAmount, CardModel? Source, int EnergyAmount = 0);
+public sealed record DuanYuEffect(string CardId, int Amount, int SecondaryAmount, CardModel? Source, int EnergyAmount = 0, int UpgradedMeridianCopies = 0);
 public sealed record DuanYuDelayedEffect(string Kind, int Amount);
 
 public sealed class PlayerRuntimeState : DuanYuCombatLedger
@@ -203,9 +203,10 @@ public static class DuanYuState
         if (!DuanYuEffectPower.Types.TryGetValue(cardId, out var powerType))
             throw new ArgumentOutOfRangeException(nameof(cardId), cardId, "Unknown Duan Yu ability.");
         var state = Get(player);
+        var upgradedMeridianCopies = cardId == "DY_R22" && source?.IsUpgraded == true ? secondaryAmount : 0;
         var existingIndex = state.Effects.FindIndex(effect => effect.CardId == cardId);
         if (existingIndex < 0)
-            state.Effects.Add(new DuanYuEffect(cardId, amount, secondaryAmount, source, energyAmount));
+            state.Effects.Add(new DuanYuEffect(cardId, amount, secondaryAmount, source, energyAmount, upgradedMeridianCopies));
         else
         {
             var previous = state.Effects[existingIndex];
@@ -213,7 +214,8 @@ public static class DuanYuState
             {
                 Amount = previous.Amount + amount,
                 SecondaryAmount = previous.SecondaryAmount + secondaryAmount,
-                EnergyAmount = previous.EnergyAmount + energyAmount
+                EnergyAmount = previous.EnergyAmount + energyAmount,
+                UpgradedMeridianCopies = previous.UpgradedMeridianCopies + upgradedMeridianCopies
             };
         }
         var canonical = ModelDb.GetById<PowerModel>(ModelDb.GetId(powerType));

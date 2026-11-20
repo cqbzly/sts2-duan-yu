@@ -168,7 +168,7 @@ public sealed class FormlessPower : DuanYuEffectPower
 public sealed class MeridianUnityPower : DuanYuEffectPower
 {
     protected override string Title => "经脉归一";
-    protected override string Rule => "打出时及每回合开始生成异种真气。每回合前2次消耗状态牌后，获得{Amount}点格挡、运气1，每份经脉归一随机生成1张未升级剑气。";
+    protected override string Rule => "打出时及回合开始时生成异种真气。每回合前2次消耗状态牌后，获得{Amount}点格挡，每份经脉归一运气1并随机生成1张剑气。升级版生成的剑气已升级且可免费打出。";
 
     public override async Task AfterCardExhausted(PlayerChoiceContext choiceContext, CardModel card, bool causedByEthereal)
     {
@@ -176,10 +176,14 @@ public sealed class MeridianUnityPower : DuanYuEffectPower
         var state = DuanYuState.Get(player);
         if (state.StatusExhaustTriggers >= 2) return;
         state.StatusExhaustTriggers++;
-        var copies = state.Effects.Where(effect => effect.CardId == "DY_R22").Sum(effect => effect.SecondaryAmount);
+        var effect = state.Effects.Single(entry => entry.CardId == "DY_R22");
+        var copies = effect.SecondaryAmount;
         await DuanYuState.GainQi(player, copies, card);
         await CreatureCmd.GainBlock(Owner, Amount, ValueProp.Move, null);
         for (var index = 0; index < copies && DuanYuState.CanAct(player); index++)
-            await DuanYuCardExecutor.GenerateSword(player, player.RunState.Rng.CombatCardGeneration.NextInt(1, 7), false);
+        {
+            bool upgraded = index >= copies - effect.UpgradedMeridianCopies;
+            await DuanYuCardExecutor.GenerateSword(player, player.RunState.Rng.CombatCardGeneration.NextInt(1, 7), upgraded, freeQi: upgraded);
+        }
     }
 }

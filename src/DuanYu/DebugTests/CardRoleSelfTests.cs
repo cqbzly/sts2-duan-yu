@@ -54,6 +54,7 @@ internal static class CardRoleSelfTests
 
         var empty = await Ready();
         PileType.Draw.GetPile(empty.Player).Clear();
+        EngineSelfTests.AddCard(empty, "DY_T01", PileType.Exhaust);
         var emptySource = EngineSelfTests.AddCard(empty, "DY_C02", PileType.Hand, upgraded);
         var noChoice = new ChoosingSelector();
         using (RunManager.Instance.CardSelectorStack.PushSelector(empty.Player, noChoice))
@@ -107,12 +108,12 @@ internal static class CardRoleSelfTests
             await BalanceSelfTests.PaidPlay(fixture, source);
         int count = 2;
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "dual swords pays its actual energy cost without generating energy");
-        EngineSelfTests.Equal(3, selector.LastOptions.Length, "dual swords can choose among all exhausted sword tokens");
+        EngineSelfTests.Equal(2, selector.LastOptions.Length, "dual swords offers only upgraded exhausted sword tokens");
         EngineSelfTests.Equal(true, selector.LastOptions.All(DuanYuState.IsSword), "exhaust retrieval filters out statuses and ordinary attacks");
         EngineSelfTests.Equal(count, PileType.Hand.GetPile(fixture.Player).Cards.Count, "dual swords retrieves only its printed maximum");
-        EngineSelfTests.Equal(true, swords.Take(count).All(card => card.Pile?.Type == PileType.Hand), "retrieval returns the chosen original card objects");
+        EngineSelfTests.Equal(true, swords.Where(card => card.IsUpgraded).All(card => card.Pile?.Type == PileType.Hand), "retrieval returns the chosen original card objects");
         EngineSelfTests.Equal(true, swords[0].IsUpgraded, "retrieval preserves a sword's existing upgrade even with an unupgraded source");
-        EngineSelfTests.Equal(false, swords[1].IsUpgraded, "an upgraded retrieval source does not upgrade recovered swords");
+        EngineSelfTests.Equal(PileType.Exhaust, swords[1].Pile!.Type, "ordinary sword stays exhausted");
         EngineSelfTests.Equal(PileType.Exhaust, status.Pile!.Type, "foreign-Qi status cannot be retrieved as a sword");
         EngineSelfTests.Equal(PileType.Exhaust, attack.Pile!.Type, "ordinary attack cannot be retrieved as a sword");
         EngineSelfTests.Equal(0, CombatManager.Instance.History.Entries.OfType<CardGeneratedEntry>().Count(), "retrieval generates no card copies");
@@ -123,6 +124,7 @@ internal static class CardRoleSelfTests
 
         var empty = await Ready();
         EngineSelfTests.AddCard(empty, "DY_S02", PileType.Exhaust);
+        EngineSelfTests.AddCard(empty, "DY_T01", PileType.Exhaust);
         var emptySource = EngineSelfTests.AddCard(empty, "DY_U13", PileType.Hand, upgraded);
         var emptySelector = new ChoosingSelector();
         using (RunManager.Instance.CardSelectorStack.PushSelector(empty.Player, emptySelector))
@@ -131,7 +133,7 @@ internal static class CardRoleSelfTests
         EngineSelfTests.Equal(0, PileType.Hand.GetPile(empty.Player).Cards.Count, "empty retrieval has no generated fallback");
 
         var single = await Ready();
-        var onlySword = EngineSelfTests.AddCard(single, "DY_T06", PileType.Exhaust);
+        var onlySword = EngineSelfTests.AddCard(single, "DY_T06", PileType.Exhaust, true);
         var singleSource = EngineSelfTests.AddCard(single, "DY_U13", PileType.Hand, upgraded);
         var singleSelector = new ChoosingSelector();
         using (RunManager.Instance.CardSelectorStack.PushSelector(single.Player, singleSelector))
@@ -141,8 +143,8 @@ internal static class CardRoleSelfTests
 
         var full = await Ready();
         for (int index = 0; index < 9; index++) EngineSelfTests.AddCard(full, "DY_B01", PileType.Hand);
-        var recovered = EngineSelfTests.AddCard(full, "DY_T01", PileType.Exhaust);
-        var leftBehind = EngineSelfTests.AddCard(full, "DY_T02", PileType.Exhaust);
+        var recovered = EngineSelfTests.AddCard(full, "DY_T01", PileType.Exhaust, true);
+        var leftBehind = EngineSelfTests.AddCard(full, "DY_T02", PileType.Exhaust, true);
         var replayed = EngineSelfTests.AddCard(full, "DY_U13", PileType.Hand, upgraded);
         replayed.BaseReplayCount = 1;
         var fullSelector = new ChoosingSelector();

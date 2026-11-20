@@ -84,7 +84,7 @@ public abstract class DuanYuCard : CustomCardModel
     public override IEnumerable<CardKeyword> CanonicalKeywords => DesignId == "DY_S01"
         ? [CardKeyword.Unplayable, CardKeyword.Ethereal]
         : DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? [CardKeyword.Exhaust, CardKeyword.Ethereal]
-        : DesignId is "DY_C22" or "DY_C10" or "DY_C17" or "DY_U02" or "DY_U04" or "DY_U09" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U25" or "DY_U27" or "DY_U35" or "DY_U36" or "DY_U37" or "DY_U38" or "DY_R04" or "DY_R11" or "DY_R14" or "DY_R16" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
+        : DesignId is "DY_C22" or "DY_C10" or "DY_U02" or "DY_U09" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R11" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
     public override List<(string, string)> Localization => new CardLoc(Definition.Name,
         "{IfUpgraded:show:" + DescriptionText(true) + "|" + DescriptionText(false) + "}",
         ("selectionScreenPrompt", "选择卡牌"), ("qiTipTitle", "真气与耗气"), ("lingboTipTitle", "凌波"), ("swordTipTitle", "六脉剑气"), ("statusTipTitle", "专属状态牌"), ("foreignTipTitle", "外门招式"));
@@ -125,7 +125,7 @@ public abstract class DuanYuCard : CustomCardModel
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
         if (QiCostX) return $"当前真气：{current}；出牌前支付全部真气，X取实际支付值；0气时伤害为0。";
-        if (RequiredQi == 0) return $"当前真气：{current}。";
+        if (RequiredQi == 0) return "本牌可免费打出。";
         return current >= RequiredQi ? $"当前真气：{current}；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
     }
     private string DescriptionText(bool upgraded)

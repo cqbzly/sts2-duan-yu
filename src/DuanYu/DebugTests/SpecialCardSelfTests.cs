@@ -305,7 +305,7 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(1, generated.Count(card => card.Type == CardType.Attack), "secondary borrow generates one native attack");
         EngineSelfTests.Equal(1, generated.OfType<DY_S02>().Count(card => card.Pile?.Type == PileType.Hand), "secondary borrow leaves one foreign-Qi status in hand");
         EngineSelfTests.Equal(upgraded ? 17 : 12, fixture.Enemy.MaxHp - fixture.Enemy.CurrentHp, "secondary borrow deals its printed attack damage");
-        EngineSelfTests.Equal(PileType.Exhaust, borrowing.Pile!.Type, "secondary borrow card exhausts");
+        EngineSelfTests.Equal(PileType.Discard, borrowing.Pile!.Type, "secondary borrow card goes to discard");
     }
 
     private static async Task XResourceCards(bool upgraded)
@@ -325,7 +325,7 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).Qi, "万流归宗按实际消耗状态牌获得真气");
         EngineSelfTests.Equal(PileType.Exhaust, firstStatus.Pile!.Type, "万流归宗消耗第一张状态牌");
         EngineSelfTests.Equal(PileType.Exhaust, secondStatus.Pile!.Type, "万流归宗消耗第二张状态牌");
-        EngineSelfTests.Equal(PileType.Exhaust, guard.Pile!.Type, "万流归宗自身消耗");
+        EngineSelfTests.Equal(PileType.Discard, guard.Pile!.Type, "万流归宗自身不消耗");
 
         var noStatus = await ReadyFixture("DUANYUXNOSTATUS" + (upgraded ? "U" : ""));
         await RelicCmd.Remove(noStatus.Player.Relics.OfType<LanghuanPendant>().Single());
@@ -542,9 +542,9 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(true, statuses.All(status => status.Pile?.Type == PileType.Exhaust && ExhaustCount(status) == 1), "cleanse exhausts custom statuses and upgraded native Wither");
         EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).Qi, "cleanse grants one Qi per status plus custom-status exhaust rewards");
         EngineSelfTests.Equal(4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "cleanse draws three and preserves the non-status card");
-        EngineSelfTests.Equal(19, fixture.Player.Creature.Block, "cleanse removes Frail before base block and four exhaust triggers");
+        EngineSelfTests.Equal(16, fixture.Player.Creature.Block, "cleanse removes Frail before base block and three status exhaust triggers");
         EngineSelfTests.Equal(0, fixture.Player.Creature.GetPowerAmount<WeakPower>() + fixture.Player.Creature.GetPowerAmount<FrailPower>() + fixture.Player.Creature.GetPowerAmount<PoisonPower>(), "cleanse removes all three native debuffs");
-        EngineSelfTests.Equal(PileType.Exhaust, card.Pile!.Type, "cleanse itself exhausts");
+        EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "cleanse itself goes to discard");
     }
 
     private static async Task<TestFixture> ReadyFixture(string seed = "DUANYUSPECIAL")
