@@ -148,7 +148,7 @@ internal static class FullRunPolicy
         var attacks = combat.Enemies.Where(enemy => enemy.IsAlive).Sum(enemy => enemy.Monster!.NextMove.Intents.OfType<AttackIntent>().Sum(intent => intent.Repeats));
         var availableLingbo = Math.Max(0, attacks - state.Lingbo);
         block += Math.Min(availableLingbo, LingboGain(duanYuCard)) * DuanYuState.LingboReduction;
-        if (card.Type == CardType.Skill && state.SkillsPlayed < 2)
+        if (card.Type == CardType.Skill && state.SkillsPlayed < 3)
             block += Math.Min(availableLingbo, state.Effects.Where(effect => effect.CardId == "DY_R02").Sum(effect => effect.Amount)) * DuanYuState.LingboReduction;
         var gainQi = QiGain(duanYuCard);
         gainQi += statusFuel;

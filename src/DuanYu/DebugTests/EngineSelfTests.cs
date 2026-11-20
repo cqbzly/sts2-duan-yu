@@ -109,7 +109,7 @@ internal static class EngineSelfTests
             await RunCase("runtime:lingbo-preview-is-readonly", LingboPreview);
             await RunCase("runtime:sword-bonus-after-enchantment", SwordDamageOrdering);
             await RunCase("runtime:wind-block-on-lingbo-gain", WindBlockOnGain);
-            await RunCase("runtime:ability-limit-is-not-reset", AbilityLimit);
+            await RunCase("runtime:lingbo-footwork-first-three-skills", LingboFootworkLimit);
             await RunCase("runtime:turn-start-clears-old-lingbo", TurnStartLingbo);
             await RunCase("runtime:generated-sword-overflow", SwordOverflow);
             await RunCase("runtime:ethereal-precedes-retain", EtherealBeforeRetain);
@@ -722,14 +722,27 @@ internal static class EngineSelfTests
         Equal(true, PileType.Exhaust.GetPile(fixture.Player).Cards.Contains(sword), "ethereal sword exhausted despite retain");
     }
 
-    private static async Task AbilityLimit()
+    private static async Task LingboFootworkLimit()
     {
         var fixture = await ReadyFixture();
         await Play(fixture, "DY_B02");
         await Play(fixture, "DY_B02");
         await Play(fixture, "DY_R02");
+        Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "earlier skills do not grant Lingbo retroactively");
+        await Play(fixture, "DY_B01");
+        Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "an attack does not consume a skill trigger");
         await Play(fixture, "DY_B02");
-        Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "new ability does not reset skill ordinal");
+        Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "third skill grants one Lingbo");
+        await Play(fixture, "DY_B02");
+        Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "skills played before the ability count toward the limit");
+
+        await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
+        await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, new ThrowingPlayerChoiceContext());
+        for (int ordinal = 1; ordinal <= 4; ordinal++)
+        {
+            await Play(fixture, "DY_B02");
+            Equal(Math.Min(ordinal, 3), DuanYuState.Get(fixture.Player).Lingbo, "only the first three skills grant Lingbo in the new turn");
+        }
     }
 
     private static async Task TurnStartLingbo()

@@ -396,7 +396,7 @@ public static class DuanYuState
             if (!CanAct(player)) return;
             switch (effect.CardId)
             {
-                case "DY_R02" when record.SkillOrdinal is > 0 and <= 2:
+                case "DY_R02" when record.SkillOrdinal is > 0 and <= 3:
                     await GainLingbo(player, effect.Amount); break;
                 case "DY_R08" when record.ThirdSwordKind || record.SixthSwordKind:
                     await CardPileCmd.Draw(context, effect.Amount, player);

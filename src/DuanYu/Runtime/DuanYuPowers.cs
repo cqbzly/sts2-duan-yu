@@ -131,7 +131,7 @@ public sealed class BeimingPower : DuanYuEffectPower
 public sealed class LingboFootworkPower : DuanYuEffectPower
 {
     protected override string Title => "凌波微步";
-    protected override string Rule => "每回合前2张技能牌结算后，获得{Amount}层凌波。";
+    protected override string Rule => "每回合前3张技能牌结算后，各获得{Amount}层凌波。";
 }
 [CustomID("CQBZLY_DY_POWER_R07")]
 public sealed class InvisibleSwordArrayPower : DuanYuEffectPower
