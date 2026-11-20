@@ -528,7 +528,7 @@ internal static class BalanceSelfTests
             await PaidPlay(fixture, sword);
         }
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "energy is fully paid across the six-sword cycle");
-        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "cycle consumes the supplied resource");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "cycle preserves the uncapped two-Qi setup gain after paying all seven fees");
         EngineSelfTests.Equal(7, DuanYuState.Get(fixture.Player).SpendingCount, "cycle has exactly seven successful spends");
         EngineSelfTests.Equal(8, DuanYuState.Get(fixture.Player).SwordMomentum, "one complete six-sword cycle reaches the momentum cap");
         EngineSelfTests.Equal(6, PileType.Exhaust.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), "all six played swords exhaust");

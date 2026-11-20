@@ -61,7 +61,7 @@ internal static class RandomCardSelfTests
 
     private static async Task ScholarBenefits(bool upgraded)
     {
-        foreach (var startingQi in new[] { 4, 5, 9 })
+        foreach (var startingQi in new[] { 4, 5, 9, 12, 50 })
         {
             var fixture = await ReadyFixture("DUANYUSCHOLAR" + startingQi);
             await SetQi(fixture, startingQi);
@@ -70,7 +70,7 @@ internal static class RandomCardSelfTests
             var card = EngineSelfTests.AddCard(fixture, "DY_U26", PileType.Hand, upgraded);
             await BalanceSelfTests.PaidPlay(fixture, card);
             var qiAmount = 1;
-            EngineSelfTests.Equal(Math.Min(9, startingQi + qiAmount), DuanYuState.Get(fixture.Player).Qi, "scholar grants only its printed Qi");
+            EngineSelfTests.Equal(startingQi + qiAmount, DuanYuState.Get(fixture.Player).Qi, "scholar grants its full printed Qi above nine");
             EngineSelfTests.Equal(upgraded ? 1 : 0, fixture.Player.PlayerCombatState.Energy, "scholar pays its printed energy without a starter relic refund");
             EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SwordMomentum, "scholar always grants one printed momentum");
             EngineSelfTests.Equal((upgraded ? 3 : 2) + (startingQi >= 5 ? 1 : 0), PileType.Hand.GetPile(fixture.Player).Cards.Count, "scholar tests bonus draw before fixed Qi gains");

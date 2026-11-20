@@ -34,7 +34,7 @@ internal static class QiRetentionSelfTests
 
     private static async Task ResourceBoundaries()
     {
-        foreach (int startingQi in new[] { 0, 1, 5, 9 })
+        foreach (int startingQi in new[] { 0, 1, 5, 9, 12, 50, 100 })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             var player = fixture.Player;

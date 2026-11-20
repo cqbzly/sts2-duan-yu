@@ -86,7 +86,7 @@ public abstract class DuanYuCard : CustomCardModel
         get
         {
             if (Definition.Text.Contains("气", StringComparison.Ordinal))
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，最多9点，跨回合保留。需N点真气：打出整张牌前必须足额支付，不足时不能打出。能量免费仍需支付真气；同一次出牌的重放不重复支付。" + QiPreview());
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".qiTipTitle"), "运气N：获得N点真气，无上限，跨回合保留。需N点真气：打出整张牌前必须足额支付，不足时不能打出。能量免费仍需支付真气；同一次出牌的重放不重复支付。" + QiPreview());
             if (Definition.Text.Contains("凌波", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<LingboPower>();
             if (DuanYuState.IsSword(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
             if (Definition.Text.Contains("剑气", StringComparison.Ordinal))
@@ -117,8 +117,8 @@ public abstract class DuanYuCard : CustomCardModel
     {
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
-        if (RequiredQi == 0) return $"当前真气：{current}/9。";
-        return current >= RequiredQi ? $"当前真气：{current}/9；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
+        if (RequiredQi == 0) return $"当前真气：{current}。";
+        return current >= RequiredQi ? $"当前真气：{current}；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
     }
     private string DescriptionText(bool upgraded)
     {

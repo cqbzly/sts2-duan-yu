@@ -201,7 +201,7 @@ internal static class EngineSelfTests
         AddCard(fixture, "DY_B02", PileType.Exhaust);
         var card = await Play(fixture, id, upgraded);
         var state = DuanYuState.Get(player);
-        Equal(true, state.Qi is >= 0 and <= 9, id + " Qi bounds");
+        Equal(true, state.Qi >= 0, id + " Qi remains nonnegative without a gameplay cap");
         Equal(true, state.Lingbo is >= 0 and <= 3, id + " Lingbo bounds");
         Equal(true, player.Creature.IsAlive, id + " player survives");
         Equal(true, !PileType.Play.GetPile(player).Cards.Contains(card), id + " leaves play pile");

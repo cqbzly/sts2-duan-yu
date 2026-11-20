@@ -96,7 +96,7 @@ internal static class FullRunPolicy
         var duplicates = player.Deck.Cards.Count(existing => existing.Id == custom.Id && !ReferenceEquals(existing, custom));
         var deck = player.Deck.Cards.OfType<DuanYuCard>().Where(existing => !ReferenceEquals(existing, custom)).ToArray();
         var swordSources = deck.Count(existing => GeneratedSwords(existing, 6) > 0);
-        var qiSources = deck.Count(existing => QiGain(existing, 0) > 0);
+        var qiSources = deck.Count(existing => QiGain(existing) > 0);
         var spenders = deck.Count(existing => existing.QiCost > 0);
         var damageSources = deck.Sum(existing => existing.DesignId == "DY_R07" ? 2d : existing.Type == CardType.Attack && !existing.DesignId.StartsWith("DY_B", StringComparison.Ordinal) && existing.Numbers.Damage >= 5 ? 1d : GeneratedSwords(existing, 3) > 0 ? 0.6 : 0);
         var damageGap = Math.Max(0, Math.Ceiling(player.Deck.Cards.Count * 0.22) - damageSources);
@@ -149,17 +149,16 @@ internal static class FullRunPolicy
         block += Math.Min(availableLingbo, LingboGain(duanYuCard, state.Lingbo)) * DuanYuState.LingboReduction;
         if (card.Type == CardType.Skill && state.SkillsPlayed < 2)
             block += Math.Min(availableLingbo, state.Effects.Where(effect => effect.CardId == "DY_R02").Sum(effect => effect.Amount)) * DuanYuState.LingboReduction;
-        var gainQi = QiGain(duanYuCard, qi);
+        var gainQi = QiGain(duanYuCard);
         gainQi += statusFuel;
         if (duanYuCard.DesignId == "DY_U35") gainQi += exhaustTargets.Length;
         if (duanYuCard.DesignId == "DY_R16") gainQi += exhaustTargets.Length * 2;
         if (spendsQi && state.SpendingCount < 2) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.Amount);
         if (swordCombination) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R08").Sum(effect => effect.SecondaryAmount);
         if (swordCombination && HasPendant(player)) gainQi += state.DistinctSwords.Count == 2 ? 2 : 3;
-        gainQi = Math.Min(9 - qi + (spendsQi ? duanYuCard.QiCost : 0), gainQi);
         var qiAfter = qi - (spendsQi ? duanYuCard.QiCost : 0) + gainQi;
         if (card.Type == CardType.Skill && state.SkillsPlayed == 0 && HasPendant(player))
-            qiAfter = Math.Min(9, qiAfter + 2);
+            qiAfter += 2;
         block += EndTurnBlock(player, combat, qiAfter) - passiveBlock;
         if (duanYuCard.DesignId == "DY_U05") block += ModifiedPassiveBlock(player, combat, qiAfter / 2 + duanYuCard.Value(0, 2));
         var score = TargetValue(card, target, player, combat, qi);
@@ -262,7 +261,7 @@ internal static class FullRunPolicy
         if (source is { DesignId: "DY_U35" })
         {
             block += ModifiedBlock(source, player, combat, DuanYuState.Get(player).Qi, DuanYuState.Get(player).Lingbo);
-            if (DuanYuState.Get(player).Qi < 9) value += 1.5;
+            value += 1.5;
         }
         return value + Math.Min(neededBlock, block) * (player.Creature.CurrentHp <= neededBlock ? 5 : 2) + HandEndDamage(card, player, combat) * 2;
     }
@@ -326,7 +325,7 @@ internal static class FullRunPolicy
             ? Targets(custom, player, combat).Select(target => TargetValue(custom, target, player, combat)).DefaultIfEmpty(0).Max()
               + Math.Min(Math.Max(0, IncomingDamage(player, combat) - player.Creature.Block), ModifiedBlock(custom, player, combat, DuanYuState.Get(player).Qi, DuanYuState.Get(player).Lingbo)) * 2
               + DrawAmount(custom) * 3 + GeneratedSwords(custom, DuanYuState.Get(player).Qi) * 7
-              + EnergyGain(custom, DuanYuState.Get(player)) * 5 + QiGain(custom, DuanYuState.Get(player).Qi)
+              + EnergyGain(custom, DuanYuState.Get(player)) * 5 + QiGain(custom)
               + (custom.Type == CardType.Power ? AbilityValue(custom, player) : 0)
             : Targets(card, player, combat).Select(target => GenericCombatValue(card, target, player, combat)).DefaultIfEmpty(0).Max();
         return cleanup - Math.Max(0, value) * 0.7;
@@ -624,25 +623,25 @@ internal static class FullRunPolicy
         return energy;
     }
 
-    private static int QiGain(DuanYuCard card, int qi) => card.DesignId switch
+    private static int QiGain(DuanYuCard card) => card.DesignId switch
     {
-        "DY_B03" => Math.Min(9 - qi, card.Value(3, 4)),
-        "DY_C01" or "DY_U01" => Math.Min(9 - qi, 2),
-        "DY_C09" => Math.Min(9 - qi, 3),
-        "DY_C19" or "DY_C21" or "DY_C22" => Math.Min(9 - qi, 1),
-        "DY_C10" => Math.Min(9 - qi, card.IsUpgraded ? 3 : 2),
+        "DY_B03" => card.Value(3, 4),
+        "DY_C01" or "DY_U01" => 2,
+        "DY_C09" => 3,
+        "DY_C19" or "DY_C21" or "DY_C22" => 1,
+        "DY_C10" => card.IsUpgraded ? 3 : 2,
         "DY_C16" => 0,
-        "DY_U02" => Math.Min(9 - qi, card.IsUpgraded ? 6 : 4),
-        "DY_U03" => Math.Min(9 - qi, card.IsUpgraded ? 5 : 4),
-        "DY_U04" => Math.Min(9 - qi, card.IsUpgraded ? 4 : 3),
-        "DY_U09" => Math.Min(9 - qi, card.IsUpgraded ? 2 : 1),
-        "DY_U22" => Math.Min(9 - qi, 1),
-        "DY_U06" or "DY_U26" or "DY_U38" => Math.Min(9 - qi, card.Value(2, 3)),
-        "DY_R14" => Math.Min(9 - qi, card.Value(3, 4)),
-        "DY_S02" => Math.Min(9 - qi, 3),
-        "DY_U10" => Math.Min(9 - qi, 1),
-        "DY_U29" => Math.Min(9 - qi, card.Value(1, 2)),
-        "DY_R04" => Math.Min(9 - qi, card.IsUpgraded ? 8 : 6),
+        "DY_U02" => card.IsUpgraded ? 6 : 4,
+        "DY_U03" => card.IsUpgraded ? 5 : 4,
+        "DY_U04" => card.IsUpgraded ? 4 : 3,
+        "DY_U09" => card.IsUpgraded ? 2 : 1,
+        "DY_U22" => 1,
+        "DY_U06" or "DY_U26" or "DY_U38" => card.Value(2, 3),
+        "DY_R14" => card.Value(3, 4),
+        "DY_S02" => 3,
+        "DY_U10" => 1,
+        "DY_U29" => card.Value(1, 2),
+        "DY_R04" => card.IsUpgraded ? 8 : 6,
         _ => 0
     };
 

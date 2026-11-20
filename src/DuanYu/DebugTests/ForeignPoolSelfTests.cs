@@ -102,13 +102,13 @@ internal static class ForeignPoolSelfTests
             EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState!.Stars, "generation grants no free native stars");
             EngineSelfTests.Equal(specification.Stars, card.GetStarCostWithModifiers(), "energy-free borrowing preserves the native star cost");
             EngineSelfTests.Equal(false, card.CanPlay(), "zero native stars cannot pay a borrowed star-cost attack");
-            await DuanYuState.GainQi(fixture.Player, 9);
+            await DuanYuState.GainQi(fixture.Player, 50);
             EngineSelfTests.Equal(false, card.CanPlay(), "Qi never substitutes for the borrowed card's native stars");
             fixture.Player.PlayerCombatState.Stars = specification.Stars;
             EngineSelfTests.Equal(true, card.CanPlay(), "the attack becomes playable when its real native star cost is available");
             await Play(fixture, card);
             EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Stars, "playing the borrowed attack pays its native star cost");
-            EngineSelfTests.Equal(9, DuanYuState.Get(fixture.Player).Qi, "native star payment leaves independent Qi unchanged");
+            EngineSelfTests.Equal(50, DuanYuState.Get(fixture.Player).Qi, "native star payment leaves independent high Qi unchanged");
         }
     }
 

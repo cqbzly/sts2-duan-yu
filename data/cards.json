@@ -1,5 +1,5 @@
 {
-  "version": "0.5.12",
+  "version": "0.5.13",
   "character": {
     "id": "duan_yu",
     "name": "大理世子·段誉",
@@ -7,7 +7,7 @@
     "energy": 3,
     "draw": 5,
     "gold": 99,
-    "qiCap": 9,
+    "qiCap": null,
     "lingboCap": 3,
     "lingboReduction": 1,
     "startingDeck": [

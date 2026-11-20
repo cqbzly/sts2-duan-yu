@@ -37,7 +37,7 @@ function isCost(value, cardId) {
   return Number.isInteger(value) && (value >= 0 && value <= 3 || cardId === 'DY_S01' && value === -1);
 }
 
-function validateEffect(text, label, qiCap, expectedQiCost = 0) {
+function validateEffect(text, label, expectedQiCost = 0) {
   requireCondition(isNonemptyText(text), `${label}必须提供完整效果文本。`);
   if (!isNonemptyText(text)) return;
   requireCondition(!/\?{2,}|\uFFFD/.test(text), `${label}含有疑似编码损坏的连续问号或替换字符。`);
@@ -52,7 +52,7 @@ function validateEffect(text, label, qiCap, expectedQiCost = 0) {
   requireCondition(requiredQiClauses.length <= 1, `${label}最多只能有一条真气费用。`);
   for (const clause of requiredQiClauses) {
     const amount = Number(clause[1]);
-    requireCondition(amount > 0 && amount <= qiCap, `${label}的真气费用必须介于1与真气上限之间。`);
+    requireCondition(Number.isSafeInteger(amount) && amount > 0, `${label}的真气费用必须是正整数。`);
     requireCondition(expectedQiCost === 0 || amount === expectedQiCost, `${label}的真气费用应为${expectedQiCost}点。`);
   }
   requireCondition(expectedQiCost === 0 || requiredQiClauses.length === 1, `${label}必须明确写出需支付${expectedQiCost}点真气。`);
@@ -63,9 +63,10 @@ function validateCharacter(character, cardsById) {
   if (!isObject(character)) return;
   requireCondition(character.id === 'duan_yu', '角色id必须为duan_yu。');
   requireCondition(isNonemptyText(character.name), '角色必须有名称。');
-  for (const field of ['maxHp', 'energy', 'draw', 'qiCap', 'lingboCap', 'lingboReduction']) {
+  for (const field of ['maxHp', 'energy', 'draw', 'lingboCap', 'lingboReduction']) {
     requireCondition(Number.isInteger(character[field]) && character[field] > 0, `character.${field}必须是正整数。`);
   }
+  requireCondition(character.qiCap === null, 'character.qiCap必须为null，表示真气无上限。');
   requireCondition(Number.isInteger(character.gold) && character.gold >= 0, '初始金币必须是非负整数。');
   requireCondition(Array.isArray(character.startingDeck), 'startingDeck必须是数组。');
   if (!Array.isArray(character.startingDeck)) return;
@@ -115,11 +116,11 @@ function validateCards(design) {
     requireCondition(card.costX === undefined || typeof card.costX === 'boolean', `${label}.costX必须为布尔值。`);
     requireCondition(Boolean(card.costX) === ['DY_U37', 'DY_R21'].includes(card.id), `${label}的X费用配置不正确。`);
     if (card.costX) requireCondition(card.cost === 0 && card.upgrade?.cost === 0, `${label}的X费用占位值必须为0。`);
-    validateEffect(card.text, `${label}基础效果`, design.character?.qiCap ?? 9, requiredQiCosts.get(card.id) ?? 0);
+    validateEffect(card.text, `${label}基础效果`, requiredQiCosts.get(card.id) ?? 0);
     requireCondition(isObject(card.upgrade), `${label}必须有upgrade对象。`);
     if (isObject(card.upgrade)) {
       requireCondition(isCost(card.upgrade.cost, card.id), `${label}的升级费用必须是0至3的整数，只有气滞允许-1。`);
-      validateEffect(card.upgrade.text, `${label}升级效果`, design.character?.qiCap ?? 9, requiredQiCosts.get(card.id) ?? 0);
+      validateEffect(card.upgrade.text, `${label}升级效果`, requiredQiCosts.get(card.id) ?? 0);
     }
     requireCondition(Array.isArray(card.tags) && card.tags.length >= 1 && card.tags.length <= 2, `${label}必须有1至2个标签。`);
     if (Array.isArray(card.tags)) {

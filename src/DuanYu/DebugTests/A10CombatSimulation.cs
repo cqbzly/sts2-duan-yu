@@ -168,7 +168,7 @@ internal static class A10CombatSimulation
                     cardsPlayed++;
                     energySpent += energy;
                     var resources = DuanYuState.Get(player);
-                    EngineSelfTests.Equal(true, resources.Qi is >= 0 and <= 9, "combat Qi bounds");
+                    EngineSelfTests.Equal(true, resources.Qi >= 0, "combat Qi remains nonnegative");
                     EngineSelfTests.Equal(true, resources.Lingbo is >= 0 and <= 3, "combat Lingbo bounds");
                     EngineSelfTests.Equal(true, player.PlayerCombatState.Energy >= 0, "nonnegative combat energy");
                     plays.Add(new PlaySnapshot(CardId(candidate.Card), candidate.Target?.Monster?.Id.Entry, energyBefore, energy, player.PlayerCombatState.Energy, resources.Qi, resources.Lingbo));
@@ -232,7 +232,7 @@ internal static class A10CombatSimulation
         double score = damage + 1.3 * Math.Min(neededBlock, block);
         if (target != null && damage >= target.CurrentHp + target.Block) score += 100;
         var gainQi = Regex.Match(text, @"运气(\d+)");
-        if (gainQi.Success) score += Math.Min(9 - resources.Qi, int.Parse(gainQi.Groups[1].Value)) * 2;
+        if (gainQi.Success) score += int.Parse(gainQi.Groups[1].Value) * 2;
         var draw = Regex.Match(text, @"抽(\d+)张牌");
         if (draw.Success) score += int.Parse(draw.Groups[1].Value) * (player.PlayerCombatState!.Energy > card.EnergyCost.GetAmountToSpend() ? 4 : 0.5);
         if (text.Contains("易伤", StringComparison.Ordinal)) score += 3;

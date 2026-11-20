@@ -2,14 +2,25 @@ using DuanYu.Runtime;
 
 var cases = new (string Name, Action Check)[]
 {
-    ("Qi caps at nine and does not overflow", () =>
+    ("Qi grows beyond nine without integer overflow", () =>
     {
         var ledger = new DuanYuCombatLedger();
         ledger.GainQi(8);
         ledger.GainQi(3);
-        Equal(9, ledger.Qi);
+        Equal(11, ledger.Qi);
+        ledger.GainQi(39);
+        Equal(50, ledger.Qi);
+        ledger.GainQi(50);
+        Equal(100, ledger.Qi);
+        ledger.GainQi(0);
+        ledger.GainQi(-1);
+        Equal(100, ledger.Qi);
         ledger.GainQi(int.MaxValue);
-        Equal(9, ledger.Qi);
+        Equal(int.MaxValue, ledger.Qi);
+        ledger.GainQi(1);
+        Equal(int.MaxValue, ledger.Qi);
+        Equal(true, ledger.TrySpendQi(100));
+        Equal(int.MaxValue - 100, ledger.Qi);
     }),
     ("Failed spending preserves resources and counters", () =>
     {
@@ -267,10 +278,10 @@ var cases = new (string Name, Action Check)[]
     {
         var first = new DuanYuCombatLedger();
         var second = new DuanYuCombatLedger();
-        first.GainQi(9);
+        first.GainQi(50);
         first.RegisterPlay(true, false, null);
         second.BeginTurn();
-        Equal(9, first.Qi);
+        Equal(50, first.Qi);
         Equal(1, first.SkillsPlayed);
         Equal(0, second.Qi);
         Equal(0, second.SkillsPlayed);

@@ -34,6 +34,9 @@ internal static class QiResourceSelfTests
                 foreach (bool upgraded in new[] { false, true })
                     yield return ($"qi:mandatory-payment-{id}{(upgraded ? "+" : "")}", () => MandatoryPayment(id, upgraded));
             yield return ("qi:independent-display-and-native-stars", IndependentResource);
+            yield return ("qi:uncapped-card-payment-and-refund", UncappedPayment);
+            yield return ("qi:uncapped-qi-scaling-attack", UncappedScalingAttack);
+            yield return ("qi:uncapped-qi-scaling-turn-end-power", UncappedScalingPower);
             yield return ("qi:free-energy-retains-mandatory-cost", FreeEnergy);
             yield return ("qi:native-replay-pays-once-and-refunds-once", ReplayPayment);
             yield return ("qi:auto-play-pays-and-cannot-reuse-old-payment", AutoPlayPayment);
@@ -88,7 +91,7 @@ internal static class QiResourceSelfTests
         EngineSelfTests.Equal(0, DuanYuState.Get(player).SwordPlays, id + " rejected play records no sword");
         await SetQi(player, card.RequiredQi);
         EngineSelfTests.Equal(true, card.CanPlay(), id + " is payable at its exact fee");
-        EngineSelfTests.Equal(true, card.HoverTips.OfType<HoverTip>().Any(tip => tip.Description.Contains($"当前真气：{card.RequiredQi}/9；出牌前支付{card.RequiredQi}点。", StringComparison.Ordinal)),
+        EngineSelfTests.Equal(true, card.HoverTips.OfType<HoverTip>().Any(tip => tip.Description.Contains($"当前真气：{card.RequiredQi}；出牌前支付{card.RequiredQi}点。", StringComparison.Ordinal)),
             id + " hover still explains the current Qi and payment when affordable");
         await SetQi(player, card.RequiredQi);
         EngineSelfTests.Equal(true, card.CanPlay(), id + " is playable with its exact fee");
@@ -110,7 +113,7 @@ internal static class QiResourceSelfTests
         await SetQi(player, 0);
         var resource = CustomResources<QiResource>.Get(combat);
         EngineSelfTests.Equal(true, resource.ShouldShowDisplay(), "zero Qi remains visible for Duan Yu");
-        EngineSelfTests.Equal("0/9", resource.GetTextForAmount(0), "Qi counter exposes its own maximum");
+        EngineSelfTests.Equal("0", resource.GetTextForAmount(0), "Qi counter displays its current amount without a maximum");
         EngineSelfTests.Equal("真气", resource.MakeTip()!.Value.Title, "Qi hover tip uses the resource name");
         EngineSelfTests.Equal(true, resource.TexturePath.Contains("power-cqbzly-dy-qi", StringComparison.OrdinalIgnoreCase), "Qi uses its own resource icon");
         EngineSelfTests.Equal(false, player.Character.ShouldAlwaysShowStarCounter, "Duan Yu does not force the native stars counter");
@@ -128,10 +131,76 @@ internal static class QiResourceSelfTests
         EngineSelfTests.Equal(true, resource.ShouldShowDisplay(), "zeroing Qi keeps its display visible");
         EngineSelfTests.Equal(false, await resource.Spend<QiResource>(fixture.Combat, null, 1, false), "strict resource spending rejects an unaffordable mandatory fee");
         EngineSelfTests.Equal(0, resource.Amount, "failed strict spending preserves zero Qi");
-        await DuanYuState.GainQi(player, int.MaxValue);
-        EngineSelfTests.Equal(9, resource.Amount, "resource display obeys the Qi cap");
+        await DuanYuState.GainQi(player, 100);
+        AssertQi(player, 100, "resource gain exceeds the former nine-point limit");
+        EngineSelfTests.Equal("100", resource.GetTextForAmount(resource.Amount), "high Qi displays its full amount without a maximum");
+        EngineSelfTests.Equal(2, combat.Stars, "high Qi preserves native stars");
         await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [player.Creature]);
-        EngineSelfTests.Equal(9, resource.Amount, "Qi carries across turn reset");
+        AssertQi(player, 100, "high Qi carries across turn reset");
+        await DuanYuState.LoseQi(player, 50);
+        AssertQi(player, 50, "explicit loss subtracts from uncapped Qi");
+        await DuanYuState.SpendQi(player, 38);
+        AssertQi(player, 12, "large payment subtracts in full above nine");
+        EngineSelfTests.Equal(false, await resource.Spend<QiResource>(fixture.Combat, null, 13, false), "uncapped Qi still requires a fully affordable fee");
+        AssertQi(player, 12, "failed payment preserves high Qi");
+        EngineSelfTests.Equal(2, combat.Stars, "high Qi loss and payment preserve native stars");
+    }
+
+    private static async Task UncappedPayment()
+    {
+        var fixture = await EngineSelfTests.ReadyFixture();
+        var player = fixture.Player;
+        await RelicCmd.Obtain<TianlongPrayerBeads>(player);
+        await RelicCmd.Obtain<DaliSeal>(player);
+        await DuanYuState.AddEffect(player, "DY_R01", 1, energyAmount: 1);
+        await SetQi(player, 50);
+        var card = EngineSelfTests.AddCard(fixture, "DY_U07", PileType.Hand);
+        card.BaseReplayCount = 2;
+        EngineSelfTests.Equal(true, card.CanPlay(), "high Qi can pay the card's full mandatory cost");
+        EngineSelfTests.Equal(true, card.HoverTips.OfType<HoverTip>().Any(tip => tip.Description.Contains("当前真气：50；出牌前支付3点。", StringComparison.Ordinal)),
+            "card hover shows high current Qi without the former maximum");
+        int energy = player.PlayerCombatState!.Energy;
+        var paid = await card.SpendResources();
+        AssertQi(player, 47, "high-Qi card pays its full fee before any refund or effect");
+        await Resolve(fixture, card, false, paid.Item1, paid.Item2);
+        AssertQi(player, 48, "replaying a high-Qi card does not repay or repeat its refund");
+        EngineSelfTests.Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, card)), "high-Qi replay resolves all three bodies");
+        EngineSelfTests.Equal(1, DuanYuState.Get(player).SpendingCount, "high-Qi replay counts one full payment");
+        EngineSelfTests.Equal(false, DuanYuState.Get(player).SealUsed, "a high balance never falsely triggers an empty-Qi seal reward");
+        EngineSelfTests.Equal(energy - paid.Item1 + 1, player.PlayerCombatState.Energy, "high-Qi payment grants only one printed energy refund");
+        EngineSelfTests.Equal(4, player.Creature.Block, "high-Qi payment grants prayer block once");
+    }
+
+    private static async Task UncappedScalingAttack()
+    {
+        foreach (bool upgraded in new[] { false, true })
+        foreach (int qi in new[] { 100, 101 })
+        {
+            var fixture = await EngineSelfTests.ReadyFixture();
+            await SetQi(fixture.Player, qi);
+            var card = EngineSelfTests.AddCard(fixture, "DY_U08", PileType.Hand, upgraded);
+            int health = fixture.Enemy.CurrentHp;
+            await EngineSelfTests.PaidPlay(fixture, card);
+            EngineSelfTests.Equal((upgraded ? 23 : 16) + qi, health - fixture.Enemy.CurrentHp, "Qi-scaling attack uses the full stored amount above nine");
+            AssertQi(fixture.Player, qi, "Qi-scaling attack reads the resource without spending it");
+            EngineSelfTests.Equal(1, PileType.Discard.GetPile(fixture.Player).Cards.OfType<DuanYuCard>().Count(candidate => candidate.DesignId == "DY_S01"), "high-Qi attack retains its printed status drawback");
+        }
+    }
+
+    private static async Task UncappedScalingPower()
+    {
+        foreach (bool upgraded in new[] { false, true })
+        foreach (int qi in new[] { 100, 1001 })
+        {
+            var fixture = await EngineSelfTests.ReadyFixture();
+            await SetQi(fixture.Player, qi);
+            var card = EngineSelfTests.AddCard(fixture, "DY_U05", PileType.Hand, upgraded);
+            await EngineSelfTests.PaidPlay(fixture, card);
+            EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "Qi Guard waits for turn end");
+            await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
+            EngineSelfTests.Equal(qi / 2 + (upgraded ? 2 : 0), fixture.Player.Creature.Block, "Qi Guard scales from the full stored amount and rounds down");
+            AssertQi(fixture.Player, qi, "high-Qi guard does not spend the stored resource");
+        }
     }
 
     private static async Task FreeEnergy()
@@ -209,15 +278,15 @@ internal static class QiResourceSelfTests
         second.ResetCombatState();
         fixture.Combat.AddPlayer(second);
         await Hook.BeforeCombatStart(fixture.Run, fixture.Combat);
-        await SetQi(first, 7);
-        await SetQi(second, 4);
+        await SetQi(first, 50);
+        await SetQi(second, 12);
         var firstResource = CustomResources<QiResource>.Get(first.PlayerCombatState!);
         var secondResource = CustomResources<QiResource>.Get(second.PlayerCombatState!);
         await DuanYuState.SpendQi(first, 3);
-        EngineSelfTests.Equal(4, firstResource.Amount, "first player payment updates their Qi");
-        EngineSelfTests.Equal(4, secondResource.Amount, "first player payment preserves companion Qi");
-        await DuanYuState.LoseQi(second, 4);
-        EngineSelfTests.Equal(4, firstResource.Amount, "companion Qi loss preserves first player");
+        EngineSelfTests.Equal(47, firstResource.Amount, "first player payment updates their uncapped Qi");
+        EngineSelfTests.Equal(12, secondResource.Amount, "first player payment preserves companion uncapped Qi");
+        await DuanYuState.LoseQi(second, 12);
+        EngineSelfTests.Equal(47, firstResource.Amount, "companion Qi loss preserves first player");
         EngineSelfTests.Equal(0, secondResource.Amount, "companion Qi loss changes only companion");
     }
 
@@ -237,6 +306,13 @@ internal static class QiResourceSelfTests
     {
         await DuanYuState.LoseQi(player, int.MaxValue);
         await DuanYuState.GainQi(player, amount);
+    }
+
+    private static void AssertQi(Player player, int expected, string message)
+    {
+        EngineSelfTests.Equal(expected, DuanYuState.Get(player).Qi, message + " ledger");
+        EngineSelfTests.Equal(expected, CustomResources<QiResource>.Get(player.PlayerCombatState!).Amount, message + " resource");
+        EngineSelfTests.Equal(expected, (int)(player.Creature.GetPower<QiPower>()?.Amount ?? 0), message + " power");
     }
 
     private static Task Resolve(TestFixture fixture, DuanYuCard card, bool autoPlay, int energy = 0, int stars = 0)

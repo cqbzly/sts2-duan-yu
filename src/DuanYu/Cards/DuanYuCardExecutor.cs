@@ -26,7 +26,7 @@ public static class DuanYuCardExecutor
         var state = DuanYuState.Get(player);
         var target = play.Target;
         int Value(int normal, int upgraded) => card.Value(normal, upgraded);
-        Task Attack(int amount, bool all = false, int multiplier = 1) => DealDamage(card, context, play, amount, all, multiplier);
+        Task Attack(decimal amount, bool all = false, int multiplier = 1) => DealDamage(card, context, play, amount, all, multiplier);
         async Task Block(int amount, Creature? recipient = null, int multiplier = 1)
         {
             if (multiplier > 0 && DuanYuState.CanAct(player) && (recipient ?? player.Creature).IsAlive)
@@ -158,7 +158,7 @@ public static class DuanYuCardExecutor
                 break;
             }
             case "DY_U07": await Attack(Value(27, 37)); break;
-            case "DY_U08": await Attack(Value(16, 23) + state.Qi); await GenerateStatus("DY_S01"); break;
+            case "DY_U08": await Attack((decimal)Value(16, 23) + state.Qi); await GenerateStatus("DY_S01"); break;
             case "DY_U09": await DuanYuState.AddSwordDamage(player, Value(2, 3)); break;
             case "DY_U10": await Attack(Value(10, 14), true); await Generate(3, card.IsUpgraded); break;
             case "DY_U11": await Attack(Value(8, 12)); await Block(Value(2, 3)); await Generate(5); break;
@@ -365,7 +365,7 @@ public static class DuanYuCardExecutor
         if (card.QiCost > 0) await DuanYuState.AfterQiSpent(player, context, card);
     }
 
-    private static async Task<bool> DealDamage(DuanYuCard card, PlayerChoiceContext context, CardPlay play, int amount, bool all = false, int multiplier = 1, Creature? recipient = null)
+    private static async Task<bool> DealDamage(DuanYuCard card, PlayerChoiceContext context, CardPlay play, decimal amount, bool all = false, int multiplier = 1, Creature? recipient = null)
     {
         var target = recipient ?? play.Target;
         if (!DuanYuState.CanAct(play.Player) || (!all && target?.IsAlive != true)) return false;

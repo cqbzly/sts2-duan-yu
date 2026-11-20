@@ -31,7 +31,7 @@ public class DuanYuCombatLedger
 
     public void GainQi(int amount)
     {
-        if (amount > 0) Qi = (int)Math.Min(9L, (long)Qi + amount);
+        if (amount > 0) Qi = (int)Math.Min(int.MaxValue, (long)Qi + amount);
     }
 
     public bool TrySpendQi(int amount)

@@ -47,7 +47,6 @@ internal sealed class DuanYuPlayRecord
 
 public static class DuanYuState
 {
-    public const int QiCap = 9;
     public const int LingboCap = 3;
     public const int LingboReduction = DuanYuCombatLedger.LingboReduction;
     public const int SwordMomentumCap = DuanYuCombatLedger.SwordMomentumCap;
@@ -336,7 +335,7 @@ public static class DuanYuState
             switch (effect.CardId)
             {
                 case "DY_U05":
-                    await GainBlock(player, state.Qi / 2 * effect.Amount + effect.SecondaryAmount);
+                    await GainBlock(player, (decimal)(state.Qi / 2) * effect.Amount + effect.SecondaryAmount);
                     break;
             }
         }
@@ -421,7 +420,7 @@ public static class DuanYuState
         return ordinal is > 0 and <= 2 ? effects.Where(effect => effect.CardId == "DY_U14").Sum(effect => effect.Amount) : 0;
     }
 
-    private static Task<decimal> GainBlock(Player player, int amount) => CreatureCmd.GainBlock(player.Creature, amount, ValueProp.Move, null);
+    private static Task<decimal> GainBlock(Player player, decimal amount) => CreatureCmd.GainBlock(player.Creature, amount, ValueProp.Move, null);
 
     private static async Task SyncPower<T>(Player player, int amount, CardModel? source = null) where T : PowerModel
     {

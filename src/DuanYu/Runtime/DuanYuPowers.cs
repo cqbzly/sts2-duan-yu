@@ -24,7 +24,7 @@ public abstract class DuanYuPower : CustomPowerModel
 [CustomID("CQBZLY_DY_QI")]
 public sealed class QiPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("真气", "当前有{Amount}点真气，最多9点，跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。", "当前有{Amount}点真气，最多9点，跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。");
+    public override List<(string, string)> Localization => new PowerLoc("真气", "当前有{Amount}点真气，无上限，跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。", "当前有{Amount}点真气，无上限，跨回合保留。卡牌的真气费用必须在出牌前足额支付，不足时整张牌不能打出。");
 }
 
 [CustomID("CQBZLY_DY_LINGBO")]

@@ -33,7 +33,7 @@ internal static class CircletSelfTests
             yield return ("circlet:event-and-player-save-roundtrip", SaveRoundTrip);
             yield return ("circlet:legacy-unclaimed-offer-migration", LegacyOfferMigration);
             yield return ("circlet:vanilla-and-other-character-isolation", VanillaIsolation);
-            yield return ("circlet:combat-start-turn-end-and-cap", StartingAndTurnQi);
+            yield return ("circlet:combat-start-and-uncapped-turn-end", StartingAndTurnQi);
             yield return ("circlet:native-status-and-exhaust-before-turn-end-grant", StatusAndExhaustOrdering);
             yield return ("circlet:late-acquisition-and-no-payment-rewards", LateAcquisitionAndRewards);
             yield return ("circlet:multiplayer-participants-and-melt", PlayerIsolationAndMelt);
@@ -173,16 +173,22 @@ internal static class CircletSelfTests
         await Hook.BeforeCombatStart(fixture.Run, fixture.Combat);
         AssertQi(player, 5, "custom circlet combat-start grant");
         int previous = 5;
-        foreach (int expected in new[] { 6, 7, 8, 9, 9 })
+        foreach (int expected in new[] { 6, 7, 8, 9, 10, 11, 12 })
         {
             await StartTurn(fixture, player);
             AssertQi(player, previous, "own turn start does not grant Qi including the first turn");
             await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
             AssertQi(player, previous, "circlet waits until after card turn-end effects");
             await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
-            AssertQi(player, expected, "own turn-end grants one Qi capped at nine");
+            AssertQi(player, expected, "own turn-end grants one Qi beyond nine");
             previous = expected;
         }
+        await DuanYuState.GainQi(player, 38);
+        AssertQi(player, 50, "circlet owner can store fifty Qi");
+        await StartTurn(fixture, player);
+        AssertQi(player, 50, "high Qi carries into the next circlet turn without a start grant");
+        await EndTurn(fixture, player);
+        AssertQi(player, 51, "circlet turn-end grant also increases a high balance");
         EngineSelfTests.Equal(4, player.PlayerCombatState.Stars, "custom circlet never substitutes native stars for Qi");
         EngineSelfTests.Equal(99, player.PlayerCombatState.Energy, "custom circlet does not grant energy");
         EngineSelfTests.Equal(0, DuanYuState.Get(player).SpendingCount, "combat-start and turn-end gains are not payments");
@@ -191,7 +197,7 @@ internal static class CircletSelfTests
     private static async Task StatusAndExhaustOrdering()
     {
         foreach (bool exhaustRefund in new[] { false, true })
-        foreach (int startingQi in new[] { 0, 1, 9 })
+        foreach (int startingQi in new[] { 0, 1, 9, 12, 50 })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             var player = fixture.Player;
@@ -299,7 +305,8 @@ internal static class CircletSelfTests
         var fixture = EngineSelfTests.CreateFixture();
         await ReplacePendant(fixture.Player);
         await Hook.BeforeCombatStart(fixture.Run, fixture.Combat);
-        await DuanYuState.GainQi(fixture.Player, 9);
+        await DuanYuState.GainQi(fixture.Player, 100);
+        AssertQi(fixture.Player, 105, "high circlet Qi is present before combat cleanup");
         await Hook.AfterCombatEnd(fixture.Run, fixture.Combat, new CombatRoom(fixture.Combat));
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "combat end clears stored circlet Qi");
         EngineSelfTests.Equal(0, CustomResources<QiResource>.Get(fixture.Player.PlayerCombatState!).Amount, "combat end clears the resource display");

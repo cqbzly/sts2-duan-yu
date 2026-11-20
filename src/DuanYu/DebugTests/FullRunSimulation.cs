@@ -218,7 +218,7 @@ internal static class FullRunSimulation
                 await Execute(action);
                 Record("play", new { card = CardId(choice.Card), target = choice.Target?.Monster?.Id.Entry, score = choice.Score, energyBefore, energyAfter = player.PlayerCombatState?.Energy, qi = DuanYuState.Get(player).Qi, lingbo = DuanYuState.Get(player).Lingbo, swordMomentum = DuanYuState.Get(player).SwordMomentum });
                 activeCard = "";
-                EngineSelfTests.Equal(true, DuanYuState.Get(player).Qi is >= 0 and <= 9, "full run Qi bounds");
+                EngineSelfTests.Equal(true, DuanYuState.Get(player).Qi >= 0, "full run Qi remains nonnegative");
                 EngineSelfTests.Equal(true, DuanYuState.Get(player).SwordMomentum >= 0 && DuanYuState.Get(player).SwordMomentum <= DuanYuState.SwordMomentumCap, "full run sword momentum bounds");
                 EngineSelfTests.Equal(true, DuanYuState.Get(player).Lingbo is >= 0 and <= 3, "full run Lingbo bounds");
                 continue;
