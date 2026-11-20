@@ -1,6 +1,6 @@
-# 段誉模组 v0.5.11 安装说明
+# 段誉模组 v0.5.12 安装说明
 
-这是 v0.5.11 的安装与构建说明。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta、BaseLib 3.4.8；其他游戏版本和全部第三方模组组合尚未验证。
+这是 v0.5.12 的安装与构建说明。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta、BaseLib 3.4.8；其他游戏版本和全部第三方模组组合尚未验证。
 
 ## 玩家安装
 
@@ -22,7 +22,7 @@
 .\scripts\package.ps1 -Sts2Path 'D:\steam\steamapps\common\Slay the Spire 2'
 ```
 
-输出：`dist/DuanYu-0.5.11.zip`。构建与打包不会改动游戏目录。
+输出：`dist/DuanYu-0.5.12.zip`。构建与打包不会改动游戏目录。
 
 若需要直接安装本地构建：
 
@@ -42,8 +42,8 @@
 
 ## 发布状态
 
-当前版本为 v0.5.11 头环升级版，下载见[GitHub v0.5.11](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.5.11)或公开的[Steam创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。新增玉佩升级遗物“头环”：战斗开始时运气5，每个自己的回合开始时运气1（含首回合），因此首回合共6真气；上限仍为9。通过奥罗巴斯升级初始遗物时替换琅嬛玉佩，不进入随机奖励和商店。本轮96张卡牌数据与图鉴校验、24/24项规则测试、451/451项真实游戏引擎回归、128/128项资源加载检查通过；Debug与Release构建均0警告、0错误。详情见[本版更新记录](releases/v0.5.11.md)和[运行时校验说明](runtime-verification.md)。
+当前版本为 v0.5.12 头环回合末回气版，下载见[GitHub v0.5.12](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.5.12)或公开的[Steam创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。头环改为每个自己的回合结束时运气1，战斗开始时运气5不变；首回合开始有5气，无消耗时首回合结束有6气，上限仍为9。头环仍通过奥罗巴斯升级琅嬛玉佩取得，不进入随机奖励和商店。本轮96张卡牌数据与图鉴校验、24/24项规则测试、452/452项真实游戏引擎回归、128/128项资源加载检查通过；Debug与Release构建均0警告、0错误。详情见[本版更新记录](releases/v0.5.12.md)和[运行时校验说明](runtime-verification.md)。
 
-本地工坊目录曾安装旧版；安装 v0.5.11 前应关闭游戏并更新同一目录。使用工坊版本时，不要再安装第二份到 `mods`。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。
+本地工坊目录曾安装旧版；安装 v0.5.12 前应关闭游戏并更新同一目录。使用工坊版本时，不要再安装第二份到 `mods`。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。
 
-历史v0.2.1安装DLL的SHA256为 `6C5390A760B4FAB96E1F270C9BB4D89DFA0E7FF4E502DC80F840FCA1D43BF37A`，其替换前备份为 `artifacts/install-backups/20261118-161142-before-v021`。该哈希仅用于旧版追溯，不能用于核验 v0.5.11。
+历史v0.2.1安装DLL的SHA256为 `6C5390A760B4FAB96E1F270C9BB4D89DFA0E7FF4E502DC80F840FCA1D43BF37A`，其替换前备份为 `artifacts/install-backups/20261118-161142-before-v021`。该哈希仅用于旧版追溯，不能用于核验 v0.5.12。

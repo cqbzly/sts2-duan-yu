@@ -5,7 +5,10 @@ using BaseLib.Utils;
 using BaseLib.Utils.Attributes;
 using DuanYu.Assets;
 using DuanYu.Runtime;
+using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Relics;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
 
 namespace DuanYu.Relics;
@@ -54,9 +57,16 @@ public sealed class LanghuanCirclet : DuanYuRelic
     public override int RelicNumber => 9;
     protected override string LocalizationId => "DY_RELIC09";
     protected override string TitleText => "头环";
-    protected override string DescriptionText => "每场战斗开始时，运气5。每回合开始时，运气1。";
+    protected override string DescriptionText => "每场战斗开始时，运气5。每回合结束时，运气1。";
     protected override string FlavorText => "玉光凝成一环，百川自此周流。";
     public override RelicRarity Rarity => RelicRarity.Starter;
+
+    public override Task AfterSideTurnEnd(PlayerChoiceContext choiceContext, CombatSide side, IEnumerable<Creature> participants)
+    {
+        if (side != CombatSide.Player || IsMelted || !Owner.Relics.Contains(this) || !participants.Contains(Owner.Creature))
+            return Task.CompletedTask;
+        return DuanYuState.GainQi(Owner, 1);
+    }
 }
 
 [CustomID("CQBZLY_DY_RELIC02")]

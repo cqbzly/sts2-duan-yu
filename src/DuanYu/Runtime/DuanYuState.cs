@@ -291,7 +291,6 @@ public static class DuanYuState
         }
         foreach (var relic in player.Relics.Where(relic => !relic.IsMelted).ToArray())
         {
-            if (relic.Id.Entry == "CQBZLY_DY_RELIC09") await GainQi(player, 1);
             if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC02" && state.Qi == 0) await GainQi(player, 1);
             if (state.TurnNumber > 1 && relic.Id.Entry == "CQBZLY_DY_RELIC07" && state.PreviousTurnWasPeaceful) await GainQi(player, 1);
         }

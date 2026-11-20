@@ -1,6 +1,6 @@
 # 大理世子·段誉 · 完整卡牌图鉴
 
-设计版本：0.5.11。共 96 种卡牌，其中 83 种进入角色常规卡池。
+设计版本：0.5.12。共 96 种卡牌，其中 83 种进入角色常规卡池。
 
 本文由 [data/cards.json](../data/cards.json) 自动生成。修改数据后运行 `node scripts/build-cards.mjs`；运行 `node scripts/validate.mjs` 检查数据及文档一致性。
 
