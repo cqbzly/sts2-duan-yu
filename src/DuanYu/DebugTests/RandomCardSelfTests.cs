@@ -83,14 +83,14 @@ internal static class RandomCardSelfTests
     {
         var fixture = await ReadyFixture("DUANYUDREAM");
         await SetQi(fixture, 0);
-        fixture.Player.PlayerCombatState!.Energy = 1;
+        fixture.Player.PlayerCombatState!.Energy = 0;
         await CreatureCmd.GainBlock(fixture.Player.Creature, 11, ValueProp.Unpowered, null);
         var rngBefore = fixture.Run.Rng.Niche.ToSerializable();
         var card = EngineSelfTests.AddCard(fixture, "DY_R14", PileType.Hand, upgraded);
         await BalanceSelfTests.PaidPlay(fixture, card);
         var amount = upgraded ? 3 : 2;
         EngineSelfTests.Equal(amount, DuanYuState.Get(fixture.Player).Qi, "dream grants only its printed Qi");
-        EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "dream always grants one energy after payment");
+        EngineSelfTests.Equal(amount, fixture.Player.PlayerCombatState.Energy, "dream grants its printed energy without requiring energy to start");
         EngineSelfTests.Equal(upgraded ? 3 : 2, DuanYuState.Get(fixture.Player).SwordMomentum, "dream always grants printed momentum");
         EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "dream loses all block before rewards");
         EngineSelfTests.Equal(upgraded ? 4 : 3, PileType.Hand.GetPile(fixture.Player).Cards.Count, "dream draws its printed amount");
@@ -162,12 +162,11 @@ internal static class RandomCardSelfTests
         await SetQi(fixture, 0);
         fixture.Player.PlayerCombatState!.Energy = 0;
         var rngBefore = fixture.Run.Rng.Niche.ToSerializable();
-        fixture.Player.PlayerCombatState!.Energy = 1;
         var card = EngineSelfTests.AddCard(fixture, "DY_R14", PileType.Hand);
         card.BaseReplayCount = 2;
         await BalanceSelfTests.PaidPlay(fixture, card);
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).Qi, "replayed fixed Qi grants two Qi per body without a starter relic trigger");
-        EngineSelfTests.Equal(3, fixture.Player.PlayerCombatState.Energy, "replayed dream grants one energy per body");
+        EngineSelfTests.Equal(6, fixture.Player.PlayerCombatState.Energy, "replayed dream grants two energy per body");
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).SwordMomentum, "replayed fixed momentum follows the reduced printed gain");
         EngineSelfTests.Equal(9, PileType.Hand.GetPile(fixture.Player).Cards.Count, "three dream bodies perform three native draws each");
         EngineSelfTests.Equal(rngBefore, fixture.Run.Rng.Niche.ToSerializable(), "replayed fixed dream never advances benefit RNG");

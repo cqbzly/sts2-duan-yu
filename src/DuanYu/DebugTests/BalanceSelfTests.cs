@@ -30,8 +30,9 @@ internal static class BalanceSelfTests
                 yield return ("balance:sword-resource-boundaries" + suffix, () => SwordResourceBoundaries(upgraded));
                 yield return ("balance:proficiency-three-swords" + suffix, () => ProficiencyLimit(upgraded));
                 yield return ("balance:expanded-attacks-and-original-effects" + suffix, () => ExpandedAttacks(upgraded));
+                yield return ("balance:seven-star-step" + suffix, () => SevenStarStep(upgraded));
                 yield return ("balance:rebalanced-rare-defense" + suffix, () => RareDefense(upgraded));
-                yield return ("balance:formless-every-sword" + suffix, () => FormlessEverySword(upgraded));
+                yield return ("balance:formless-first-three-swords" + suffix, () => FormlessFirstThreeSwords(upgraded));
                 yield return ("balance:simplicity-energy-cost-and-qi" + suffix, () => SimplicityCost(upgraded));
             }
             yield return ("balance:beiming-stacks-and-turn-limit", BeimingLimit);
@@ -182,29 +183,21 @@ internal static class BalanceSelfTests
 
     private static async Task SixSwordPayment(bool upgraded)
     {
-        foreach (var qi in new[] { 2, 3 })
+        foreach (var qi in new[] { 0, 3 })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             await SetQi(fixture, qi);
             fixture.Player.PlayerCombatState!.Energy = 2;
             var card = EngineSelfTests.AddCard(fixture, "DY_R03", PileType.Hand, upgraded);
-            if (qi < card.QiCost)
-            {
-                EngineSelfTests.Equal(false, card.CanPlay(), "six swords rejects an incomplete Qi payment");
-                EngineSelfTests.Equal((0, 0), await card.SpendResources(), "six swords preserves energy when Qi is insufficient");
-                await EngineSelfTests.PlayCard(fixture, card);
-                EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "six swords rejected play preserves energy");
-                EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "six swords rejected play grants no block");
-                continue;
-            }
+            EngineSelfTests.Equal(0, card.RequiredQi, "six swords has no Qi cost");
             await PaidPlay(fixture, card);
             var swords = PileType.Hand.GetPile(fixture.Player).Cards.Where(DuanYuState.IsSword).ToArray();
             EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "six swords has no starter relic energy refund");
             EngineSelfTests.Equal(upgraded ? 11 : 8, fixture.Player.Creature.Block, "six swords immediate block");
-            EngineSelfTests.Equal(6, swords.Length, "six swords requires three Qi before generation");
-            EngineSelfTests.Equal(qi == 3 ? 6 : 0, swords.Select(sword => sword.Id).Distinct().Count(), "six swords are distinct");
+            EngineSelfTests.Equal(6, swords.Length, "six swords generates with or without Qi");
+            EngineSelfTests.Equal(6, swords.Select(sword => sword.Id).Distinct().Count(), "six swords are distinct");
             EngineSelfTests.Equal(true, swords.All(sword => sword.IsUpgraded == upgraded), "six swords tokens preserve the generator upgrade");
-            EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "six sword generation pays its full Qi fee");
+            EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, "six sword generation leaves Qi untouched");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "generation does not trigger sword-play abilities");
         }
     }
@@ -536,7 +529,24 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(PileType.Exhaust, card.Pile!.Type, "independent wind still exhausts");
     }
 
-    private static async Task FormlessEverySword(bool upgraded)
+    private static async Task SevenStarStep(bool upgraded)
+    {
+        var fixture = await EngineSelfTests.ReadyFixture();
+        fixture.Player.PlayerCombatState!.Energy = 1;
+        var hand = PileType.Hand.GetPile(fixture.Player);
+        var cardsBefore = hand.Cards.Count;
+        EngineSelfTests.AddCard(fixture, "DY_B01", PileType.Draw);
+        await PaidPlay(fixture, "DY_U34", upgraded);
+        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "seven star step grants immediate Lingbo");
+        EngineSelfTests.Equal(cardsBefore, hand.Cards.Count, "seven star step does not draw immediately");
+        await NextTurn(fixture);
+        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "seven star step grants Lingbo after old Lingbo clears");
+        EngineSelfTests.Equal(cardsBefore + 1, hand.Cards.Count, "seven star step keeps its next-turn draw");
+        await NextTurn(fixture);
+        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "delayed Lingbo is granted only once");
+    }
+
+    private static async Task FormlessFirstThreeSwords(bool upgraded)
     {
         var fixture = await EngineSelfTests.ReadyFixture();
         fixture.Player.PlayerCombatState!.Energy = 5;
@@ -545,28 +555,29 @@ internal static class BalanceSelfTests
         for (int ordinal = 1; ordinal <= 5; ordinal++)
         {
             await PaidPlay(fixture, "DY_T01");
-            EngineSelfTests.Equal(ordinal * (upgraded ? 3 : 2), fixture.Player.Creature.Block, "formless grants its reduced block after every sword, including the fourth and fifth");
+            EngineSelfTests.Equal(Math.Min(ordinal, 3) * (upgraded ? 6 : 4), fixture.Player.Creature.Block, "formless grants block only after the first three swords each turn");
         }
         await PaidPlay(fixture, "DY_R18", !upgraded);
         int blockBefore = fixture.Player.Creature.Block;
         var replay = EngineSelfTests.AddCard(fixture, "DY_T01", PileType.Hand);
         replay.BaseReplayCount = 2;
         await PaidPlay(fixture, replay);
-        EngineSelfTests.Equal(blockBefore + 15, fixture.Player.Creature.Block, "normal and upgraded formless stack and trigger after all three replay bodies");
+        EngineSelfTests.Equal(blockBefore, fixture.Player.Creature.Block, "stacking a new copy does not restart the three-sword limit");
         await PaidPlay(fixture, "DY_B01");
-        EngineSelfTests.Equal(blockBefore + 15, fixture.Player.Creature.Block, "ordinary attacks never trigger formless");
+        EngineSelfTests.Equal(blockBefore, fixture.Player.Creature.Block, "ordinary attacks never trigger formless");
         await NextTurn(fixture);
         int nextTurnBlock = fixture.Player.Creature.Block;
         await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(nextTurnBlock + 5, fixture.Player.Creature.Block, "formless continues to trigger on the following turn");
+        EngineSelfTests.Equal(nextTurnBlock + 10, fixture.Player.Creature.Block, "formless continues to trigger on the following turn");
     }
 
     private static async Task SwordArrayMixedUpgrades()
     {
         var fixture = await EngineSelfTests.ReadyFixture();
-        fixture.Player.PlayerCombatState!.Energy = 4;
+        fixture.Player.PlayerCombatState!.Energy = 2;
         await PaidPlay(fixture, "DY_R07");
         await PaidPlay(fixture, "DY_R07", true);
+        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "each sword array costs one energy");
         AssertMixedSwords(fixture, 1, "on play");
         PileType.Hand.GetPile(fixture.Player).Clear();
         await NextTurn(fixture);
@@ -596,8 +607,8 @@ internal static class BalanceSelfTests
             await PaidPlay(fixture, sword);
         }
         EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "Qi Sea leaves one energy after the six-sword cycle");
-        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "cycle preserves the uncapped two-Qi setup gain after paying all seven fees");
-        EngineSelfTests.Equal(7, DuanYuState.Get(fixture.Player).SpendingCount, "cycle has exactly seven successful spends");
+        EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).Qi, "cycle spends Qi on the six swords only");
+        EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).SpendingCount, "cycle has six successful Qi payments");
         EngineSelfTests.Equal(8, DuanYuState.Get(fixture.Player).SwordMomentum, "one complete six-sword cycle reaches the momentum cap");
         EngineSelfTests.Equal(6, PileType.Exhaust.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), "all six played swords exhaust");
     }

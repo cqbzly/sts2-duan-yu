@@ -407,7 +407,7 @@ public static class DuanYuState
                 case "DY_R15" when record.SwordOrdinal == 1:
                     if (effect.EnergyAmount > 0) await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
                     break;
-                case "DY_R18" when record.SwordOrdinal > 0:
+                case "DY_R18" when record.SwordOrdinal is > 0 and <= 3:
                     await GainBlock(player, effect.Amount); break;
             }
         }

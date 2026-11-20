@@ -223,7 +223,7 @@ public static class DuanYuCardExecutor
             }
             case "DY_U32": await Attack(Value(12, 17)); await Debuff<VulnerablePower>(Value(2, 3)); break;
             case "DY_U33": await Attack(Value(16, 22)); await Draw(2); break;
-            case "DY_U34": await Block(Value(5, 7)); await Lingbo(1); DuanYuState.QueueNextTurn(player, "draw", 1); break;
+            case "DY_U34": await Block(Value(5, 7)); await Lingbo(1); DuanYuState.QueueNextTurn(player, "lingbo", 1); DuanYuState.QueueNextTurn(player, "draw", 1); break;
             case "DY_U35":
             {
                 var selected = (await CardSelectCmd.FromHand(context, player, new CardSelectorPrefs(CardSelectorPrefs.ExhaustSelectionPrompt, 0, Value(3, 4)), null, card)).ToArray();
@@ -304,7 +304,7 @@ public static class DuanYuCardExecutor
                 await CreatureCmd.LoseBlock(context, player.Creature, player.Creature.Block, player.Creature);
                 await Draw(Value(3, 4));
                 await Qi(Value(2, 3));
-                await Energy(1);
+                await Energy(Value(2, 3));
                 await Momentum(Value(2, 3));
                 break;
             case "DY_R15": await Effect(1, energy: 1); break;
@@ -330,7 +330,7 @@ public static class DuanYuCardExecutor
                     await Lingbo(2, ally);
                 }
                 break;
-            case "DY_R18": await Effect(Value(2, 3)); break;
+            case "DY_R18": await Effect(Value(4, 6)); break;
             case "DY_R19":
             {
                 await Block(Value(6, 8));

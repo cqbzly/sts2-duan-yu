@@ -22,7 +22,7 @@ internal static class QiResourceSelfTests
     private static readonly string[] FeeCards =
     [
         "DY_B05", "DY_C14", "DY_C15", "DY_C17", "DY_U07", "DY_U17", "DY_U32", "DY_U33",
-        "DY_R03", "DY_R05", "DY_R06", "DY_R13", "DY_R20",
+        "DY_R05", "DY_R06", "DY_R13", "DY_R20",
         "DY_T01", "DY_T02", "DY_T03", "DY_T04", "DY_T05", "DY_T06"
     ];
 

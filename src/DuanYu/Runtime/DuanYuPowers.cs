@@ -161,7 +161,7 @@ public sealed class GuardSimplicityPower : DuanYuEffectPower
 public sealed class FormlessPower : DuanYuEffectPower
 {
     protected override string Title => "无相之境";
-    protected override string Rule => "每张剑气结算后，获得{Amount}点格挡。";
+    protected override string Rule => "每回合前3张剑气结算后，各获得{Amount}点格挡。";
 }
 
 [CustomID("CQBZLY_DY_POWER_R22")]

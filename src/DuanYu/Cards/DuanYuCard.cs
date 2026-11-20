@@ -41,7 +41,7 @@ public abstract class DuanYuCard : CustomCardModel
         "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06" => 1,
         "DY_C17" => 1,
         "DY_B05" or "DY_C15" or "DY_U32" or "DY_R06" => 2,
-        "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R03" or "DY_R05" or "DY_R20" => 3,
+        "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R05" or "DY_R20" => 3,
         "DY_R13" => 5, _ => 0
     };
     public int Value(int normal, int upgraded) => IsUpgraded ? upgraded : normal;
