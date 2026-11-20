@@ -32,8 +32,6 @@ public abstract class DuanYuCard : CustomCardModel
     public bool QiCostX => Definition.QiCostX;
     public bool HasQiCost => QiCostX || QiCost > 0;
     public int CapturedQiX => Math.Max(0, CustomResources<QiResource>.Cost(this)?.CapturedXValue ?? 0);
-    public int PreviewQiX => IsCanonical || Owner == null ? 0
-        : DuanYuState.HasCardQiPayment(this) || Pile?.Type != PileType.Hand ? CapturedQiX : RequiredQi;
     public int RequiredQi => QiCostX && (IsCanonical || Owner == null) ? 0
         : CustomResources<QiResource>.Cost(this)?.GetAmountToSpend() ?? QiCost;
     public int QiCost => DesignId switch
@@ -73,8 +71,7 @@ public abstract class DuanYuCard : CustomCardModel
             else if (Numbers.Damage > 0) yield return new DamageVar(Numbers.Damage, ValueProp.Move);
             if (Numbers.ExtraDamage > 0) yield return new DamageVar("ExtraDamage", Numbers.ExtraDamage, ValueProp.Move);
             if (Numbers.Block > 0) yield return new DuanYuBlockVar(Numbers.Block);
-            if (DesignId == "DY_R21") yield return new DuanYuXTotalVar(true, Numbers.Damage);
-            if (DesignId == "DY_U37") yield return new DuanYuXTotalVar(false, Numbers.Block);
+            if (DesignId == "DY_U37") yield return new DuanYuXBlockVar(Numbers.Block);
         }
     }
     protected override HashSet<CardTag> CanonicalTags => DesignId switch
@@ -113,7 +110,6 @@ public abstract class DuanYuCard : CustomCardModel
         else if (Numbers.Damage > 0) DynamicVars.Damage.UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
         if (Numbers.ExtraDamage > 0) DynamicVars["ExtraDamage"].UpgradeValueBy(Numbers.ExtraDamageUp - Numbers.ExtraDamage);
         if (Numbers.Block > 0) DynamicVars.Block.UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
-        if (DesignId == "DY_R21") DynamicVars["XDamage"].UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
         if (DesignId == "DY_U37") DynamicVars["XBlock"].UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
     }
     protected override Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay) => DuanYuCardExecutor.Play(this, choiceContext, cardPlay);
@@ -124,7 +120,7 @@ public abstract class DuanYuCard : CustomCardModel
     {
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
-        if (QiCostX) return $"当前真气：{current}；出牌前支付全部真气，X取实际支付值；0气时伤害为0。";
+        if (QiCostX) return $"当前真气：{current}。每支付1点真气，攻击1次。";
         if (RequiredQi == 0) return "本牌可免费打出。";
         return current >= RequiredQi ? $"当前真气：{current}；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
     }
@@ -137,17 +133,16 @@ public abstract class DuanYuCard : CustomCardModel
             result = result.Replace($"需{QiCost}点真气。", "", StringComparison.Ordinal)
                 .Replace($"需支付{QiCost}点真气。", "", StringComparison.Ordinal);
         }
-        if (DesignId == "DY_R21")
-        {
-            int coefficient = upgraded ? Numbers.DamageUp : Numbers.Damage;
-            result = result.Replace($"造成{coefficient}点伤害×X", $"造成{{XDamage:diff()}}点伤害（{coefficient}×X）");
-        }
         if (DesignId == "DY_U37")
         {
             int coefficient = upgraded ? Numbers.BlockUp : Numbers.Block;
             result = result.Replace($"获得{coefficient}点格挡×X", $"获得{{XBlock:diff()}}点格挡（{coefficient}×X）");
         }
-        if (Numbers.Damage > 0) result = result.Replace($"造成{(upgraded ? Numbers.DamageUp : Numbers.Damage)}点伤害", "造成{Damage:diff()}点伤害");
+        if (Numbers.Damage > 0)
+        {
+            string damage = DesignId == "DY_R21" ? "剑气伤害" : "伤害";
+            result = result.Replace($"造成{(upgraded ? Numbers.DamageUp : Numbers.Damage)}点{damage}", $"造成{{Damage:diff()}}点{damage}");
+        }
         if (Numbers.ExtraDamage > 0) result = result.Replace($"造成{(upgraded ? Numbers.ExtraDamageUp : Numbers.ExtraDamage)}点伤害", "造成{ExtraDamage:diff()}点伤害");
         if (Numbers.Block > 0) result = result.Replace($"获得{(upgraded ? Numbers.BlockUp : Numbers.Block)}点格挡", "获得{Block:diff()}点格挡");
         return result;

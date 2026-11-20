@@ -449,7 +449,7 @@ internal static class FullRunPolicy
         if (card.Numbers.Damage <= 0) yield break;
         if (card.DesignId == "DY_R21")
         {
-            if (qi > 0) yield return (card.DynamicVars.Damage.BaseValue * qi, false, false);
+            for (int hit = 0; hit < qi; hit++) yield return (card.DynamicVars.Damage.BaseValue, false, false);
             yield break;
         }
         var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + qi : card.DynamicVars.Damage.BaseValue;

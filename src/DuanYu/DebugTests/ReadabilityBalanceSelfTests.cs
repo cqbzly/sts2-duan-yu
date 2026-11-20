@@ -27,7 +27,7 @@ internal static class ReadabilityBalanceSelfTests
                 foreach (var id in new[] { "DY_B05", "DY_C04", "DY_U07", "DY_U17", "DY_U33", "DY_R13", "DY_T01", "DY_T03" })
                     yield return ("readability:single-damage-packet-" + id + suffix, () => SingleDamage(id, upgraded));
                 yield return ("readability:single-primary-and-secondary-damage" + suffix, () => PrimaryAndSecondaryDamage(upgraded));
-                yield return ("readability:qi-x-damage-preview-and-single-packet" + suffix, () => XDamage(upgraded));
+                yield return ("readability:qi-x-damage-preview-and-multi-hit" + suffix, () => XDamage(upgraded));
                 yield return ("readability:x-block-preview-and-single-packet" + suffix, () => XBlock(upgraded));
             }
         }
@@ -153,20 +153,20 @@ internal static class ReadabilityBalanceSelfTests
             await DuanYuState.GainQi(fixture.Player, paidX);
             fixture.Player.PlayerCombatState!.Energy = energy;
             var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand, upgraded);
-            int expected = paidX == 0 ? 0 : (upgraded ? 8 : 6) * paidX + 2 + 3 + 2 + 4;
+            int perHit = (upgraded ? 8 : 6) + 2 + 3 + 2 + 4;
             EngineSelfTests.Equal(TargetType.AnyEnemy, card.TargetType, "R21 selects one enemy");
             EngineSelfTests.Equal(false, card.EnergyCost.CostsX, "R21 no longer uses energy X");
             EngineSelfTests.Equal(0, card.EnergyCost.GetAmountToSpend(), "R21 uses zero energy at every current energy amount");
-            card.DynamicVars["XDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
-            EngineSelfTests.Equal((decimal)expected, card.DynamicVars["XDamage"].PreviewValue, "R21 preview adds Strength and each sword damage bonus once when X is positive");
+            card.DynamicVars.Damage.UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
+            EngineSelfTests.Equal((decimal)perHit, card.DynamicVars.Damage.PreviewValue, "R21 displays damage per hit with sword bonuses");
             EngineSelfTests.Equal(paidX, DuanYuState.Get(fixture.Player).Qi, "R21 preview never spends Qi");
             int health = fixture.Enemy.CurrentHp;
             int secondHealth = second.CurrentHp;
             int playerHealth = fixture.Player.Creature.CurrentHp;
             await BalanceSelfTests.PaidPlay(fixture, card);
-            EngineSelfTests.Equal(expected, health - fixture.Enemy.CurrentHp, "R21 primary takes one X-scaled packet matching its total preview");
+            EngineSelfTests.Equal(perHit * paidX, health - fixture.Enemy.CurrentHp, "R21 applies the previewed damage to each of its X hits");
             EngineSelfTests.Equal(0, secondHealth - second.CurrentHp, "R21 never damages the unselected enemy");
-            EngineSelfTests.Equal(paidX == 0 ? 0 : 1, playerHealth - fixture.Player.Creature.CurrentHp, "R21 positive X triggers Thorns once for its one target");
+            EngineSelfTests.Equal(paidX, playerHealth - fixture.Player.Creature.CurrentHp, "R21 triggers Thorns for each hit on its only target");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "R21 consumes all available Qi");
             EngineSelfTests.Equal(energy, fixture.Player.PlayerCombatState.Energy, "R21 does not spend energy or resolve Chemical X");
             EngineSelfTests.Equal(paidX == 0 ? 0 : 1, DuanYuState.Get(fixture.Player).SpendingCount, "R21 positive Qi payment counts once and zero X does not count");

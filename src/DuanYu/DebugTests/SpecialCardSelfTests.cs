@@ -357,7 +357,7 @@ internal static class SpecialCardSelfTests
         var xInitialHp = combat.Enemy.CurrentHp;
         var secondInitialHp = secondEnemy.CurrentHp;
         await PaidPlay(combat, volleyWithX);
-        EngineSelfTests.Equal(5 * (upgraded ? 8 : 6), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按实际支付真气计算单次总伤害");
+        EngineSelfTests.Equal(5 * (upgraded ? 8 : 6), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按实际支付真气攻击五次");
         EngineSelfTests.Equal(0, secondInitialHp - secondEnemy.CurrentHp, "六脉齐发仅伤害选中敌人");
         EngineSelfTests.Equal(0, DuanYuState.Get(combat.Player).Qi, "六脉齐发支付全部真气");
         EngineSelfTests.Equal(2, combat.Player.PlayerCombatState.Energy, "六脉齐发不支付能量");

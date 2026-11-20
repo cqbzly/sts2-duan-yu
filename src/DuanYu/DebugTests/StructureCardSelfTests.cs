@@ -207,8 +207,8 @@ internal static class StructureCardSelfTests
         var health = attack.Enemy.CurrentHp;
         var playerHealth = attack.Player.Creature.CurrentHp;
         await PaidPlay(attack, volley);
-        EngineSelfTests.Equal(6 * (upgraded ? 8 : 6) + 4, health - attack.Enemy.CurrentHp, "native replay reuses paid Qi X without Chemical X and applies Strength once per replay body");
-        EngineSelfTests.Equal(2, playerHealth - attack.Player.Creature.CurrentHp, "native replay triggers Thorns once per combined body");
+        EngineSelfTests.Equal(6 * ((upgraded ? 8 : 6) + 2), health - attack.Enemy.CurrentHp, "native replay reuses paid Qi X and applies Strength to every hit");
+        EngineSelfTests.Equal(6, playerHealth - attack.Player.Creature.CurrentHp, "native replay triggers Thorns on all six hits");
         EngineSelfTests.Equal(1, DuanYuState.Get(attack.Player).SpendingCount, "native X replay pays mandatory Qi once for the activation");
         EngineSelfTests.Equal(1, attack.Player.PlayerCombatState.Energy, "replayed Qi-X card never spends energy");
     }

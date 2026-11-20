@@ -173,7 +173,7 @@ internal static class QiResourceSelfTests
         EngineSelfTests.Equal(12, qiCost.CapturedXValue, "Qi-X captures actual payment before any refund");
         EngineSelfTests.Equal(0, player.PlayerCombatState.Energy, "Qi-X payment spends zero energy");
         await Resolve(fixture, card, false, paid.Item1, paid.Item2);
-        EngineSelfTests.Equal(2 * (12 * (upgraded ? 8 : 6) + 1), health - fixture.Enemy.CurrentHp, "both replay bodies use the twelve-Qi payment and the existing one stack of Sword Momentum");
+        EngineSelfTests.Equal(24 * ((upgraded ? 8 : 6) + 1), health - fixture.Enemy.CurrentHp, "each replay body hits twelve times with the same Sword Momentum bonus on every hit");
         AssertQi(player, 1, "second payment receives one Beiming refund despite replay");
         EngineSelfTests.Equal(2, player.PlayerCombatState.Energy, "second payment receives Beiming and the empty-Qi seal energy once each");
         EngineSelfTests.Equal(2, DuanYuState.Get(player).SpendingCount, "Qi-X activation counts one payment after the priming sword");
@@ -234,8 +234,6 @@ internal static class QiResourceSelfTests
         var cost = CustomResources<QiResource>.Cost(card) ?? throw new InvalidOperationException("canonical Qi-X cost is missing");
         EngineSelfTests.Equal(true, cost.CostsX, "canonical card registers a true Qi-X cost");
         EngineSelfTests.Equal(0, card.RequiredQi, "canonical Qi-X has no owned resource to spend");
-        card.DynamicVars["XDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, null, true);
-        EngineSelfTests.Equal(0m, card.DynamicVars["XDamage"].PreviewValue, "canonical Qi-X damage preview is safe without an owner");
         EngineSelfTests.Equal(true, card.GetDescriptionForPile(PileType.None).Length > 0, "canonical Qi-X description renders without an owner");
         return Task.CompletedTask;
     }

@@ -27,7 +27,7 @@ public static class DuanYuCardExecutor
         var state = DuanYuState.Get(player);
         var target = play.Target;
         int Value(int normal, int upgraded) => card.Value(normal, upgraded);
-        Task Attack(decimal amount, bool all = false, int multiplier = 1) => DealDamage(card, context, play, amount, all, multiplier);
+        Task Attack(decimal amount, bool all = false, int hitCount = 1) => DealDamage(card, context, play, amount, all, hitCount);
         async Task Block(int amount, Creature? recipient = null, int multiplier = 1)
         {
             if (multiplier > 0 && DuanYuState.CanAct(player) && (recipient ?? player.Creature).IsAlive)
@@ -349,7 +349,7 @@ public static class DuanYuCardExecutor
             case "DY_R21":
             {
                 var xValue = card.CapturedQiX;
-                if (xValue > 0) await Attack(Value(6, 8), multiplier: xValue);
+                if (xValue > 0) await Attack(Value(6, 8), hitCount: xValue);
                 break;
             }
             case "DY_R22": await GenerateStatus("DY_S02", PileType.Hand); await Effect(Value(5, 7), 1); break;
@@ -366,14 +366,15 @@ public static class DuanYuCardExecutor
         if (card.HasQiCost) await DuanYuState.AfterQiSpent(player, context, card);
     }
 
-    private static async Task<bool> DealDamage(DuanYuCard card, PlayerChoiceContext context, CardPlay play, decimal amount, bool all = false, int multiplier = 1, Creature? recipient = null)
+    private static async Task<bool> DealDamage(DuanYuCard card, PlayerChoiceContext context, CardPlay play, decimal amount, bool all = false, int hitCount = 1, Creature? recipient = null)
     {
         var target = recipient ?? play.Target;
         if (!DuanYuState.CanAct(play.Player) || (!all && target?.IsAlive != true)) return false;
         decimal baseDamage = amount;
         if (card.DesignId != "DY_U08" && card.Numbers.Damage > 0 && amount == card.Value(card.Numbers.Damage, card.Numbers.DamageUp)) baseDamage = card.DynamicVars.Damage.BaseValue;
         else if (card.Numbers.ExtraDamage > 0 && amount == card.Value(card.Numbers.ExtraDamage, card.Numbers.ExtraDamageUp)) baseDamage = card.DynamicVars["ExtraDamage"].BaseValue;
-        var attack = (card.DesignId == "DY_U08" ? DamageCmd.Attack(card.DynamicVars.CalculatedDamage) : DamageCmd.Attack(baseDamage * multiplier)).FromCard(card, play);
+        var attack = (card.DesignId == "DY_U08" ? DamageCmd.Attack(card.DynamicVars.CalculatedDamage) : DamageCmd.Attack(baseDamage))
+            .FromCard(card, play).WithHitCount(hitCount);
         if (all) attack.TargetingAllOpponents(play.Player.Creature.CombatState!);
         else attack.Targeting(target!);
         await attack.Execute(context);
