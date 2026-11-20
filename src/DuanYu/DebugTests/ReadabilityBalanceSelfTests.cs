@@ -27,7 +27,7 @@ internal static class ReadabilityBalanceSelfTests
                 foreach (var id in new[] { "DY_B05", "DY_C04", "DY_U07", "DY_U17", "DY_U33", "DY_R13", "DY_T01", "DY_T03" })
                     yield return ("readability:single-damage-packet-" + id + suffix, () => SingleDamage(id, upgraded));
                 yield return ("readability:single-primary-and-secondary-damage" + suffix, () => PrimaryAndSecondaryDamage(upgraded));
-                yield return ("readability:x-damage-preview-and-single-packet" + suffix, () => XDamage(upgraded));
+                yield return ("readability:qi-x-damage-preview-and-single-packet" + suffix, () => XDamage(upgraded));
                 yield return ("readability:x-block-preview-and-single-packet" + suffix, () => XBlock(upgraded));
             }
         }
@@ -134,7 +134,8 @@ internal static class ReadabilityBalanceSelfTests
 
     private static async Task XDamage(bool upgraded)
     {
-        foreach (var paidX in new[] { 0, 3 })
+        foreach (var paidX in new[] { 0, 3, 12 })
+        foreach (var energy in new[] { 0, 3 })
         foreach (var chemicalX in new[] { false, true })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
@@ -145,20 +146,27 @@ internal static class ReadabilityBalanceSelfTests
             var second = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
             fixture.Combat.AddCreature(second);
             await PowerCmd.Apply<ThornsPower>(context, second, 1, second, null);
-            fixture.Player.PlayerCombatState!.Energy = paidX;
+            await DuanYuState.LoseQi(fixture.Player, int.MaxValue);
+            await DuanYuState.GainQi(fixture.Player, paidX);
+            fixture.Player.PlayerCombatState!.Energy = energy;
             var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand, upgraded);
-            int expected = (upgraded ? 9 : 6) * (paidX + (chemicalX ? 2 : 0) + 1) + 2;
+            int expected = paidX == 0 ? 0 : (upgraded ? 8 : 6) * paidX + 2;
+            EngineSelfTests.Equal(TargetType.AnyEnemy, card.TargetType, "R21 selects one enemy");
+            EngineSelfTests.Equal(false, card.EnergyCost.CostsX, "R21 no longer uses energy X");
+            EngineSelfTests.Equal(0, card.EnergyCost.GetAmountToSpend(), "R21 uses zero energy at every current energy amount");
             card.DynamicVars["XDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, fixture.Enemy, true);
-            EngineSelfTests.Equal((decimal)expected, card.DynamicVars["XDamage"].PreviewValue, "R21 total preview multiplies resolved X before applying Strength once");
+            EngineSelfTests.Equal((decimal)expected, card.DynamicVars["XDamage"].PreviewValue, "R21 total preview uses all current Qi and applies Strength once only when X is positive");
+            EngineSelfTests.Equal(paidX, DuanYuState.Get(fixture.Player).Qi, "R21 preview never spends Qi");
             int health = fixture.Enemy.CurrentHp;
             int secondHealth = second.CurrentHp;
             int playerHealth = fixture.Player.Creature.CurrentHp;
             await BalanceSelfTests.PaidPlay(fixture, card);
             EngineSelfTests.Equal(expected, health - fixture.Enemy.CurrentHp, "R21 primary takes one X-scaled packet matching its total preview");
-            EngineSelfTests.Equal(expected, secondHealth - second.CurrentHp, "R21 second enemy takes the same combined packet");
-            EngineSelfTests.Equal(2, playerHealth - fixture.Player.Creature.CurrentHp, "R21 triggers Thorns once per enemy regardless of X");
-            EngineSelfTests.Equal(paidX, card.EnergyCost.CapturedXValue, "R21 captures actual paid X before any effect");
-            EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "R21 mandatory Qi payment occurs once");
+            EngineSelfTests.Equal(0, secondHealth - second.CurrentHp, "R21 never damages the unselected enemy");
+            EngineSelfTests.Equal(paidX == 0 ? 0 : 1, playerHealth - fixture.Player.Creature.CurrentHp, "R21 positive X triggers Thorns once for its one target");
+            EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "R21 consumes all available Qi");
+            EngineSelfTests.Equal(energy, fixture.Player.PlayerCombatState.Energy, "R21 does not spend energy or resolve Chemical X");
+            EngineSelfTests.Equal(paidX == 0 ? 0 : 1, DuanYuState.Get(fixture.Player).SpendingCount, "R21 positive Qi payment counts once and zero X does not count");
         }
     }
 

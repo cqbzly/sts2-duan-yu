@@ -18,7 +18,7 @@ using MegaCrit.Sts2.Core.ValueProps;
 namespace DuanYu.Cards;
 
 public sealed record CardUpgrade(int Cost, string Text);
-public sealed record CardDefinition(string Id, string Name, string Rarity, string Type, int Cost, string Text, CardUpgrade Upgrade, bool CostX = false);
+public sealed record CardDefinition(string Id, string Name, string Rarity, string Type, int Cost, string Text, CardUpgrade Upgrade, bool CostX = false, bool QiCostX = false);
 public sealed record CardDesign(CardDefinition[] Cards);
 
 [Pool(typeof(DuanYuCardPool))]
@@ -29,13 +29,19 @@ public abstract class DuanYuCard : CustomCardModel
     public CardDefinition Definition => Definitions[DesignId];
     public LocString SelectionPrompt => SelectionScreenPrompt;
     public DuanYuCardNumbers Numbers => DuanYuCardNumbers.For(DesignId);
-    public int RequiredQi => CustomResources<QiResource>.Cost(this)?.GetAmountToSpend() ?? QiCost;
+    public bool QiCostX => Definition.QiCostX;
+    public bool HasQiCost => QiCostX || QiCost > 0;
+    public int CapturedQiX => Math.Max(0, CustomResources<QiResource>.Cost(this)?.CapturedXValue ?? 0);
+    public int PreviewQiX => IsCanonical || Owner == null ? 0
+        : DuanYuState.HasCardQiPayment(this) || Pile?.Type != PileType.Hand ? CapturedQiX : RequiredQi;
+    public int RequiredQi => QiCostX && (IsCanonical || Owner == null) ? 0
+        : CustomResources<QiResource>.Cost(this)?.GetAmountToSpend() ?? QiCost;
     public int QiCost => DesignId switch
     {
         "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06" => 1,
         "DY_C17" => 1,
         "DY_B05" or "DY_C15" or "DY_U32" or "DY_R06" => 2,
-        "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R03" or "DY_R05" or "DY_R20" or "DY_R21" => 3,
+        "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R03" or "DY_R05" or "DY_R20" => 3,
         "DY_R13" => 5, _ => 0
     };
     public int Value(int normal, int upgraded) => IsUpgraded ? upgraded : normal;
@@ -47,7 +53,8 @@ public abstract class DuanYuCard : CustomCardModel
     protected DuanYuCard(string id) : base(Definitions[id].Cost, TypeOf(Definitions[id].Type), RarityOf(Definitions[id].Rarity), TargetOf(id, Definitions[id].Type))
     {
         DesignId = id;
-        if (QiCost > 0) CustomResources<QiResource>.SetCanonicalCost(this, QiCost);
+        if (QiCostX) CustomResources<QiResource>.SetXCost(this);
+        else if (QiCost > 0) CustomResources<QiResource>.SetCanonicalCost(this, QiCost);
     }
 
     protected override bool HasEnergyCostX => Definition.CostX;
@@ -117,6 +124,7 @@ public abstract class DuanYuCard : CustomCardModel
     {
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
+        if (QiCostX) return $"当前真气：{current}；出牌前支付全部真气，X取实际支付值；0气时伤害为0。";
         if (RequiredQi == 0) return $"当前真气：{current}。";
         return current >= RequiredQi ? $"当前真气：{current}；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
     }
@@ -132,7 +140,7 @@ public abstract class DuanYuCard : CustomCardModel
         if (DesignId == "DY_R21")
         {
             int coefficient = upgraded ? Numbers.DamageUp : Numbers.Damage;
-            result = result.Replace($"造成{coefficient}点伤害×(X+1)", $"造成{{XDamage:diff()}}点伤害（{coefficient}×(X+1)）");
+            result = result.Replace($"造成{coefficient}点伤害×X", $"造成{{XDamage:diff()}}点伤害（{coefficient}×X）");
         }
         if (DesignId == "DY_U37")
         {
@@ -154,7 +162,7 @@ public abstract class DuanYuCard : CustomCardModel
     {
         "DY_S01" or "DY_S02" => TargetType.None,
         "DY_U29" or "DY_U30" or "DY_R17" => TargetType.AnyPlayer,
-        "DY_C04" or "DY_U10" or "DY_U17" or "DY_R09" or "DY_R20" or "DY_R21" or "DY_T03" => TargetType.AllEnemies,
+        "DY_C04" or "DY_U10" or "DY_U17" or "DY_R09" or "DY_R20" or "DY_T03" => TargetType.AllEnemies,
         "DY_U20" => TargetType.AnyEnemy,
         _ => type == "攻击" ? TargetType.AnyEnemy : TargetType.Self
     };

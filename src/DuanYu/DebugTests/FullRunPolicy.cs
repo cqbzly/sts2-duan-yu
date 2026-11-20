@@ -97,7 +97,7 @@ internal static class FullRunPolicy
         var deck = player.Deck.Cards.OfType<DuanYuCard>().Where(existing => !ReferenceEquals(existing, custom)).ToArray();
         var swordSources = deck.Count(existing => GeneratedSwords(existing, 6) > 0);
         var qiSources = deck.Count(existing => QiGain(existing) > 0);
-        var spenders = deck.Count(existing => existing.QiCost > 0);
+        var spenders = deck.Count(existing => existing.HasQiCost);
         var damageSources = deck.Sum(existing => existing.DesignId == "DY_R07" ? 2d : existing.Type == CardType.Attack && !existing.DesignId.StartsWith("DY_B", StringComparison.Ordinal) && existing.Numbers.Damage >= 5 ? 1d : GeneratedSwords(existing, 3) > 0 ? 0.6 : 0);
         var damageGap = Math.Max(0, Math.Ceiling(player.Deck.Cards.Count * 0.22) - damageSources);
         var defenders = deck.Count(existing => existing.Numbers.Block >= 8 || existing.DesignId is "DY_C11" or "DY_C15" or "DY_U20" or "DY_U34" or "DY_R02" or "DY_R12");
@@ -132,7 +132,8 @@ internal static class FullRunPolicy
         var existingBlock = player.Creature.Block + additionalBlock;
         var neededBlock = Math.Max(0, incoming - existingBlock - passiveBlock);
         var cost = Math.Max(0, card.EnergyCost.GetAmountToSpend());
-        var spendsQi = duanYuCard.QiCost > 0 && qi >= duanYuCard.QiCost;
+        var qiPayment = duanYuCard.QiCostX ? qi : duanYuCard.QiCost;
+        var spendsQi = qiPayment > 0 && qi >= qiPayment;
         var swordCombination = TriggersSwordCombination(duanYuCard, state);
         var energyGain = EnergyGain(duanYuCard, state, qi);
         var statusFuel = StatusFuelCount(duanYuCard, player, combat);
@@ -142,7 +143,7 @@ internal static class FullRunPolicy
         if (duanYuCard.DesignId == "DY_U35") block *= exhaustTargets.Length;
         var exhaustCount = exhaustTargets.Length + (card.Keywords.Contains(CardKeyword.Exhaust) ? 1 : 0);
         block += ExhaustBlock(player, combat) * exhaustCount;
-        if (DuanYuState.IsSword(card) && state.SwordPlays < 3)
+        if (DuanYuState.IsSword(card))
             block += ModifiedPassiveBlock(player, combat, state.Effects.Where(effect => effect.CardId == "DY_R18").Sum(effect => effect.Amount));
         var attacks = combat.Enemies.Where(enemy => enemy.IsAlive).Sum(enemy => enemy.Monster!.NextMove.Intents.OfType<AttackIntent>().Sum(intent => intent.Repeats));
         var availableLingbo = Math.Max(0, attacks - state.Lingbo);
@@ -153,10 +154,10 @@ internal static class FullRunPolicy
         gainQi += statusFuel;
         if (duanYuCard.DesignId == "DY_U35") gainQi += exhaustTargets.Length;
         if (duanYuCard.DesignId == "DY_R16") gainQi += exhaustTargets.Length * 2;
-        if (spendsQi && state.SpendingCount < 2) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.Amount);
+        if (spendsQi && state.SpendingCount == 1) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.Amount);
         if (swordCombination) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R08").Sum(effect => effect.SecondaryAmount);
         if (swordCombination && HasPendant(player)) gainQi += state.DistinctSwords.Count == 2 ? 2 : 3;
-        var qiAfter = qi - (spendsQi ? duanYuCard.QiCost : 0) + gainQi;
+        var qiAfter = qi - (spendsQi ? qiPayment : 0) + gainQi;
         if (card.Type == CardType.Skill && state.SkillsPlayed == 0 && HasPendant(player))
             qiAfter += 2;
         block += EndTurnBlock(player, combat, qiAfter) - passiveBlock;
@@ -448,9 +449,7 @@ internal static class FullRunPolicy
         if (card.Numbers.Damage <= 0) yield break;
         if (card.DesignId == "DY_R21")
         {
-            var combat = card.Owner?.Creature.CombatState as CombatState;
-            var xValue = combat == null ? 0 : PlannedXValue(card, card.Owner!, combat);
-            yield return (card.DynamicVars.Damage.BaseValue * (xValue + 1), true, false);
+            if (qi > 0) yield return (card.DynamicVars.Damage.BaseValue * qi, false, false);
             yield break;
         }
         var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + qi : card.DynamicVars.Damage.BaseValue;
@@ -609,7 +608,7 @@ internal static class FullRunPolicy
             "DY_C14" when qi >= 3 => 1,
             _ => 0
         };
-        if (card.QiCost > 0 && qi >= card.QiCost && state.SpendingCount == 0)
+        if ((card.QiCostX ? qi > 0 : card.QiCost > 0 && qi >= card.QiCost) && state.SpendingCount == 1)
             energy += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.EnergyAmount);
         if (DuanYuState.IsSword(card) && state.SwordPlays == 0)
             energy += state.Effects.Where(effect => effect.CardId == "DY_R15").Sum(effect => effect.EnergyAmount);
@@ -650,7 +649,7 @@ internal static class FullRunPolicy
         "DY_B04" or "DY_U34" => Math.Min(3 - lingbo, 1),
         "DY_C11" or "DY_C12" or "DY_U18" or "DY_U19" or "DY_U25" => Math.Min(3 - lingbo, card.IsUpgraded ? 2 : 1),
         "DY_U21" => Math.Min(3 - lingbo, 2),
-        "DY_R11" => Math.Min(3 - lingbo, 3),
+        "DY_R11" => Math.Min(3 - lingbo, card.Value(2, 3)),
         _ => 0
     };
 
@@ -668,7 +667,7 @@ internal static class FullRunPolicy
     {
         var deck = player.Deck.Cards.OfType<DuanYuCard>().ToArray();
         var swordSources = deck.Count(existing => GeneratedSwords(existing, 6) > 0);
-        var spenders = deck.Count(existing => existing.QiCost > 0);
+        var spenders = deck.Count(existing => existing.HasQiCost);
         return card.DesignId switch
         {
             "DY_U01" => Math.Min(9, spenders * 2),
@@ -678,7 +677,7 @@ internal static class FullRunPolicy
             "DY_R08" => deck.Any(existing => existing.DesignId is "DY_R03" or "DY_R10") ? card.Value(12, 15) : Math.Max(0, Math.Min(12, (swordSources - 1) * 3)),
             "DY_R12" => 14,
             "DY_R15" => Math.Min(10, spenders * 2 + swordSources * 3),
-            "DY_R18" => Math.Min(18, swordSources * card.Value(5, 7)),
+            "DY_R18" => Math.Min(18, swordSources * card.Value(2, 3)),
             "DY_U14" => Math.Min(18, swordSources * card.Value(3, 4)),
             "DY_R01" => Math.Min(12, spenders * 3 + swordSources),
             "DY_R07" => card.Value(12, 15),

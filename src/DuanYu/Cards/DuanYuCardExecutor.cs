@@ -296,7 +296,7 @@ public static class DuanYuCardExecutor
                     if (sword.IsUpgradable) CardCmd.Upgrade(sword);
                 break;
             case "DY_R10": await Attack(Value(15, 20)); await Choose(3); break;
-            case "DY_R11": await Block(Value(16, 21)); await Lingbo(3); break;
+            case "DY_R11": await Block(Value(8, 10)); await Lingbo(Value(2, 3)); break;
             case "DY_R12": await Block(Value(6, 9)); await Effect(Value(6, 9), 1); break;
             case "DY_R13": await Attack(Value(52, 70)); break;
             case "DY_R14":
@@ -306,7 +306,7 @@ public static class DuanYuCardExecutor
                 await Energy(1);
                 await Momentum(Value(2, 3));
                 break;
-            case "DY_R15": await Effect(2, energy: 1); break;
+            case "DY_R15": await Effect(1, energy: 1); break;
             case "DY_R16":
             {
                 foreach (var power in player.Creature.Powers.Where(power => power is WeakPower or FrailPower or PoisonPower).ToArray()) await PowerCmd.Remove(power);
@@ -329,7 +329,7 @@ public static class DuanYuCardExecutor
                     await Lingbo(2, ally);
                 }
                 break;
-            case "DY_R18": await Effect(Value(4, 6)); break;
+            case "DY_R18": await Effect(Value(2, 3)); break;
             case "DY_R19":
             {
                 await Block(Value(6, 8));
@@ -347,8 +347,8 @@ public static class DuanYuCardExecutor
             case "DY_R20": await Attack(Value(20, 27), true); await Block(Value(16, 22)); await Debuff<WeakPower>(2, true); break;
             case "DY_R21":
             {
-                var xValue = card.ResolveEnergyXValue();
-                await Attack(Value(6, 9), true, xValue + 1);
+                var xValue = card.CapturedQiX;
+                if (xValue > 0) await Attack(Value(6, 8), multiplier: xValue);
                 break;
             }
             case "DY_R22": await GenerateStatus("DY_S02", PileType.Hand); await Effect(Value(5, 7), 1); break;
@@ -362,7 +362,7 @@ public static class DuanYuCardExecutor
             case "DY_S02": await Qi(2); await Momentum(1); await Draw(1); break;
             default: throw new InvalidOperationException("No executor for " + card.DesignId);
         }
-        if (card.QiCost > 0) await DuanYuState.AfterQiSpent(player, context, card);
+        if (card.HasQiCost) await DuanYuState.AfterQiSpent(player, context, card);
     }
 
     private static async Task<bool> DealDamage(DuanYuCard card, PlayerChoiceContext context, CardPlay play, decimal amount, bool all = false, int multiplier = 1, Creature? recipient = null)

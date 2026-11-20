@@ -4,11 +4,11 @@
 
 ## 当前版本入口
 
-v0.5.13 本轮96张卡牌与图鉴校验、24/24项规则测试、455/455项真实游戏引擎回归、128/128项资源加载检查通过；Debug与Release构建均0警告、0错误。详见[当前验证](runtime-verification.md)。本版未以自动策略采样推断胜率，历史完整通关记录不外推当前胜率。
+v0.5.14调整六脉齐发的真气X费用，以及北冥神功、守拙、无相之境和临风独立。本轮96张卡牌与图鉴校验、24/24项规则测试、464/464项真实游戏引擎回归、128/128项资源加载检查通过；Debug与Release构建均0警告、0错误。详见[当前验证](runtime-verification.md)。本版未以自动策略采样推断胜率，历史完整通关记录不外推当前胜率。
 
 主动消耗、状态牌与外门借招的回归不扩大为远程多人或任意第三方组合兼容。Godot RID/ObjectDB/resources退出回收告警与引擎断言分开记录。
 
-版本源码见 [GitHub 仓库](https://github.com/cqbzly/sts2-duan-yu)；当前 v0.5.13 使用已有的公开 [Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。订阅回装和任意第三方模组组合仍需单独验证。下文保留旧版本环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
+版本源码见 [GitHub 仓库](https://github.com/cqbzly/sts2-duan-yu)；v0.5.14继续使用已有的公开 [Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。订阅回装和任意第三方模组组合仍需单独验证。下文保留旧版本环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
 
 ## 已验证环境
 
@@ -23,10 +23,10 @@ v0.5.13 本轮96张卡牌与图鉴校验、24/24项规则测试、455/455项真�
 | 规则单元测试 | 24/24通过 | 真气、凌波、状态和关键触发规则；不替代宿主引擎回归。 |
 | Release 构建 | 0警告、0错误 | 生成 `CQBZLY_DUAN_YU.dll`；不等于 Steam 上传成功。 |
 | 隔离游戏启动 | 历史通过 | 只加载 BaseLib、Compatibility Helper 和段誉；模组初始化、角色注册、主菜单加载成功。 |
-| 引擎内 Debug 自测 | 455/455通过，0失败 | 96张卡牌基础/升级执行、关键资源机制、图鉴、奖励过滤、事件边界、抽弃牌与剑气回收，覆盖头环回合末回气、升级、旧存档选项迁移与持有者隔离；报告见当前验证。 |
+| 引擎内 Debug 自测 | 464/464通过，0失败，退出码0 | 96张卡牌基础/升级执行、关键资源机制、图鉴、奖励过滤、事件边界、抽弃牌与剑气回收，新增真气X费用和五张牌调整的边界回归；报告见当前验证。 |
 | 人工 UI 冒烟 | 历史通过 | 在隔离副本中成功选择段誉并完成首战，随后获得段誉卡牌；没有覆盖完整通关。 |
 
-本轮报告见[v0.5.13 最终引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.13/v0513-uncapped-qi-engine-tests.json)。测试副本只加载BaseLib、Compatibility Helper和段誉。退出时出现Godot RID与资源回收提示，尚未完成泄漏归因，不能据此判定段誉卡牌断言失败，也不能声称日志无异常。128项资源加载检查通过。
+本轮报告见[v0.5.14 最终引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.14/v0514-balance-engine-tests.json)。测试副本只加载BaseLib、Compatibility Helper和段誉。引擎退出时仍出现Godot RID/ObjectDB/resources资源回收提示，尚未完成泄漏归因，不能据此判定段誉卡牌断言失败，也不能声称日志无异常。128项资源加载检查通过。
 
 ## 本机已安装模组
 
@@ -60,7 +60,7 @@ v0.5.13 本轮96张卡牌与图鉴校验、24/24项规则测试、455/455项真�
 .\scripts\package.ps1 -Configuration Release -SkipBuild
 ```
 
-`dist/DuanYu-0.5.13.zip` 内含：
+`dist/DuanYu-0.5.14.zip` 内含：
 
 ```text
 DuanYu/CQBZLY_DUAN_YU.dll
@@ -80,12 +80,12 @@ workshop-workspace/
   image.png
 ```
 
-`workshop/workshop.json`已提供中文说明、public可见性与BaseLib工坊项目数字ID；脚本同步`DuanYu.json`中的版本信息。封面为项目生成的`assets/workshop-preview.png`，小于1MB。上传器来源、执行命令和条目更新方式见[上传说明](workshop-upload.md)，本版内容和验证结果见[版本记录](releases/v0.5.13.md)。
+`workshop/workshop.json`已提供中文说明、public可见性与BaseLib工坊项目数字ID；脚本同步`DuanYu.json`中的版本信息。封面为项目生成的`assets/workshop-preview.png`，小于1MB。上传器来源、执行命令和条目更新方式见[上传说明](workshop-upload.md)，本版内容和验证结果见[版本记录](releases/v0.5.14.md)。
 
 发布流程使用官方 `ModUploader.exe upload -w <workshop-workspace>` 更新现有公开条目 `3841781260`，工作区保留原条目ID。上传后查询远程版本和公开状态；订阅回装、角色选择、首战、继续游戏和卸载提示仍需各自验证。上传器使用当前Steam客户端登录账号，GitHub的`cqbzly`账号不能代替Steam发布权限。
 
 ## 发布判定
 
-`v0.5.13`延续现有公开发布方式，清单和DLL名称沿用既有约定。本轮Debug与Release构建均0警告、0错误，455项独立游戏引擎回归与128项资源加载检查通过。当前证据仍不能证明与本机所有模组无冲突；Steam订阅回装、远程联机和第三方组合测试未完成。
+`v0.5.14`延续现有公开发布方式，清单和DLL名称沿用既有约定。本轮Debug与Release构建均0警告、0错误，464项独立游戏引擎回归与128项资源加载检查通过。当前证据仍不能证明与本机所有模组无冲突；Steam订阅回装、远程联机和第三方组合测试未完成。
 
 每次发布保存包含游戏版本、BaseLib版本、测试模组列表、发布版本和自测报告的记录；更新游戏或BaseLib后重新执行构建、资源检查、隔离引擎自测和最小联合测试。

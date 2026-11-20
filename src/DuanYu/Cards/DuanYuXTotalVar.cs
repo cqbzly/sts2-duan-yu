@@ -14,11 +14,10 @@ public sealed class DuanYuXTotalVar(bool damage, decimal coefficient)
 {
     public override void UpdateCardPreview(CardModel card, CardPreviewMode previewMode, Creature? target, bool runGlobalHooks)
     {
-        int x = PreviewX(card);
-        decimal raw = (damage ? card.DynamicVars.Damage.BaseValue : card.DynamicVars.Block.BaseValue) * (x + (damage ? 1 : 0));
-        if (!damage && x == 0)
+        int x = damage ? ((DuanYuCard)card).PreviewQiX : PreviewX(card);
+        decimal raw = (damage ? card.DynamicVars.Damage.BaseValue : card.DynamicVars.Block.BaseValue) * x;
+        if (x == 0)
         {
-            // No block command is issued for X=0, so Dexterity cannot turn it into block.
             EnchantedValue = PreviewValue = 0;
             return;
         }

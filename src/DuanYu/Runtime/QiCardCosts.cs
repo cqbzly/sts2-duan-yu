@@ -29,7 +29,7 @@ internal static class QiCardPlayGuard
 
     private static async Task<bool> RejectUnpaidPlay(CardModel __instance)
     {
-        if (__instance is not DuanYuCard card || card.QiCost == 0) return false;
+        if (__instance is not DuanYuCard { HasQiCost: true } card) return false;
         if (!DuanYuState.CanAct(card.Owner)) return true;
         if (DuanYuState.HasCardQiPayment(card)) return false;
         var resource = CustomResources<QiResource>.Get(card.Owner.PlayerCombatState!);
@@ -42,7 +42,7 @@ internal static class QiCardPaymentCleanup
 {
     private static void Postfix(CardModel __instance, ref Task __result)
     {
-        if (__instance is DuanYuCard card && card.QiCost > 0) __result = CompletePlay(__result, card);
+        if (__instance is DuanYuCard { HasQiCost: true } card) __result = CompletePlay(__result, card);
     }
 
     private static async Task CompletePlay(Task original, DuanYuCard card)
@@ -60,6 +60,6 @@ internal static class QiAutoPlayGuard
             AccessTools.Method(typeof(QiAutoPlayGuard), nameof(RejectUnavailableQi)), beforeState: original, resultName: "returnIf");
 
     private static Task<bool> RejectUnavailableQi(CardModel card) => Task.FromResult(
-        card is DuanYuCard duanYuCard && duanYuCard.QiCost > 0 && !DuanYuState.HasCardQiPayment(duanYuCard) &&
+        card is DuanYuCard { HasQiCost: true } duanYuCard && !DuanYuState.HasCardQiPayment(duanYuCard) &&
         (!DuanYuState.CanAct(card.Owner) || duanYuCard.RequiredQi > DuanYuState.Get(card.Owner).Qi));
 }

@@ -130,8 +130,8 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(true, await DuanYuState.SpendQi(fixture.Player, 1), "a later real spend remains payable");
         EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Stars, "spending Qi does not change native star resource");
         await DuanYuState.AfterQiSpent(fixture.Player, new ThrowingPlayerChoiceContext());
-        EngineSelfTests.Equal(2, state.Qi, "first actual spend still receives Beiming refund");
-        EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "first actual spend retains its energy reward");
+        EngineSelfTests.Equal(0, state.Qi, "first actual spend receives no second-payment Beiming refund");
+        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "first actual spend receives no second-payment energy reward");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "first actual spend retains its draw reward");
     }
 
@@ -338,17 +338,18 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(0, DuanYuState.Get(noStatus.Player).Qi, "万流归宗无状态牌不获得真气");
 
         var zero = await ReadyFixture("DUANYUXZERO" + (upgraded ? "U" : ""));
-        await SetQi(zero, 3);
+        await SetQi(zero, 0);
         zero.Player.PlayerCombatState!.Energy = 0;
         var volley = EngineSelfTests.AddCard(zero, "DY_R21", PileType.Hand, upgraded);
         var initialHp = zero.Enemy.CurrentHp;
         await PaidPlay(zero, volley);
-        EngineSelfTests.Equal(upgraded ? 9 : 6, initialHp - zero.Enemy.CurrentHp, "六脉齐发X为0仍造成一次基础伤害");
-        EngineSelfTests.Equal(0, DuanYuState.Get(zero.Player).Qi, "六脉齐发强制消耗三点真气");
+        EngineSelfTests.Equal(0, initialHp - zero.Enemy.CurrentHp, "六脉齐发真气X为0时不造成伤害");
+        EngineSelfTests.Equal(0, DuanYuState.Get(zero.Player).Qi, "六脉齐发零真气不产生资源");
+        EngineSelfTests.Equal(0, DuanYuState.Get(zero.Player).SpendingCount, "六脉齐发零真气不计成功支付");
         EngineSelfTests.Equal(PileType.Exhaust, volley.Pile!.Type, "六脉齐发自身消耗");
 
         var combat = await ReadyFixture("DUANYUXHITS" + (upgraded ? "U" : ""));
-        await SetQi(combat, 3);
+        await SetQi(combat, 5);
         combat.Player.PlayerCombatState!.Energy = 2;
         var secondEnemy = combat.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
         combat.Combat.AddCreature(secondEnemy);
@@ -356,10 +357,10 @@ internal static class SpecialCardSelfTests
         var xInitialHp = combat.Enemy.CurrentHp;
         var secondInitialHp = secondEnemy.CurrentHp;
         await PaidPlay(combat, volleyWithX);
-        EngineSelfTests.Equal(3 * (upgraded ? 9 : 6), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按X加一计算单次总伤害");
-        EngineSelfTests.Equal(3 * (upgraded ? 9 : 6), secondInitialHp - secondEnemy.CurrentHp, "六脉齐发对全部敌人造成相同单次总伤害");
-        EngineSelfTests.Equal(2, volleyWithX.EnergyCost.CapturedXValue, "六脉齐发捕获支付时的X值");
-        EngineSelfTests.Equal(0, combat.Player.PlayerCombatState.Energy, "六脉齐发支付全部能量");
+        EngineSelfTests.Equal(5 * (upgraded ? 8 : 6), xInitialHp - combat.Enemy.CurrentHp, "六脉齐发按实际支付真气计算单次总伤害");
+        EngineSelfTests.Equal(0, secondInitialHp - secondEnemy.CurrentHp, "六脉齐发仅伤害选中敌人");
+        EngineSelfTests.Equal(0, DuanYuState.Get(combat.Player).Qi, "六脉齐发支付全部真气");
+        EngineSelfTests.Equal(2, combat.Player.PlayerCombatState.Energy, "六脉齐发不支付能量");
     }
 
     private static async Task PlayForeignAttack(Type attackType, int expectedDamage, bool upgraded)

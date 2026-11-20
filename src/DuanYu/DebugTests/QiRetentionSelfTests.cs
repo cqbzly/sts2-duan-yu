@@ -91,11 +91,11 @@ internal static class QiRetentionSelfTests
         var card = EngineSelfTests.AddCard(fixture, "DY_U07", PileType.Hand);
         card.BaseReplayCount = 2;
         await EngineSelfTests.PaidPlay(fixture, card);
-        AssertQi(player, 1, "the first genuine payment still receives one Beiming refund");
+        AssertQi(player, 0, "the first genuine payment receives no second-payment Beiming refund");
         EngineSelfTests.Equal(1, state.SpendingCount, "native replay records one genuine payment after ordinary turn-end");
         EngineSelfTests.Equal(true, state.SealUsed, "genuine payment consumes the first seal trigger");
         EngineSelfTests.Equal(true, state.PrayerBeadsUsedThisTurn, "genuine payment consumes the first prayer trigger");
-        EngineSelfTests.Equal(2, player.PlayerCombatState.Energy, "genuine payment receives Beiming and seal energy once");
+        EngineSelfTests.Equal(1, player.PlayerCombatState.Energy, "first genuine payment receives seal energy without a Beiming reward");
         EngineSelfTests.Equal(4, player.Creature.Block, "genuine payment receives prayer block once");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(player).Cards.Count, "genuine payment receives its first-payment draw once");
         EngineSelfTests.Equal(draw - 1, PileType.Draw.GetPile(player).Cards.Count, "native replay draws only one first-payment card");

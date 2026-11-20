@@ -22,7 +22,7 @@ internal static class QiResourceSelfTests
     private static readonly string[] FeeCards =
     [
         "DY_B05", "DY_C14", "DY_C15", "DY_C17", "DY_U07", "DY_U17", "DY_U32", "DY_U33",
-        "DY_R03", "DY_R05", "DY_R06", "DY_R13", "DY_R20", "DY_R21",
+        "DY_R03", "DY_R05", "DY_R06", "DY_R13", "DY_R20",
         "DY_T01", "DY_T02", "DY_T03", "DY_T04", "DY_T05", "DY_T06"
     ];
 
@@ -33,6 +33,11 @@ internal static class QiResourceSelfTests
             foreach (string id in FeeCards)
                 foreach (bool upgraded in new[] { false, true })
                     yield return ($"qi:mandatory-payment-{id}{(upgraded ? "+" : "")}", () => MandatoryPayment(id, upgraded));
+            foreach (bool upgraded in new[] { false, true })
+                yield return ($"qi:x-payment-and-refund{(upgraded ? "+" : "")}", () => QiXPayment(upgraded));
+            yield return ("qi:x-zero-payment-captured-before-later-gain", QiXZeroCapture);
+            yield return ("qi:x-auto-play-refreshes-payment", QiXAutoPlay);
+            yield return ("qi:x-canonical-preview-has-no-owner", QiXCanonicalPreview);
             yield return ("qi:independent-display-and-native-stars", IndependentResource);
             yield return ("qi:uncapped-card-payment-and-refund", UncappedPayment);
             yield return ("qi:uncapped-qi-scaling-attack", UncappedScalingAttack);
@@ -146,6 +151,95 @@ internal static class QiResourceSelfTests
         EngineSelfTests.Equal(2, combat.Stars, "high Qi loss and payment preserve native stars");
     }
 
+    private static async Task QiXPayment(bool upgraded)
+    {
+        var fixture = await EngineSelfTests.ReadyFixture();
+        var player = fixture.Player;
+        await RelicCmd.Obtain<DaliSeal>(player);
+        await DuanYuState.AddEffect(player, "DY_R01", 1, energyAmount: 1);
+        await SetQi(player, 6);
+        await EngineSelfTests.PaidPlay(fixture, EngineSelfTests.AddCard(fixture, "DY_T01", PileType.Hand));
+        await SetQi(player, 12);
+        player.PlayerCombatState!.Energy = 0;
+        var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand, upgraded);
+        card.BaseReplayCount = 1;
+        var qiCost = CustomResources<QiResource>.Cost(card) ?? throw new InvalidOperationException("Qi-X cost is missing");
+        EngineSelfTests.Equal(true, qiCost.CostsX, "Qi-X uses the custom resource X fee");
+        EngineSelfTests.Equal(12, card.RequiredQi, "Qi-X current required payment is all held Qi");
+        EngineSelfTests.Equal(true, card.CanPlay(), "Qi-X can play without energy");
+        int health = fixture.Enemy.CurrentHp;
+        var paid = await card.SpendResources();
+        AssertQi(player, 0, "Qi-X pays all twelve Qi before resolving effects or refunds");
+        EngineSelfTests.Equal(12, qiCost.CapturedXValue, "Qi-X captures actual payment before any refund");
+        EngineSelfTests.Equal(0, player.PlayerCombatState.Energy, "Qi-X payment spends zero energy");
+        await Resolve(fixture, card, false, paid.Item1, paid.Item2);
+        EngineSelfTests.Equal(24 * (upgraded ? 8 : 6), health - fixture.Enemy.CurrentHp, "both replay bodies use the twelve-Qi payment without adding refund Qi");
+        AssertQi(player, 1, "second payment receives one Beiming refund despite replay");
+        EngineSelfTests.Equal(2, player.PlayerCombatState.Energy, "second payment receives Beiming and the empty-Qi seal energy once each");
+        EngineSelfTests.Equal(2, DuanYuState.Get(player).SpendingCount, "Qi-X activation counts one payment after the priming sword");
+        EngineSelfTests.Equal(PileType.Exhaust, card.Pile!.Type, "Qi-X still exhausts");
+    }
+
+    private static async Task QiXZeroCapture()
+    {
+        var fixture = await EngineSelfTests.ReadyFixture();
+        await SetQi(fixture.Player, 0);
+        fixture.Player.PlayerCombatState!.Energy = 0;
+        await DuanYuState.AddEffect(fixture.Player, "DY_R01", 1, energyAmount: 1);
+        var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand);
+        EngineSelfTests.Equal(true, card.CanPlay(), "zero-Qi X remains playable");
+        int health = fixture.Enemy.CurrentHp;
+        var paid = await card.SpendResources();
+        var cost = CustomResources<QiResource>.Cost(card)!;
+        EngineSelfTests.Equal(0, cost.CapturedXValue, "zero-Qi payment captures zero");
+        await DuanYuState.GainQi(fixture.Player, 5);
+        await Resolve(fixture, card, false, paid.Item1, paid.Item2);
+        EngineSelfTests.Equal(health, fixture.Enemy.CurrentHp, "Qi gained after a zero payment cannot increase its damage");
+        AssertQi(fixture.Player, 5, "Qi gained after a zero payment is not charged retroactively");
+        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "zero payment does not register a successful spend");
+        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "zero payment does not trigger Beiming energy");
+    }
+
+    private static async Task QiXAutoPlay()
+    {
+        var fixture = await EngineSelfTests.ReadyFixture();
+        await SetQi(fixture.Player, 4);
+        fixture.Player.PlayerCombatState!.Energy = 3;
+        var card = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand);
+        int health = fixture.Enemy.CurrentHp;
+        await CardCmd.AutoPlay(new ThrowingPlayerChoiceContext(), card, fixture.Enemy, skipCardPileVisuals: true);
+        EngineSelfTests.Equal(24, health - fixture.Enemy.CurrentHp, "auto-play pays and uses all four Qi");
+        AssertQi(fixture.Player, 0, "auto-play actually deducts its custom X resource");
+        EngineSelfTests.Equal(4, CustomResources<QiResource>.Cost(card)!.CapturedXValue, "first auto-play captures its actual Qi payment");
+        await CardPileCmd.Add(card, PileType.Hand);
+        await DuanYuState.GainQi(fixture.Player, 2);
+        health = fixture.Enemy.CurrentHp;
+        await CardCmd.AutoPlay(new ThrowingPlayerChoiceContext(), card, fixture.Enemy, skipCardPileVisuals: true);
+        EngineSelfTests.Equal(12, health - fixture.Enemy.CurrentHp, "independent auto-play refreshes X instead of reusing four");
+        AssertQi(fixture.Player, 0, "independent auto-play pays newly gained Qi");
+        EngineSelfTests.Equal(2, CustomResources<QiResource>.Cost(card)!.CapturedXValue, "second auto-play captures its new payment");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).SpendingCount, "independent positive auto-plays each count one payment");
+        await CardPileCmd.Add(card, PileType.Hand);
+        health = fixture.Enemy.CurrentHp;
+        await CardCmd.AutoPlay(new ThrowingPlayerChoiceContext(), card, fixture.Enemy, skipCardPileVisuals: true);
+        EngineSelfTests.Equal(health, fixture.Enemy.CurrentHp, "zero-Qi auto-play cannot reuse a previous payment");
+        EngineSelfTests.Equal(0, CustomResources<QiResource>.Cost(card)!.CapturedXValue, "zero-Qi auto-play refreshes X to zero");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).SpendingCount, "zero auto-play does not create a positive payment");
+        EngineSelfTests.Equal(3, fixture.Player.PlayerCombatState.Energy, "all auto-plays preserve native energy");
+    }
+
+    private static Task QiXCanonicalPreview()
+    {
+        var card = (DuanYuCard)DuanYuCard.Canonical("DY_R21");
+        var cost = CustomResources<QiResource>.Cost(card) ?? throw new InvalidOperationException("canonical Qi-X cost is missing");
+        EngineSelfTests.Equal(true, cost.CostsX, "canonical card registers a true Qi-X cost");
+        EngineSelfTests.Equal(0, card.RequiredQi, "canonical Qi-X has no owned resource to spend");
+        card.DynamicVars["XDamage"].UpdateCardPreview(card, CardPreviewMode.Normal, null, true);
+        EngineSelfTests.Equal(0m, card.DynamicVars["XDamage"].PreviewValue, "canonical Qi-X damage preview is safe without an owner");
+        EngineSelfTests.Equal(true, card.GetDescriptionForPile(PileType.None).Length > 0, "canonical Qi-X description renders without an owner");
+        return Task.CompletedTask;
+    }
+
     private static async Task UncappedPayment()
     {
         var fixture = await EngineSelfTests.ReadyFixture();
@@ -153,6 +247,8 @@ internal static class QiResourceSelfTests
         await RelicCmd.Obtain<TianlongPrayerBeads>(player);
         await RelicCmd.Obtain<DaliSeal>(player);
         await DuanYuState.AddEffect(player, "DY_R01", 1, energyAmount: 1);
+        EngineSelfTests.Equal(true, await DuanYuState.SpendQi(player, 1), "high-Qi refund fixture records its first payment");
+        await DuanYuState.AfterQiSpent(player, new ThrowingPlayerChoiceContext());
         await SetQi(player, 50);
         var card = EngineSelfTests.AddCard(fixture, "DY_U07", PileType.Hand);
         card.BaseReplayCount = 2;
@@ -165,7 +261,7 @@ internal static class QiResourceSelfTests
         await Resolve(fixture, card, false, paid.Item1, paid.Item2);
         AssertQi(player, 48, "replaying a high-Qi card does not repay or repeat its refund");
         EngineSelfTests.Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, card)), "high-Qi replay resolves all three bodies");
-        EngineSelfTests.Equal(1, DuanYuState.Get(player).SpendingCount, "high-Qi replay counts one full payment");
+        EngineSelfTests.Equal(2, DuanYuState.Get(player).SpendingCount, "high-Qi replay counts one full payment after the priming payment");
         EngineSelfTests.Equal(false, DuanYuState.Get(player).SealUsed, "a high balance never falsely triggers an empty-Qi seal reward");
         EngineSelfTests.Equal(energy - paid.Item1 + 1, player.PlayerCombatState.Energy, "high-Qi payment grants only one printed energy refund");
         EngineSelfTests.Equal(4, player.Creature.Block, "high-Qi payment grants prayer block once");
@@ -240,8 +336,8 @@ internal static class QiResourceSelfTests
         await Resolve(fixture, card, false, paid.Item1, paid.Item2);
         EngineSelfTests.Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, card)), "native replay resolves all three bodies");
         EngineSelfTests.Equal(1, DuanYuState.Get(player).SpendingCount, "native replay pays Qi once");
-        EngineSelfTests.Equal(2, DuanYuState.Get(player).Qi, "native replay refunds Qi once");
-        EngineSelfTests.Equal(energy - paid.Item1 + 2, player.PlayerCombatState.Energy, "native replay grants Beiming and seal energy once each");
+        EngineSelfTests.Equal(0, DuanYuState.Get(player).Qi, "native replay's first payment gives no Beiming refund");
+        EngineSelfTests.Equal(energy - paid.Item1 + 1, player.PlayerCombatState.Energy, "native replay grants seal energy once without a first-payment Beiming reward");
         EngineSelfTests.Equal(4, player.Creature.Block, "native replay grants prayer block once");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(player).Cards.Count, "native replay grants first-spend draw once");
     }

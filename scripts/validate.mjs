@@ -16,7 +16,7 @@ const requiredQiCosts = new Map([
   ['DY_T01', 1], ['DY_T02', 1], ['DY_T03', 1], ['DY_T04', 1], ['DY_T05', 1], ['DY_T06', 1],
   ['DY_C17', 1],
   ['DY_B05', 2], ['DY_C15', 2], ['DY_U32', 2], ['DY_R06', 2],
-  ['DY_C14', 3], ['DY_U07', 3], ['DY_U17', 3], ['DY_U33', 3], ['DY_R03', 3], ['DY_R05', 3], ['DY_R20', 3], ['DY_R21', 3],
+  ['DY_C14', 3], ['DY_U07', 3], ['DY_U17', 3], ['DY_U33', 3], ['DY_R03', 3], ['DY_R05', 3], ['DY_R20', 3],
   ['DY_R13', 5],
 ]);
 const errors = [];
@@ -114,7 +114,15 @@ function validateCards(design) {
     requireCondition(allowedTypes.has(card.type), `${label}的类型必须为攻击、技能、能力或状态。`);
     requireCondition(isCost(card.cost, card.id), `${label}的费用必须是0至3的整数，只有气滞允许-1。`);
     requireCondition(card.costX === undefined || typeof card.costX === 'boolean', `${label}.costX必须为布尔值。`);
-    requireCondition(Boolean(card.costX) === ['DY_U37', 'DY_R21'].includes(card.id), `${label}的X费用配置不正确。`);
+    requireCondition(Boolean(card.costX) === (card.id === 'DY_U37'), `${label}的能量X费用配置不正确。`);
+    requireCondition(card.qiCostX === undefined || typeof card.qiCostX === 'boolean', `${label}.qiCostX必须为布尔值。`);
+    requireCondition(Boolean(card.qiCostX) === (card.id === 'DY_R21'), `${label}的真气X费用配置不正确。`);
+    if (card.qiCostX) {
+      requireCondition(card.cost === 0 && card.upgrade?.cost === 0 && !card.costX, `${label}的真气X费用牌必须为0能量费。`);
+      for (const text of [card.text, card.upgrade?.text]) {
+        requireCondition(typeof text === 'string' && text.includes('消耗全部真气（X）'), `${label}必须明确说明真气X消耗。`);
+      }
+    }
     if (card.costX) requireCondition(card.cost === 0 && card.upgrade?.cost === 0, `${label}的X费用占位值必须为0。`);
     validateEffect(card.text, `${label}基础效果`, requiredQiCosts.get(card.id) ?? 0);
     requireCondition(isObject(card.upgrade), `${label}必须有upgrade对象。`);

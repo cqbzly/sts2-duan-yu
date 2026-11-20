@@ -34,7 +34,8 @@ public sealed class QiResource() : BasicCustomResource("CQBZLY_DY_QI_RESOURCE")
     {
         var resource = ValidateType<T>();
         if (Owner == null || amount < 0 || amount > Amount) return false;
-        if (amount == 0) return true;
+        if (amount == 0)
+            return spender is not Cards.DuanYuCard { QiCostX: true } zeroCard || await DuanYuState.PayCardQi(zeroCard, 0);
         bool paid = spender is Cards.DuanYuCard card
             ? await DuanYuState.PayCardQi(card, amount)
             : await DuanYuState.SpendQi(Owner, amount, spender as CardModel);

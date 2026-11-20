@@ -125,7 +125,7 @@ public sealed class PeacefulHeartPower : DuanYuEffectPower
 public sealed class BeimingPower : DuanYuEffectPower
 {
     protected override string Title => "北冥神功";
-    protected override string Rule => "每回合前2次有牌支付真气后，运气{Amount}；首次另按每份北冥神功获得1点能量。";
+    protected override string Rule => "每回合第2次支付真气后，运气{Amount}，每份北冥神功获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R02")]
 public sealed class LingboFootworkPower : DuanYuEffectPower
@@ -161,7 +161,7 @@ public sealed class GuardSimplicityPower : DuanYuEffectPower
 public sealed class FormlessPower : DuanYuEffectPower
 {
     protected override string Title => "无相之境";
-    protected override string Rule => "每回合前3张剑气结算后，获得{Amount}点格挡。";
+    protected override string Rule => "每张剑气结算后，获得{Amount}点格挡。";
 }
 
 [CustomID("CQBZLY_DY_POWER_R22")]

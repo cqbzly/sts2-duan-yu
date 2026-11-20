@@ -113,7 +113,12 @@ public static class DuanYuState
     {
         var state = Get(card.Owner);
         var record = new DuanYuPlayRecord { Effects = state.Effects.ToList() };
-        if (!await SpendQi(card.Owner, amount, card, record)) return false;
+        if (amount == 0 && card.QiCostX)
+        {
+            if (!CanAct(card.Owner)) return false;
+        }
+        else if (!await SpendQi(card.Owner, amount, card, record)) return false;
+        if (card.QiCostX) CustomResources<QiResource>.Cost(card)!.CapturedXValue = amount;
         state.PendingCardSpends[card] = record;
         return true;
     }
@@ -164,10 +169,10 @@ public static class DuanYuState
             if (!CanAct(player)) break;
             if (effect.CardId == "DY_U01" && ordinal == 1)
                 await CardPileCmd.Draw(context, effect.Amount, player);
-            else if (effect.CardId == "DY_R01" && ordinal <= 2)
+            else if (effect.CardId == "DY_R01" && ordinal == 2)
             {
                 await GainQi(player, effect.Amount, source);
-                if (ordinal == 1 && effect.EnergyAmount > 0 && CanAct(player))
+                if (effect.EnergyAmount > 0 && CanAct(player))
                     await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
             }
         }
@@ -400,7 +405,7 @@ public static class DuanYuState
                 case "DY_R15" when record.SwordOrdinal == 1:
                     if (effect.EnergyAmount > 0) await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
                     break;
-                case "DY_R18" when record.SwordOrdinal is > 0 and <= 3:
+                case "DY_R18" when record.SwordOrdinal > 0:
                     await GainBlock(player, effect.Amount); break;
             }
         }

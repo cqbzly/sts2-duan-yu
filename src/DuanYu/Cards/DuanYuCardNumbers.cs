@@ -18,8 +18,8 @@ public sealed record DuanYuCardNumbers(int Damage = 0, int DamageUp = 0, int Blo
         ["DY_U29"] = new(Block: 6, BlockUp: 9), ["DY_U30"] = new(Block: 4, BlockUp: 6),
         ["DY_U31"] = new(13, 19), ["DY_U32"] = new(12, 17), ["DY_U33"] = new(16, 22), ["DY_U34"] = new(Block: 5, BlockUp: 7), ["DY_U35"] = new(Block: 2, BlockUp: 3), ["DY_U36"] = new(12, 17), ["DY_U37"] = new(Block: 4, BlockUp: 6),
         ["DY_R03"] = new(Block: 8, BlockUp: 11), ["DY_R05"] = new(48, 64, ExtraDamage: 20, ExtraDamageUp: 26),
-        ["DY_R06"] = new(22, 30), ["DY_R09"] = new(15, 20), ["DY_R10"] = new(15, 20), ["DY_R11"] = new(Block: 16, BlockUp: 21), ["DY_R12"] = new(Block: 6, BlockUp: 9), ["DY_R13"] = new(52, 70),
-        ["DY_R16"] = new(Block: 7, BlockUp: 7), ["DY_R17"] = new(Block: 16, BlockUp: 21), ["DY_R19"] = new(Block: 6, BlockUp: 8), ["DY_R20"] = new(20, 27, 16, 22), ["DY_R21"] = new(6, 9),
+        ["DY_R06"] = new(22, 30), ["DY_R09"] = new(15, 20), ["DY_R10"] = new(15, 20), ["DY_R11"] = new(Block: 8, BlockUp: 10), ["DY_R12"] = new(Block: 6, BlockUp: 9), ["DY_R13"] = new(52, 70),
+        ["DY_R16"] = new(Block: 7, BlockUp: 7), ["DY_R17"] = new(Block: 16, BlockUp: 21), ["DY_R19"] = new(Block: 6, BlockUp: 8), ["DY_R20"] = new(20, 27, 16, 22), ["DY_R21"] = new(6, 8),
         ["DY_T01"] = new(7, 10), ["DY_T02"] = new(3, 5), ["DY_T03"] = new(5, 7), ["DY_T04"] = new(3, 5, 3, 5),
         ["DY_T05"] = new(2, 3), ["DY_T06"] = new(2, 4)
     };
