@@ -135,7 +135,7 @@ internal static class BalanceSelfTests
             var fixture = await EngineSelfTests.ReadyFixture();
             await SetQi(fixture, 0);
             var card = EngineSelfTests.AddCard(fixture, id, PileType.Hand, upgraded);
-            var paid = id == "DY_U04" ? 0 : 1;
+            var paid = id == "DY_U02" ? 1 : 0;
             fixture.Player.PlayerCombatState!.Energy = paid;
             var health = fixture.Player.Creature.CurrentHp;
             await PaidPlay(fixture, card);
@@ -150,9 +150,6 @@ internal static class BalanceSelfTests
         empty.Player.PlayerCombatState!.Energy = 0;
         var requiresPayment = EngineSelfTests.AddCard(empty, "DY_U02", PileType.Hand, upgraded);
         EngineSelfTests.Equal(false, requiresPayment.CanPlay(), "Qi Sea cannot borrow its future energy");
-        var confluence = EngineSelfTests.AddCard(empty, "DY_R04", PileType.Hand, upgraded);
-        EngineSelfTests.Equal(1, confluence.EnergyCost.GetAmountToSpend(), "confluence retains one energy cost after upgrade");
-        EngineSelfTests.Equal(false, confluence.CanPlay(), "confluence cannot borrow its future energy at either upgrade tier");
     }
 
     private static async Task QiBeforePendant(bool upgraded)

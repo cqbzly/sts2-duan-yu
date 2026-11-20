@@ -150,16 +150,21 @@ internal static class StructureCardSelfTests
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "stacked copies grant one Qi each per eligible exhaust");
         var swords = PileType.Hand.GetPile(fixture.Player).Cards.OfType<DuanYuCard>().Where(DuanYuState.IsSword).ToArray();
         EngineSelfTests.Equal(3, swords.Length, "stacked copies generate one sword each");
-        var freeSword = swords.Single(sword => sword.IsUpgraded);
-        EngineSelfTests.Equal(0, freeSword.RequiredQi, "only the upgraded ability produces a free sword");
-        EngineSelfTests.Equal(true, swords.Where(sword => !sword.IsUpgraded).All(sword => sword.RequiredQi == 1), "base ability still produces swords that cost one Qi");
+        EngineSelfTests.Equal(1, swords.Count(sword => sword.IsUpgraded), "only the upgraded ability produces an upgraded sword");
         DuanYuState.Get(fixture.Player).Qi = 0;
         fixture.Player.PlayerCombatState!.Energy = 0;
-        EngineSelfTests.Equal(true, freeSword.CanPlay(), "generated upgraded sword is playable with no energy or Qi");
-        await PaidPlay(fixture, freeSword);
-        EngineSelfTests.Equal(PileType.Exhaust, freeSword.Pile!.Type, "the free sword resolves and exhausts normally");
-        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SwordPlays, "free sword still counts as a sword play");
-        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "free sword does not count as paying Qi");
+        foreach (var sword in swords)
+        {
+            EngineSelfTests.Equal(0, sword.RequiredQi, "either ability version waives the generated sword's Qi cost");
+            EngineSelfTests.Equal(true, sword.CanPlay(), "generated sword is playable with no energy or Qi");
+            await PaidPlay(fixture, sword);
+            EngineSelfTests.Equal(PileType.Exhaust, sword.Pile!.Type, "the free sword resolves and exhausts normally");
+        }
+        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordPlays, "free swords still count as sword plays");
+        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "free swords do not count as paying Qi");
+        var ordinarySword = EngineSelfTests.AddCard(fixture, swords[0].DesignId, PileType.Hand);
+        EngineSelfTests.Equal(1, ordinarySword.RequiredQi, "an independent sword of the same kind still costs one Qi");
+        EngineSelfTests.Equal(false, ordinarySword.CanPlay(), "the free cost applies only to the generated instance");
         PileType.Hand.GetPile(fixture.Player).Clear();
         await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
         await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, new ThrowingPlayerChoiceContext());

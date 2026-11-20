@@ -168,7 +168,7 @@ public sealed class FormlessPower : DuanYuEffectPower
 public sealed class MeridianUnityPower : DuanYuEffectPower
 {
     protected override string Title => "经脉归一";
-    protected override string Rule => "打出时及回合开始时生成异种真气。每回合前2次消耗状态牌后，获得{Amount}点格挡，每份经脉归一运气1并随机生成1张剑气。升级版生成的剑气已升级且可免费打出。";
+    protected override string Rule => "打出时及回合开始时生成异种真气。每回合前2次消耗状态牌后，获得{Amount}点格挡，每份经脉归一运气1并随机生成1张免费剑气。升级版生成升级剑气。";
 
     public override async Task AfterCardExhausted(PlayerChoiceContext choiceContext, CardModel card, bool causedByEthereal)
     {
@@ -183,7 +183,7 @@ public sealed class MeridianUnityPower : DuanYuEffectPower
         for (var index = 0; index < copies && DuanYuState.CanAct(player); index++)
         {
             bool upgraded = index >= copies - effect.UpgradedMeridianCopies;
-            await DuanYuCardExecutor.GenerateSword(player, player.RunState.Rng.CombatCardGeneration.NextInt(1, 7), upgraded, freeQi: upgraded);
+            await DuanYuCardExecutor.GenerateSword(player, player.RunState.Rng.CombatCardGeneration.NextInt(1, 7), upgraded, freeQi: true);
         }
     }
 }
