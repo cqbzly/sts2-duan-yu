@@ -2,11 +2,13 @@ using BaseLib.Abstracts;
 using BaseLib.Utils.Attributes;
 using DuanYu.Cards;
 using DuanYu.Assets;
+using DuanYu.Relics;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Powers;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.ValueProps;
@@ -55,9 +57,9 @@ public sealed class VermilionWardPower : DuanYuPower
 
     private Debuff _blocked;
 
-    public override List<(string, string)> Localization => new PowerLoc("朱蛤元息",
-        "本场战斗中，分别阻止你第一次受到的脆弱、虚弱和易伤。",
-        "本场战斗中，分别阻止你第一次受到的脆弱、虚弱和易伤。剩余{Amount}种保护。");
+    public override List<(string, string)> Localization => new PowerLoc(VermilionToadEssence.WardTitle,
+        VermilionToadEssence.WardDescription, VermilionToadEssence.WardDescription +
+        (LocManager.Instance.Language == "eng" ? " Protections remaining: {Amount}." : "剩余{Amount}种保护。"));
 
     public override bool TryModifyPowerAmountReceived(PowerModel canonicalPower, Creature target, decimal amount, Creature? applier, out decimal modifiedAmount)
     {

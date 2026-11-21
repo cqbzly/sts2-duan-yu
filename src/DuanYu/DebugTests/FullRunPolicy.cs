@@ -455,7 +455,7 @@ internal static class FullRunPolicy
             for (int hit = 0; hit < qi; hit++) yield return (card.DynamicVars.Damage.BaseValue, false, false);
             yield break;
         }
-        var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + qi : card.DynamicVars.Damage.BaseValue;
+        var damage = card.DesignId == "DY_U08" ? card.DynamicVars.CalculationBase.BaseValue + card.DynamicVars["ExtraDamage"].BaseValue * qi : card.DynamicVars.Damage.BaseValue;
         var allEnemies = card.TargetType == TargetType.AllEnemies;
         yield return (damage, allEnemies, false);
         if (card.DesignId == "DY_R05")

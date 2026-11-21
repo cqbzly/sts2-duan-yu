@@ -34,12 +34,12 @@ public sealed class DuanYuXBlockVar(decimal coefficient) : DynamicVar("XBlock", 
         else PreviewValue = enchanted;
     }
 
-    private static int PreviewX(CardModel card)
+    internal static int PreviewX(CardModel card)
     {
         if (card.IsCanonical || card.Owner == null || card.CombatState == null) return 0;
-        int captured = card.Pile?.Type == PileType.Hand
-            ? card.EnergyCost.GetAmountToSpend()
-            : card.EnergyCost.CapturedXValue;
+        int captured = card.Pile?.Type == PileType.Play
+            ? card.EnergyCost.CapturedXValue
+            : card.EnergyCost.GetAmountToSpend();
         return Math.Max(0, Hook.ModifyXValue(card.CombatState, card, captured));
     }
 }

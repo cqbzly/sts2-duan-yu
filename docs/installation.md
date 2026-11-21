@@ -1,6 +1,6 @@
 # 段誉模组安装说明
 
-已发布版本为 v0.5.21。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。发布包与源码分支的进度分别见 [GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) 和[卡牌图鉴](cards.md)。
+当前版本为 v0.5.22。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。[GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [卡牌图鉴](cards.md)
 
 ## 玩家安装
 
@@ -39,8 +39,8 @@
 - 本机历史记录中 SavesMerger 有独立于本模组的初始化异常。遇到加载错误时，先只启用 BaseLib、Compatibility Helper、段誉进行比较。
 - 日志通常位于 `%APPDATA%\SlayTheSpire2\logs\godot.log`。报告问题时提供游戏版本、段誉版本、模组列表、复现操作和相关错误片段。
 
-## v0.5.21 发布记录
+## v0.5.22 发布记录
 
-六脉齐发每支付 1 点真气，就对同一目标打出一段伤害，各段独立应用增伤和减伤。该版通过 24 项规则测试、464 项游戏引擎回归与 128 项资源检查。[更新记录](releases/v0.5.21.md) · [引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.21/v0521-final-engine-tests.json)
+万流归宗在战斗中显示预计获得的格挡。凝气成锋打出后进入弃牌堆。朱蛤元息每场战斗分别抵挡第一次脆弱、虚弱和易伤。订阅玩家退出游戏，等 Steam 完成创意工坊下载后，重新启动即可加载新版。
 
 手动更新前先关闭游戏。Steam 订阅和手动安装任选一种，避免游戏同时加载同 ID 的两份模组。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。

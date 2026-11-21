@@ -268,14 +268,14 @@ internal static class QiResourceSelfTests
     private static async Task UncappedScalingAttack()
     {
         foreach (bool upgraded in new[] { false, true })
-        foreach (int qi in new[] { 100, 101 })
+        foreach (int qi in new[] { 0, 5, 100, 101 })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             await SetQi(fixture.Player, qi);
             var card = EngineSelfTests.AddCard(fixture, "DY_U08", PileType.Hand, upgraded);
             int health = fixture.Enemy.CurrentHp;
             await EngineSelfTests.PaidPlay(fixture, card);
-            EngineSelfTests.Equal((upgraded ? 23 : 16) + qi, health - fixture.Enemy.CurrentHp, "Qi-scaling attack uses the full stored amount above nine");
+            EngineSelfTests.Equal(16 + qi * (upgraded ? 3 : 2), health - fixture.Enemy.CurrentHp, "Qi-scaling attack uses the fixed base and the full Qi multiplier");
             AssertQi(fixture.Player, qi, "Qi-scaling attack reads the resource without spending it");
             EngineSelfTests.Equal(1, PileType.Discard.GetPile(fixture.Player).Cards.OfType<DuanYuCard>().Count(candidate => candidate.DesignId == "DY_S01"), "high-Qi attack retains its printed status drawback");
         }

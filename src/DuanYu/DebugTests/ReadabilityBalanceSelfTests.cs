@@ -29,6 +29,7 @@ internal static class ReadabilityBalanceSelfTests
                 yield return ("readability:single-primary-and-secondary-damage" + suffix, () => PrimaryAndSecondaryDamage(upgraded));
                 yield return ("readability:qi-x-damage-preview-and-multi-hit" + suffix, () => XDamage(upgraded));
                 yield return ("readability:x-block-preview-and-single-packet" + suffix, () => XBlock(upgraded));
+                yield return ("readability:formatted-live-card-descriptions" + suffix, () => FormattedCardDescriptions(upgraded));
             }
         }
     }
@@ -193,11 +194,54 @@ internal static class ReadabilityBalanceSelfTests
             int expected = resolvedX == 0 ? 0 : frail ? (int)decimal.Floor((raw + 3) * 0.75m) : raw + 3;
             card.DynamicVars["XBlock"].UpdateCardPreview(card, CardPreviewMode.Normal, null, true);
             EngineSelfTests.Equal((decimal)expected, decimal.Floor(card.DynamicVars["XBlock"].PreviewValue), "U37 total preview applies Dexterity and Frail once after scaling by resolved X");
+            string text = System.Text.RegularExpressions.Regex.Replace(card.GetDescriptionForPile(PileType.Hand), @"\[[^\]]*\]", "");
+            EngineSelfTests.Equal(true, text.StartsWith($"获得{expected}点格挡。按手牌顺序消耗至多{resolvedX}张状态牌", StringComparison.Ordinal), "U37 renders the actual block and resolved X in the native hand description: " + text);
             EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "U37 preview does not grant block");
             await BalanceSelfTests.PaidPlay(fixture, card);
             EngineSelfTests.Equal(expected, fixture.Player.Creature.Block, "U37 one combined block packet matches its total preview, including X zero");
             EngineSelfTests.Equal(paidX, card.EnergyCost.CapturedXValue, "U37 captures actual X without Chemical X pretending to spend energy");
         }
+    }
+
+    private static async Task FormattedCardDescriptions(bool upgraded)
+    {
+        static string Render(CardModel card, PileType pile, MegaCrit.Sts2.Core.Entities.Creatures.Creature? target = null)
+        {
+            card.DynamicVars.ClearPreview();
+            card.UpdateDynamicVarPreview(CardPreviewMode.Normal, target, card.DynamicVars);
+            return System.Text.RegularExpressions.Regex.Replace(card.GetDescriptionForPile(pile, target), @"\[[^\]]*\]", "");
+        }
+        var fixture = await EngineSelfTests.ReadyFixture();
+        var guard = EngineSelfTests.AddCard(fixture, "DY_U37", PileType.Hand, upgraded);
+        fixture.Player.PlayerCombatState!.Energy = 3;
+        int coefficient = upgraded ? 6 : 4;
+        EngineSelfTests.Equal(true, Render(guard, PileType.Hand).StartsWith($"获得{3 * coefficient}点格挡。"), "three energy on the hand card");
+        fixture.Player.PlayerCombatState.Energy = 1;
+        EngineSelfTests.Equal(true, Render(guard, PileType.Hand).StartsWith($"获得{coefficient}点格挡。"), "same hand card updates after energy changes");
+        await CardPileCmd.Add(guard, PileType.Discard);
+        EngineSelfTests.Equal(true, Render(guard, PileType.Discard).StartsWith($"获得{coefficient}X点格挡。"), "cards outside the hand keep the formula");
+        EngineSelfTests.Equal(true, DuanYuCard.Canonical("DY_U37").GetDescriptionForPile(PileType.None).StartsWith("获得4X点格挡。"), "canonical entry needs no owner to render X");
+
+        var volley = EngineSelfTests.AddCard(fixture, "DY_R21", PileType.Hand, upgraded);
+        var breathing = EngineSelfTests.AddCard(fixture, "DY_U05", PileType.Hand, upgraded);
+        var draw = EngineSelfTests.AddCard(fixture, "DY_U26", PileType.Hand, upgraded);
+        foreach (var qi in new[] { 0, 3, 5 })
+        {
+            await DuanYuState.LoseQi(fixture.Player, int.MaxValue);
+            await DuanYuState.GainQi(fixture.Player, qi);
+            EngineSelfTests.Equal(true, Render(volley, PileType.Hand, fixture.Enemy).Contains($"剑气伤害{qi}次"), "volley shows its current number of hits");
+            EngineSelfTests.Equal(true, Render(breathing, PileType.Hand).Contains($"当前{qi / 2 + (upgraded ? 2 : 0)}点"), "end-turn block indicates the current prediction");
+            EngineSelfTests.Equal(true, Render(draw, PileType.Hand).StartsWith($"抽{(upgraded ? 3 : 2) + (qi >= 5 ? 1 : 0)}张牌"), "conditional draw shows the current draw count");
+        }
+        var context = new ThrowingPlayerChoiceContext();
+        await PowerCmd.Apply<FrailPower>(context, fixture.Player.Creature, 1, fixture.Enemy, null);
+        await PowerCmd.Apply<DexterityPower>(context, fixture.Player.Creature, 2, fixture.Player.Creature, null);
+        var cleanse = EngineSelfTests.AddCard(fixture, "DY_R16", PileType.Hand, upgraded);
+        fixture.Player.PlayerCombatState.Energy = cleanse.EnergyCost.GetAmountToSpend();
+        EngineSelfTests.Equal(true, Render(cleanse, PileType.Hand).Contains("获得9点格挡"), "cleanse preview removes only Frail before evaluating its block");
+        EngineSelfTests.Equal(1, fixture.Player.Creature.GetPowerAmount<FrailPower>(), "cleanse preview never removes a real debuff");
+        await BalanceSelfTests.PaidPlay(fixture, cleanse);
+        EngineSelfTests.Equal(9, fixture.Player.Creature.Block, "cleanse received the displayed block");
     }
 }
 #endif

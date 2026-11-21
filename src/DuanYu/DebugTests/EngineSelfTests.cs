@@ -112,6 +112,7 @@ internal static class EngineSelfTests
             await RunCase("runtime:lingbo-preview-is-readonly", LingboPreview);
             await RunCase("runtime:lingbo-monster-intent-label", LingboMonsterIntentLabel);
             await RunCase("runtime:sword-bonus-after-enchantment", SwordDamageOrdering);
+            await RunCase("runtime:temporary-sword-damage-skill-reusable", ReusableSwordDamageSkill);
             await RunCase("runtime:wind-block-on-lingbo-gain", WindBlockOnGain);
             await RunCase("runtime:lingbo-footwork-first-three-skills", LingboFootworkLimit);
             await RunCase("runtime:turn-start-clears-old-lingbo", TurnStartLingbo);
@@ -763,6 +764,22 @@ internal static class EngineSelfTests
         var initialHp = fixture.Enemy.CurrentHp;
         await PlayCard(fixture, sword);
         Equal(21, initialHp - fixture.Enemy.CurrentHp, "enchantment and sword bonuses apply once to combined damage");
+    }
+
+    private static async Task ReusableSwordDamageSkill()
+    {
+        foreach (var upgraded in new[] { false, true })
+        {
+            var fixture = await ReadyFixture();
+            var card = await Play(fixture, "DY_U09", upgraded);
+            var bonus = upgraded ? 3 : 2;
+            Equal(PileType.Discard, card.Pile!.Type, "U09 goes to discard after play");
+            Equal(bonus, DuanYuState.Get(fixture.Player).SwordDamage, "U09 grants its printed bonus");
+            await CardPileCmd.Add(card, PileType.Hand);
+            await PlayCard(fixture, card);
+            Equal(PileType.Discard, card.Pile!.Type, "U09 returns to discard after a second play");
+            Equal(bonus * 2, DuanYuState.Get(fixture.Player).SwordDamage, "the same U09 can stack its bonus");
+        }
     }
 
     private static async Task EtherealBeforeRetain()

@@ -162,7 +162,7 @@ public static class DuanYuCardExecutor
                 break;
             }
             case "DY_U07": await Attack(Value(27, 37)); break;
-            case "DY_U08": await Attack((decimal)Value(16, 23) + state.Qi); await GenerateStatus("DY_S01"); break;
+            case "DY_U08": await Attack(card.DynamicVars.CalculationBase.BaseValue); await GenerateStatus("DY_S01"); break;
             case "DY_U09": await DuanYuState.AddSwordDamage(player, Value(2, 3)); break;
             case "DY_U10": await Attack(Value(10, 14), true); await Generate(3, card.IsUpgraded); break;
             case "DY_U11": await Attack(Value(8, 12)); await Block(Value(2, 3)); await Generate(5); break;
@@ -220,8 +220,8 @@ public static class DuanYuCardExecutor
             case "DY_U30": if (target?.Player is { } companion && target.IsAlive) { await Block(Value(4, 6), target); await Draw(1, companion); } break;
             case "DY_U31":
             {
-                bool killed = await DealDamage(card, context, play, Value(13, 19));
-                if (killed) await Qi(1);
+                bool killed = await DealDamage(card, context, play, card.DynamicVars.Damage.BaseValue);
+                if (killed) await Qi(Value(2, 3));
                 break;
             }
             case "DY_U32": await Attack(Value(12, 17)); await Debuff<VulnerablePower>(Value(2, 3)); break;
@@ -381,7 +381,7 @@ public static class DuanYuCardExecutor
         if (all) attack.TargetingAllOpponents(play.Player.Creature.CombatState!);
         else attack.Targeting(target!);
         await attack.Execute(context);
-        return attack.Results.SelectMany(result => result).Any(result => result.WasTargetKilled);
+        return attack.Results.SelectMany(result => result).Any(result => result.Receiver == target && result.WasTargetKilled);
     }
 
     private static bool IsUpgradedSword(CardModel card) => card.IsUpgraded && DuanYuState.IsSword(card);

@@ -124,7 +124,7 @@ internal static class BalanceSelfTests
             EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, id + " grants its exact rebalanced Qi");
             EngineSelfTests.Equal(block, fixture.Player.Creature.Block, id + " retains its printed block");
             EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, id + " pays its actual energy cost");
-            EngineSelfTests.Equal(id == "DY_C10" ? PileType.Exhaust : PileType.Discard, card.Pile!.Type, id + " retains its intended lifecycle");
+            EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, id + " goes to discard after playing");
         }
     }
 

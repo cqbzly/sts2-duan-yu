@@ -9,6 +9,7 @@ using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Relics;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 
 namespace DuanYu.Relics;
@@ -138,10 +139,17 @@ public sealed class WitheredBloomPrayer : DuanYuRelic
 [CustomID("CQBZLY_DY_RELIC08")]
 public sealed class VermilionToadEssence : DuanYuRelic
 {
+    internal static string WardTitle => LocManager.Instance.Language == "eng" ? "Vermilion Toad Essence" : "朱蛤元息";
+    internal static string WardDescription => LocManager.Instance.Language == "eng"
+        ? "Each combat, prevent the first application of Frail, Weak, and Vulnerable to you, once each."
+        : "每场战斗中，分别阻止你第一次受到的脆弱、虚弱和易伤。";
+
     public override int RelicNumber => 8;
     protected override string LocalizationId => "DY_RELIC08";
-    protected override string TitleText => "朱蛤元息";
-    protected override string DescriptionText => "每场战斗中，分别阻止你第一次受到的脆弱、虚弱和易伤。";
-    protected override string FlavorText => "一声蛤鸣，毒与气在体内走过另一条路。";
+    protected override string TitleText => WardTitle;
+    protected override string DescriptionText => WardDescription;
+    protected override string FlavorText => LocManager.Instance.Language == "eng"
+        ? "At a single croak, venom and qi find a different path through the body."
+        : "一声蛤鸣，毒与气在体内走过另一条路。";
     public override RelicRarity Rarity => RelicRarity.Event;
 }

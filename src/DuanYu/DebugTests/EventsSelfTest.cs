@@ -10,6 +10,7 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Hooks;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Runs;
@@ -205,6 +206,14 @@ internal static class EventsSelfTest
         await Hook.BeforeCombatStart(fixture.Run, fixture.Combat);
         var target = fixture.Player.Creature;
         var context = new ThrowingPlayerChoiceContext();
+        var relic = fixture.Player.Relics.OfType<VermilionToadEssence>().Single();
+        var ward = target.GetPower<VermilionWardPower>()!;
+        string rule = relic.DynamicDescription.GetFormattedText();
+        string[] protectedEffects = LocManager.Instance.Language == "eng"
+            ? ["Frail", "Weak", "Vulnerable"] : ["脆弱", "虚弱", "易伤"];
+        Check(protectedEffects.All(effect => rule.Contains(effect)), "toad relic tooltip names all three protected debuffs");
+        Check(ward.Description.GetFormattedText() == rule, "toad power preview matches the relic tooltip");
+        Check(ward.SmartDescription.GetRawText().Contains(rule), "toad in-combat tooltip includes the same protection rule");
         EngineSelfTests.Equal(3, target.GetPowerAmount<VermilionWardPower>(), "toad starts combat with three protections");
 
         await PowerCmd.Apply<PoisonPower>(context, target, 2, fixture.Enemy, null);

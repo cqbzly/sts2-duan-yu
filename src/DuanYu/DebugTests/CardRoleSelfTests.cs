@@ -4,10 +4,12 @@ using DuanYu.Runtime;
 using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Combat.History.Entries;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Factories;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Monsters;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.TestSupport;
 
@@ -27,7 +29,30 @@ internal static class CardRoleSelfTests
                 yield return ("roles:step-draw-and-fixed-lingbo" + suffix, () => StepCycle(upgraded));
                 yield return ("roles:dual-swords-exhaust-retrieval" + suffix, () => ExhaustRetrieval(upgraded));
                 yield return ("roles:continuous-strike-native-replay-draw" + suffix, () => ContinuousStrike(upgraded));
+                yield return ("roles:reserve-strength-fatal-qi" + suffix, () => ReserveStrength(upgraded));
             }
+        }
+    }
+
+    private static async Task ReserveStrength(bool upgraded)
+    {
+        int damage = upgraded ? 13 : 10;
+        int reward = upgraded ? 3 : 2;
+        foreach (bool lethal in new[] { true, false })
+        {
+            var fixture = await EngineSelfTests.ReadyFixture();
+            var survivor = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
+            fixture.Combat.AddCreature(survivor);
+            int otherHp = survivor.CurrentHp;
+            await CreatureCmd.SetCurrentHp(fixture.Enemy, lethal ? damage : damage + 1);
+            var card = EngineSelfTests.AddCard(fixture, "DY_U31", PileType.Hand, upgraded);
+            int initialQi = DuanYuState.Get(fixture.Player).Qi;
+            EngineSelfTests.Equal(TargetType.AnyEnemy, card.TargetType, "reserve strength targets one enemy");
+            EngineSelfTests.Equal((decimal)damage, card.DynamicVars.Damage.BaseValue, "reserve strength printed damage");
+            await BalanceSelfTests.PaidPlay(fixture, card);
+            EngineSelfTests.Equal(lethal ? 0 : 1, fixture.Enemy.CurrentHp, "reserve strength exact lethal threshold");
+            EngineSelfTests.Equal(otherHp, survivor.CurrentHp, "reserve strength leaves the second enemy alone");
+            EngineSelfTests.Equal(initialQi + (lethal ? reward : 0), DuanYuState.Get(fixture.Player).Qi, "only a fatal hit grants the upgraded or base Qi amount");
         }
     }
 

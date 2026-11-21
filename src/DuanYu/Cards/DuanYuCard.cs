@@ -8,6 +8,7 @@ using DuanYu.Character;
 using DuanYu.Runtime;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.HoverTips;
@@ -66,7 +67,7 @@ public abstract class DuanYuCard : CustomCardModel
         {
             if (DesignId == "DY_U08")
             {
-                foreach (var variable in MakeCalculatedDamage(16, (source, _) => source.IsCanonical || source.Owner == null ? 0 : DuanYuState.Get(source.Owner).Qi, 1)) yield return variable;
+                foreach (var variable in MakeCalculatedDamage(Numbers.Damage, (source, _) => source.IsCanonical || source.Owner == null ? 0 : DuanYuState.Get(source.Owner).Qi, 2)) yield return variable;
             }
             else if (Numbers.Damage > 0) yield return new DamageVar(Numbers.Damage, ValueProp.Move);
             if (Numbers.ExtraDamage > 0) yield return new DamageVar("ExtraDamage", Numbers.ExtraDamage, ValueProp.Move);
@@ -81,7 +82,7 @@ public abstract class DuanYuCard : CustomCardModel
     public override IEnumerable<CardKeyword> CanonicalKeywords => DesignId == "DY_S01"
         ? [CardKeyword.Unplayable, CardKeyword.Ethereal]
         : DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? [CardKeyword.Exhaust, CardKeyword.Ethereal]
-        : DesignId is "DY_C22" or "DY_C10" or "DY_U02" or "DY_U09" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R11" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
+        : DesignId is "DY_C22" or "DY_U02" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R11" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
     public override List<(string, string)> Localization => new CardLoc(Definition.Name,
         "{IfUpgraded:show:" + DescriptionText(true) + "|" + DescriptionText(false) + "}",
         ("selectionScreenPrompt", "选择卡牌"), ("qiTipTitle", "真气与耗气"), ("lingboTipTitle", "凌波"), ("swordTipTitle", "六脉剑气"), ("statusTipTitle", "专属状态牌"), ("foreignTipTitle", "外门招式"));
@@ -110,7 +111,7 @@ public abstract class DuanYuCard : CustomCardModel
     protected override void OnUpgrade()
     {
         EnergyCost.UpgradeBy(Definition.Upgrade.Cost - Definition.Cost);
-        if (DesignId == "DY_U08") DynamicVars.CalculationBase.UpgradeValueBy(7);
+        if (DesignId == "DY_U08") DynamicVars["ExtraDamage"].UpgradeValueBy(1);
         else if (Numbers.Damage > 0) DynamicVars.Damage.UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
         if (Numbers.ExtraDamage > 0) DynamicVars["ExtraDamage"].UpgradeValueBy(Numbers.ExtraDamageUp - Numbers.ExtraDamage);
         if (Numbers.Block > 0) DynamicVars.Block.UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
@@ -130,18 +131,36 @@ public abstract class DuanYuCard : CustomCardModel
     }
     private string DescriptionText(bool upgraded)
     {
-        if (DesignId == "DY_U08") return $"造成{{CalculatedDamage:diff()}}点伤害（{(upgraded ? 23 : 16)}+真气）。将1张气滞加入弃牌堆。";
         string result = Clean(upgraded ? Definition.Upgrade.Text : Definition.Text);
         if (QiCost > 0)
         {
             result = result.Replace($"需{QiCost}点真气。", "", StringComparison.Ordinal)
                 .Replace($"需支付{QiCost}点真气。", "", StringComparison.Ordinal);
         }
+        static string Live(string preview, string rule) => "{Live:cond:" + preview + "|" + rule + "}";
         if (DesignId == "DY_U37")
         {
-            int coefficient = upgraded ? Numbers.BlockUp : Numbers.Block;
-            result = result.Replace($"获得{coefficient}点格挡×X", $"获得{{XBlock:diff()}}点格挡（{coefficient}×X）");
+            string formula = (upgraded ? Numbers.BlockUp : Numbers.Block) + "X";
+            return result.Replace(formula, Live("{XBlock:diff()}", formula))
+                .Replace("至多X张", "至多" + Live("{EnergyX}", "X") + "张");
         }
+        if (DesignId == "DY_U08")
+            return Live("造成{CalculatedDamage:diff()}点伤害。将1张气滞加入弃牌堆。", result);
+        if (DesignId == "DY_R21")
+            result = result.Replace("全部真气（X）", "全部真气").Replace("伤害X次", "伤害" + Live("{QiHits}", "X") + "次");
+        if (DesignId == "DY_U05")
+            return result.TrimEnd('。') + Live("，当前{TriggerBlock}点", "") + "。";
+        if (DesignId == "DY_U26")
+        {
+            string rule = $"抽{(upgraded ? 3 : 2)}张牌。至少有5点真气时，再抽1张。";
+            return result.Replace(rule, Live("抽{QiDraw}张牌（真气至少5时多抽1张）。", rule));
+        }
+        if (TriggerBlockAmount(upgraded) is int triggerBlock)
+            result = result.Replace($"获得{triggerBlock}点格挡", $"获得{triggerBlock}点格挡" + Live("（当前{TriggerBlock}点）", ""));
+        if (DesignId == "DY_R16")
+            result = result.Replace("所有状态牌", "所有状态牌" + Live("（{StatusCount}张）", ""));
+        if (DesignId == "DY_R19")
+            result = result.Replace("所有其他手牌", "所有其他手牌" + Live("（{OtherCards}张）", ""));
         if (Numbers.Damage > 0)
         {
             string damage = DesignId == "DY_R21" ? "剑气伤害" : "伤害";
@@ -150,6 +169,50 @@ public abstract class DuanYuCard : CustomCardModel
         if (Numbers.ExtraDamage > 0) result = result.Replace($"造成{(upgraded ? Numbers.ExtraDamageUp : Numbers.ExtraDamage)}点伤害", "造成{ExtraDamage:diff()}点伤害");
         if (Numbers.Block > 0) result = result.Replace($"获得{(upgraded ? Numbers.BlockUp : Numbers.Block)}点格挡", "获得{Block:diff()}点格挡");
         return result;
+    }
+    private int? TriggerBlockAmount(bool upgraded) => DesignId switch
+    {
+        "DY_U23" or "DY_U25" or "DY_R22" => upgraded ? 7 : 5,
+        "DY_U28" => upgraded ? 3 : 2,
+        "DY_R12" => upgraded ? 8 : 6,
+        "DY_R18" => upgraded ? 6 : 4,
+        _ => null
+    };
+
+    protected override void AddExtraArgsToDescription(LocString description)
+    {
+        base.AddExtraArgsToDescription(description);
+        bool live = IsMutable && Owner != null && CombatState != null &&
+            (Pile?.Type is PileType.Hand or PileType.Play || UpgradePreviewType == CardUpgradePreviewType.Combat);
+        description.Add("Live", live);
+        if (!live) return;
+
+        switch (DesignId)
+        {
+            case "DY_U37":
+                description.Add("EnergyX", DuanYuXBlockVar.PreviewX(this));
+                break;
+            case "DY_R21":
+                description.Add("QiHits", Pile?.Type == PileType.Play ? CapturedQiX : RequiredQi);
+                break;
+            case "DY_U26":
+                description.Add("QiDraw", Value(2, 3) + (DuanYuState.Get(Owner!).Qi >= 5 ? 1 : 0));
+                break;
+            case "DY_R16":
+                description.Add("StatusCount", PileType.Hand.GetPile(Owner!).Cards.Count(card => card.Type == CardType.Status));
+                break;
+            case "DY_R19":
+                description.Add("OtherCards", PileType.Hand.GetPile(Owner!).Cards.Count(card => !ReferenceEquals(card, this)));
+                break;
+        }
+        int? rawBlock = DesignId == "DY_U05"
+            ? DuanYuState.Get(Owner!).Qi / 2 + Value(0, 2)
+            : TriggerBlockAmount(IsUpgraded);
+        if (rawBlock.HasValue)
+        {
+            decimal block = Hook.ModifyBlock(CombatState!, Owner!.Creature, rawBlock.Value, ValueProp.Move, null, null, out _);
+            description.Add("TriggerBlock", decimal.Floor(block));
+        }
     }
     private static CardType TypeOf(string type) => type switch { "攻击" => CardType.Attack, "能力" => CardType.Power, "状态" => CardType.Status, _ => CardType.Skill };
     private static CardRarity RarityOf(string rarity) => rarity switch

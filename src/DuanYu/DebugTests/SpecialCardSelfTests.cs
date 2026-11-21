@@ -215,7 +215,7 @@ internal static class SpecialCardSelfTests
         var initialHp = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, attack);
         var statuses = GeneratedCards().OfType<DY_S01>().ToArray();
-        EngineSelfTests.Equal(3 * (upgraded ? 23 : 16), initialHp - fixture.Enemy.CurrentHp, "replayed attack retains native damage for every body");
+        EngineSelfTests.Equal(3 * 16, initialHp - fixture.Enemy.CurrentHp, "replayed attack at zero Qi deals 16 damage for every body");
         EngineSelfTests.Equal(3, statuses.Length, "every completed attack body creates one stagnation");
         EngineSelfTests.Equal(true, statuses.All(status => status.Pile?.Type == PileType.Discard), "attack statuses enter discard");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "creating stagnation does not immediately lose Qi");
