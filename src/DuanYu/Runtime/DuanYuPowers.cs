@@ -44,15 +44,41 @@ public sealed class QiBladePower : DuanYuPower
 [CustomID("CQBZLY_DY_VERMILION_WARD")]
 public sealed class VermilionWardPower : DuanYuPower
 {
-    public override List<(string, string)> Localization => new PowerLoc("朱蛤元息", "阻止本场战斗下一次虚弱或中毒的施加。", "阻止本场战斗下一次虚弱或中毒的施加。");
+    [Flags]
+    private enum Debuff
+    {
+        None = 0,
+        Frail = 1,
+        Weak = 2,
+        Vulnerable = 4
+    }
+
+    private Debuff _blocked;
+
+    public override List<(string, string)> Localization => new PowerLoc("朱蛤元息",
+        "本场战斗中，分别阻止你第一次受到的脆弱、虚弱和易伤。",
+        "本场战斗中，分别阻止你第一次受到的脆弱、虚弱和易伤。剩余{Amount}种保护。");
+
     public override bool TryModifyPowerAmountReceived(PowerModel canonicalPower, Creature target, decimal amount, Creature? applier, out decimal modifiedAmount)
     {
         modifiedAmount = amount;
-        if (target != Owner || amount <= 0 || canonicalPower is not (WeakPower or PoisonPower)) return false;
+        if (target != Owner || amount <= 0) return false;
+        Debuff debuff = canonicalPower switch
+        {
+            FrailPower => Debuff.Frail,
+            WeakPower => Debuff.Weak,
+            VulnerablePower => Debuff.Vulnerable,
+            _ => Debuff.None
+        };
+        if (debuff == Debuff.None || (_blocked & debuff) != Debuff.None || target.GetPowerAmount<ArtifactPower>() > 0)
+            return false;
+
+        _blocked |= debuff;
         modifiedAmount = 0;
         return true;
     }
-    public override Task AfterModifyingPowerAmountReceived(PowerModel power) => PowerCmd.Remove(this);
+
+    public override Task AfterModifyingPowerAmountReceived(PowerModel power) => PowerCmd.Decrement(this);
 }
 
 [CustomID("CQBZLY_DY_SWORD_MOMENTUM")]
@@ -149,7 +175,7 @@ public sealed class SixPulseUnityPower : DuanYuEffectPower
 public sealed class YijingPower : DuanYuEffectPower
 {
     protected override string Title => "易经心法";
-    protected override string Rule => "回合开始时获得{Amount}点格挡；至少有5点真气时，每份已打出的易经心法再获得1层凌波。";
+    protected override string Rule => "每回合开始时获得{Amount}点格挡。若有至少5点真气，每份已打出的易经心法再获得1层凌波。";
 }
 [CustomID("CQBZLY_DY_POWER_R15")]
 public sealed class GuardSimplicityPower : DuanYuEffectPower

@@ -23,7 +23,7 @@ internal static class CardRoleSelfTests
             {
                 string suffix = upgraded ? "+" : "";
                 yield return ("roles:borrow-draw-then-discard" + suffix, () => BorrowCycle(upgraded));
-                yield return ("roles:breath-draw-and-reduced-qi" + suffix, () => BreathCycle(upgraded));
+                yield return ("roles:breath-draw-and-fixed-qi" + suffix, () => BreathCycle(upgraded));
                 yield return ("roles:step-draw-and-fixed-lingbo" + suffix, () => StepCycle(upgraded));
                 yield return ("roles:dual-swords-exhaust-retrieval" + suffix, () => ExhaustRetrieval(upgraded));
                 yield return ("roles:continuous-strike-native-replay-draw" + suffix, () => ContinuousStrike(upgraded));
@@ -68,8 +68,8 @@ internal static class CardRoleSelfTests
         var fixture = await Ready();
         var source = EngineSelfTests.AddCard(fixture, "DY_C09", PileType.Hand, upgraded);
         await BalanceSelfTests.PaidPlay(fixture, source);
-        EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "breath always draws exactly one card");
-        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(fixture.Player).Qi, "breath grants only its reduced printed Qi");
+        EngineSelfTests.Equal(upgraded ? 2 : 1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "breath draws one more card when upgraded");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "breath grants exactly two Qi at either upgrade level");
         EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "breath no longer repeats the starting block skill");
         EngineSelfTests.Equal(false, source.GainsBlock, "breath no longer advertises block to engine hooks");
         EngineSelfTests.Equal(PileType.Discard, source.Pile!.Type, "breath remains reusable");

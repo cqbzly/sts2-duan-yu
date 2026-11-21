@@ -125,6 +125,7 @@ internal static class FullRunPolicy
         var state = DuanYuState.Get(player);
         var qi = availableQi ?? state.Qi;
         var exhaustTargets = ExhaustTargets(duanYuCard, player, combat);
+        var exhaustsStatusWithReverseMeridian = duanYuCard.DesignId == "DY_U06" && exhaustTargets.Any(removed => removed.Type == CardType.Status);
         var removedEndTurnDamage = exhaustTargets.Sum(removed => HandEndDamage(removed, player, combat));
         var incoming = Math.Max(0, IncomingDamage(player, combat) - removedEndTurnDamage);
         var incomingAfterFacing = Math.Max(0, IncomingDamage(player, combat, target) - removedEndTurnDamage);
@@ -152,6 +153,7 @@ internal static class FullRunPolicy
             block += Math.Min(availableLingbo, state.Effects.Where(effect => effect.CardId == "DY_R02").Sum(effect => effect.Amount)) * DuanYuState.LingboReduction;
         var gainQi = QiGain(duanYuCard);
         gainQi += statusFuel;
+        if (exhaustsStatusWithReverseMeridian) gainQi++;
         if (duanYuCard.DesignId == "DY_U35") gainQi += exhaustTargets.Length;
         if (duanYuCard.DesignId == "DY_R16") gainQi += exhaustTargets.Length * 2;
         if (spendsQi && state.SpendingCount == 1) gainQi += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.Amount);
@@ -196,6 +198,7 @@ internal static class FullRunPolicy
         score += gainQi * (waitingSpender ? 4.5 : qi < 5 ? 1.5 : 0.35);
         if (card.Type == CardType.Skill && state.SkillsPlayed == 0 && qi < 9) score += 1.5;
         var draws = DrawAmount(duanYuCard);
+        if (exhaustsStatusWithReverseMeridian) draws++;
         if (duanYuCard.DesignId == "DY_C17" && qi < 1 || duanYuCard.DesignId == "DY_U16" && state.SwordPlays == 0) draws = 0;
         if (duanYuCard.DesignId == "DY_C20" && target?.GetPowerAmount<WeakPower>() > 0) draws = 1;
         if (duanYuCard.DesignId == "DY_U26" && qi >= 5) draws++;
@@ -233,7 +236,7 @@ internal static class FullRunPolicy
         if (duanYuCard.DesignId == "DY_U25") score += 4;
         if (duanYuCard.DesignId == "DY_U34") score += 3;
         if (duanYuCard.DesignId == "DY_C16") score += 2;
-        if (duanYuCard.DesignId == "DY_R16") score += player.Creature.GetPowerAmount<PoisonPower>() * 2;
+        if (duanYuCard.DesignId == "DY_R16") score += player.Creature.GetPowerAmount<VulnerablePower>() * 2;
         if (duanYuCard.DesignId == "DY_U08") score -= 2;
         return score / Math.Max(1, cost);
     }
@@ -584,7 +587,7 @@ internal static class FullRunPolicy
             generated.Owner = player;
             if (source.IsUpgraded) generated.UpgradeInternal();
             generated.EnergyCost.SetThisTurnOrUntilPlayed(0);
-            generated.AddKeyword(CardKeyword.Exhaust);
+            if (source.DesignId == "DY_U36") generated.AddKeyword(CardKeyword.Exhaust);
             return Targets(generated, player, combat).Where(generated.IsValidTarget)
                 .Select(target => Math.Max(0, GenericCombatValue(generated, target, player, combat))).DefaultIfEmpty(0).Max();
         });
@@ -625,8 +628,7 @@ internal static class FullRunPolicy
     private static int QiGain(DuanYuCard card) => card.DesignId switch
     {
         "DY_B03" => card.Value(3, 4),
-        "DY_C01" or "DY_U01" => 2,
-        "DY_C09" => 3,
+        "DY_C01" or "DY_C09" or "DY_U01" => 2,
         "DY_C19" or "DY_C21" or "DY_C22" => 1,
         "DY_C10" => card.IsUpgraded ? 3 : 2,
         "DY_C16" => 0,
@@ -635,7 +637,7 @@ internal static class FullRunPolicy
         "DY_U04" => card.IsUpgraded ? 4 : 3,
         "DY_U09" => card.IsUpgraded ? 2 : 1,
         "DY_U22" => 1,
-        "DY_U06" or "DY_U26" or "DY_U38" => card.Value(2, 3),
+        "DY_U26" or "DY_U38" => card.Value(2, 3),
         "DY_R14" => card.Value(3, 4),
         "DY_S02" => 3,
         "DY_U10" => 1,
@@ -647,9 +649,9 @@ internal static class FullRunPolicy
     private static int LingboGain(DuanYuCard card) => card.DesignId switch
     {
         "DY_B04" or "DY_U34" => 1,
-        "DY_C11" or "DY_C12" or "DY_U18" or "DY_U19" or "DY_U25" => card.IsUpgraded ? 2 : 1,
+        "DY_C11" or "DY_C12" or "DY_U18" or "DY_U19" => card.IsUpgraded ? 2 : 1,
         "DY_U21" => 2,
-        "DY_R11" => card.Value(2, 3),
+        "DY_U25" or "DY_R11" => card.Value(2, 3),
         _ => 0
     };
 
@@ -658,8 +660,8 @@ internal static class FullRunPolicy
         "DY_C08" or "DY_C13" or "DY_U16" or "DY_U30" or "DY_T05" or "DY_S02" => 1,
         "DY_C17" or "DY_U21" => card.IsUpgraded ? 2 : 1,
         "DY_U24" => 2,
-        "DY_C14" or "DY_U26" or "DY_R04" => card.IsUpgraded ? 3 : 2,
-        "DY_U06" or "DY_R14" => card.IsUpgraded ? 4 : 3,
+        "DY_C14" or "DY_U06" or "DY_U26" or "DY_R04" => card.IsUpgraded ? 3 : 2,
+        "DY_R14" => card.IsUpgraded ? 4 : 3,
         _ => 0
     };
 

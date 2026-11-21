@@ -25,13 +25,16 @@ using MegaCrit.Sts2.Core.Models.Encounters.Mocks;
 using MegaCrit.Sts2.Core.Models.Enchantments;
 using MegaCrit.Sts2.Core.Models.Monsters;
 using MegaCrit.Sts2.Core.Models.Powers;
+using MegaCrit.Sts2.Core.MonsterMoves.Intents;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.TestSupport;
 using MegaCrit.Sts2.Core.Unlocks;
 using MegaCrit.Sts2.Core.ValueProps;
+using MegaCrit.Sts2.addons.mega_text;
 using File = System.IO.File;
 
 namespace DuanYu.DebugTests;
@@ -107,6 +110,7 @@ internal static class EngineSelfTests
             await RunCase("runtime:lingbo-zero-and-non-attack", LingboNonAttacks);
             await RunCase("runtime:lingbo-cap-only-new-hit", LingboCapOnlyHit);
             await RunCase("runtime:lingbo-preview-is-readonly", LingboPreview);
+            await RunCase("runtime:lingbo-monster-intent-label", LingboMonsterIntentLabel);
             await RunCase("runtime:sword-bonus-after-enchantment", SwordDamageOrdering);
             await RunCase("runtime:wind-block-on-lingbo-gain", WindBlockOnGain);
             await RunCase("runtime:lingbo-footwork-first-three-skills", LingboFootworkLimit);
@@ -115,6 +119,7 @@ internal static class EngineSelfTests
             await RunCase("runtime:ethereal-precedes-retain", EtherealBeforeRetain);
             await RunCase("runtime:run-history-save-roundtrip", HistoryRoundTrip);
             await RunCase("events:engine-boundaries", EventsSelfTest.Run);
+            await RunCase("relic:toad-independent-debuff-protection", EventsSelfTest.CheckToadProtection);
             await RunCase("ascension:a10-rules", AscensionSelfTests.Run);
             foreach (var test in BalanceSelfTests.Cases) await RunCase(test.Name, test.Action);
             foreach (var test in SpecialCardSelfTests.Cases) await RunCase(test.Name, test.Action);
@@ -697,6 +702,55 @@ internal static class EngineSelfTests
         Equal(2, DuanYuState.Get(fixture.Player).Lingbo, "real damage also preserves every layer");
     }
 
+    private static async Task LingboMonsterIntentLabel()
+    {
+        foreach (var upgraded in new[] { false, true })
+        {
+            var fixture = await ReadyFixture();
+            var creature = fixture.Player.Creature;
+            var targets = new[] { creature };
+            var singleAttack = new SingleAttackIntent(9);
+            var multiAttack = new MultiAttackIntent(9, 2);
+            var intents = new AbstractIntent[] { singleAttack, multiAttack };
+            using var container = new Control();
+            using var singleNode = NIntent.Create(0);
+            using var multiNode = NIntent.Create(0);
+            container.AddChild(singleNode);
+            container.AddChild(multiNode);
+            singleNode._Ready();
+            multiNode._Ready();
+            singleNode.UpdateIntent(singleAttack, targets, fixture.Enemy);
+            multiNode.UpdateIntent(multiAttack, targets, fixture.Enemy);
+            singleNode.SetFrozen(true);
+            multiNode.SetFrozen(true);
+            var singleLabel = singleNode.GetNode<MegaRichTextLabel>("%Value");
+            var multiLabel = multiNode.GetNode<MegaRichTextLabel>("%Value");
+            Equal("9", singleLabel.Text, "native overhead label before Lingbo");
+            var baselineMultiLabel = multiLabel.Text;
+
+            fixture.Player.PlayerCombatState!.Energy = 1;
+            await PaidPlay(fixture, "DY_U25", upgraded);
+            Equal(0, fixture.Player.PlayerCombatState.Energy, "Retreat Half a Step costs one energy");
+            var layers = upgraded ? 3 : 2;
+            Equal(layers, creature.GetPowerAmount<LingboPower>(), "Retreat Half a Step grants its Lingbo immediately");
+            DuanYuAttackIntents.RefreshLabels(container, intents);
+            Equal((9 - layers).ToString(), singleLabel.Text, "native overhead label includes Lingbo");
+            Equal(baselineMultiLabel.Replace("9", (9 - layers).ToString(), StringComparison.Ordinal),
+                multiLabel.Text, "native multi-attack label includes Lingbo per hit");
+            var initialHp = creature.CurrentHp;
+            for (var hit = 0; hit < 2; hit++)
+                await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), creature, 9, ValueProp.Move, fixture.Enemy);
+            Equal(2 * (9 - layers), initialHp - creature.CurrentHp, "actual multi-hit damage matches the intent");
+
+            await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, targets);
+            await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, new ThrowingPlayerChoiceContext());
+            Equal(upgraded ? 7 : 5, creature.Block, "Retreat Half a Step grants block on the next turn");
+            DuanYuAttackIntents.RefreshLabels(container, intents);
+            Equal("9", singleLabel.Text, "overhead label restores damage after Lingbo expires");
+            Equal(baselineMultiLabel, multiLabel.Text, "multi-attack label restores damage after Lingbo expires");
+        }
+    }
+
     private static async Task SwordDamageOrdering()
     {
         var fixture = await ReadyFixture();
@@ -747,16 +801,34 @@ internal static class EngineSelfTests
 
     private static async Task TurnStartLingbo()
     {
-        var fixture = await ReadyFixture();
-        await Play(fixture, "DY_R12");
-        await DuanYuState.GainQi(fixture.Player, 9);
-        await DuanYuState.GainLingbo(fixture.Player, 3);
-        await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
-        Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "old Lingbo cleared first");
-        fixture.Player.Creature.LoseBlockInternal(fixture.Player.Creature.Block);
-        await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, new ThrowingPlayerChoiceContext());
-        Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "new Lingbo survives reset");
-        Equal(6, fixture.Player.Creature.Block, "new block survives old block cleanup");
+        foreach (var upgraded in new[] { false, true })
+        {
+            var fixture = await ReadyFixture();
+            var creature = fixture.Player.Creature;
+            var block = upgraded ? 8 : 6;
+            await SetQi(fixture, 5);
+            var card = await Play(fixture, "DY_R12", upgraded);
+            Equal(false, card.GainsBlock, "Yijing does not count as a card that grants block on play");
+            Equal(0, creature.Block, "Yijing does not grant block on play");
+            Equal(0, creature.GetPowerAmount<LingboPower>(), "Yijing does not grant Lingbo on play");
+
+            await DuanYuState.GainLingbo(fixture.Player, 3);
+            await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [creature]);
+            Equal(0, DuanYuState.Get(fixture.Player).Lingbo, "old Lingbo cleared first");
+            var context = new ThrowingPlayerChoiceContext();
+            await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, context);
+            Equal(block, creature.Block, "Yijing grants block at the start of the next turn");
+            Equal(1, creature.GetPowerAmount<LingboPower>(), "Yijing grants Lingbo with exactly five Qi");
+            await CreatureCmd.Damage(context, creature, 6, ValueProp.Move, fixture.Enemy);
+            Equal(block - 5, creature.Block, "Yijing's Lingbo reduces the six-damage hit by one before block");
+
+            await SetQi(fixture, 4);
+            await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [creature]);
+            creature.LoseBlockInternal(creature.Block);
+            await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, context);
+            Equal(block, creature.Block, "Yijing grants block on later turns even with less than five Qi");
+            Equal(0, creature.GetPowerAmount<LingboPower>(), "Yijing does not grant Lingbo below five Qi");
+        }
     }
 
     private static async Task SwordOverflow()

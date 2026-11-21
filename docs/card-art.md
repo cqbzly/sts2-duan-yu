@@ -20,8 +20,8 @@ v0.1.1将86种卡牌从通用符号升级为按牌名和效果组织的原创矢
 .\scripts\render-promo.ps1
 ```
 
-第一条命令加载115项纹理/场景，并导出86份PNG与SVG，验证尺寸及源图唯一性。第二条命令直接使用导出的游戏卡图生成工坊封面`assets/workshop-preview.png`与精选画册`assets/card-gallery.png`，检查文字区域溢出与封面体积。
+第一条命令加载纹理和场景，并导出 PNG 与 SVG，验证尺寸及源图唯一性。第二条命令使用导出的游戏卡图生成精选画册 `assets/card-gallery.png`，并检查文字区域溢出。
 
 ![卡面精选](../assets/card-gallery.png)
 
-画册用于展示，卡框是宣传排版；游戏内使用宿主原生卡框。美术由仓库中的可复现绘图代码生成，不含影视截图、第三方角色肖像或远程下载素材。
+画册使用项目绘制的游戏卡图和宣传卡框，游戏内使用原生卡框。README 横幅和工坊方形封面取景自南宋马麟的《Landscape with Flying Geese》，采用书法题字和朱印排版。两张封面独立维护。[原作与 CC0 授权](https://www.clevelandart.org/art/1952.285)

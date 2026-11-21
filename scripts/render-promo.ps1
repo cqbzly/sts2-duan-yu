@@ -58,26 +58,6 @@ function Draw-Line($Graphics, $Color, [float]$Width, [int]$Left, [int]$Top, [int
     finally { $pen.Dispose() }
 }
 
-$cover = New-Canvas 1024 1024
-try {
-    Draw-Image $cover.Graphics 'DY_R03' 0 250 1024 778
-    $fadeRectangle = New-Object System.Drawing.Rectangle(0, 240, 1024, 450)
-    $fade = New-Object System.Drawing.Drawing2D.LinearGradientBrush($fadeRectangle, $ink, [System.Drawing.Color]::Transparent, [System.Drawing.Drawing2D.LinearGradientMode]::Vertical)
-    try { $cover.Graphics.FillRectangle($fade, $fadeRectangle) } finally { $fade.Dispose() }
-    Draw-Fill $cover.Graphics ([System.Drawing.Color]::FromArgb(225, $ink)) 0 855 1024 169
-    Draw-Line $cover.Graphics $gold 2 64 64 960 64
-    Draw-Text $cover.Graphics 'DUAN YU  /  CHARACTER MOD' 23 $gold 68 88 890 44
-    Draw-Text $cover.Graphics '大理世子' 42 $muted 65 153 700 66 -Serif
-    Draw-Text $cover.Graphics '段 誉' 146 $paper 55 214 850 190 -Serif
-    Draw-Text $cover.Graphics '北冥积气 · 凌波游身 · 六脉破局' 31 $paper 68 421 890 55
-    Draw-Fill $cover.Graphics ([System.Drawing.ColorTranslator]::FromHtml('#943F38')) 832 177 115 115
-    Draw-Text $cover.Graphics '六脉' 40 $paper 845 196 100 80 -Serif
-    Draw-Text $cover.Graphics "$($design.cards.Count) 种卡牌    9 件遗物    2 个事件" 30 $paper 67 882 900 57
-    Draw-Text $cover.Graphics "v$($design.version)  /  public-beta  /  cqbzly" 21 $muted 69 949 900 40
-    $cover.Bitmap.Save((Join-Path $outputDirectory 'workshop-preview.png'), [System.Drawing.Imaging.ImageFormat]::Png)
-}
-finally { $cover.Graphics.Dispose(); $cover.Bitmap.Dispose() }
-
 $gallery = New-Canvas 1576 1810
 try {
     Draw-Text $gallery.Graphics '大理世子 · 段誉' 52 $paper 62 42 1400 80 -Serif
@@ -108,6 +88,4 @@ try {
 }
 finally { $gallery.Graphics.Dispose(); $gallery.Bitmap.Dispose() }
 
-$coverInfo = Get-Item -LiteralPath (Join-Path $outputDirectory 'workshop-preview.png')
-if ($coverInfo.Length -ge 1000000) { throw 'Workshop cover exceeds 1 MB.' }
-Write-Output "Created assets/workshop-preview.png ($($coverInfo.Length) bytes) and assets/card-gallery.png."
+Write-Output 'Created assets/card-gallery.png.'

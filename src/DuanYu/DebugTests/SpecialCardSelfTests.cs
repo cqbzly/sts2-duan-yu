@@ -187,8 +187,8 @@ internal static class SpecialCardSelfTests
         using var scope = RunManager.Instance.CardSelectorStack.PushSelector(fixture.Player, new CountSelector(1));
         await PaidPlay(fixture, card);
         EngineSelfTests.Equal(PileType.Exhaust, status.Pile!.Type, "meditation can consume a custom status");
-        EngineSelfTests.Equal(4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "meditation draws its base cards plus one status-fuel card");
-        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "meditation combines base Qi and status-fuel Qi");
+        EngineSelfTests.Equal(3, PileType.Hand.GetPile(fixture.Player).Cards.Count, "meditation draws its base cards plus one status-fuel card");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "meditation's status bonus stacks with the power's custom-status bonus");
     }
 
     private static async Task DiscardStatusRetrieval()
@@ -280,13 +280,20 @@ internal static class SpecialCardSelfTests
         await SetQi(fixture, 0);
         fixture.Player.PlayerCombatState!.Energy = 1;
         var borrowing = EngineSelfTests.AddCard(fixture, "DY_U27", PileType.Hand, upgraded);
-        EngineSelfTests.Equal(true, borrowing.GetDescriptionForPile(PileType.Hand).Contains("具有消耗", StringComparison.Ordinal), "borrowed attacks keep their exhaust instruction in rendered descriptions");
+        EngineSelfTests.Equal(false, borrowing.GetDescriptionForPile(PileType.Hand).Contains("具有消耗", StringComparison.Ordinal), "the source card does not advertise added Exhaust on borrowed attacks");
         await PaidPlay(fixture, borrowing);
         var generated = GeneratedCards();
         var attacks = generated.Where(card => card.Type == CardType.Attack).ToArray();
         EngineSelfTests.Equal(2, attacks.Length, "borrowing produces exactly two native attacks");
         EngineSelfTests.Equal(2, attacks.Select(card => card.Id).Distinct().Count(), "borrowed pair has different attacks");
         EngineSelfTests.Equal(true, attacks.All(card => card.IsUpgraded == upgraded && card.Pile?.Type == PileType.Hand), "borrowing preserves generated upgrade tier");
+        foreach (var attack in attacks)
+        {
+            var nativeCopy = fixture.Combat.CreateCard(attack.CanonicalInstance, fixture.Player);
+            if (upgraded) CardCmd.Upgrade(nativeCopy);
+            EngineSelfTests.Equal(nativeCopy.Keywords.Contains(CardKeyword.Exhaust), attack.Keywords.Contains(CardKeyword.Exhaust),
+                "Beiming Borrow preserves the native Exhaust keyword without adding it");
+        }
         EngineSelfTests.Equal(1, generated.OfType<DY_S02>().Count(status => status.Pile?.Type == PileType.Discard), "borrowing adds one foreign-Qi status to discard");
         EngineSelfTests.Equal(PileType.Exhaust, borrowing.Pile!.Type, "borrowing source exhausts");
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "borrowing pays its energy without a starter relic refund");
@@ -302,7 +309,8 @@ internal static class SpecialCardSelfTests
         var borrowing = EngineSelfTests.AddCard(fixture, "DY_U36", PileType.Hand, upgraded);
         await PaidPlay(fixture, borrowing);
         var generated = GeneratedCards();
-        EngineSelfTests.Equal(1, generated.Count(card => card.Type == CardType.Attack), "secondary borrow generates one native attack");
+        var attack = generated.Single(card => card.Type == CardType.Attack);
+        EngineSelfTests.Equal(true, attack.Keywords.Contains(CardKeyword.Exhaust), "secondary borrow still adds Exhaust to the generated attack");
         EngineSelfTests.Equal(1, generated.OfType<DY_S02>().Count(card => card.Pile?.Type == PileType.Hand), "secondary borrow leaves one foreign-Qi status in hand");
         EngineSelfTests.Equal(upgraded ? 17 : 12, fixture.Enemy.MaxHp - fixture.Enemy.CurrentHp, "secondary borrow deals its printed attack damage");
         EngineSelfTests.Equal(PileType.Discard, borrowing.Pile!.Type, "secondary borrow card goes to discard");
@@ -474,9 +482,22 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(PileType.Exhaust, fuel.Pile!.Type, "active meditation exhausts a native unplayable Wither");
         EngineSelfTests.Equal(1, ExhaustCount(fuel), "active meditation consumes fuel once");
         EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "active meditation remains reusable");
-        EngineSelfTests.Equal(upgraded ? 5 : 4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "active meditation draws its base cards plus one native status-fuel card");
-        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(fixture.Player).Qi, "active meditation grants its fixed Qi");
+        EngineSelfTests.Equal(upgraded ? 4 : 3, PileType.Hand.GetPile(fixture.Player).Cards.Count, "active meditation draws its base cards plus one native status-fuel card");
+        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).Qi, "active meditation grants one Qi for a native status at either upgrade level");
         EngineSelfTests.Equal(3, fixture.Player.Creature.Block, "active fuel triggers exhaust power once");
+
+        foreach (bool hasFuel in new[] { true, false })
+        {
+            var ordinary = await ReadyFixture();
+            await SetQi(ordinary, 0);
+            var otherCard = hasFuel ? EngineSelfTests.AddCard(ordinary, "DY_B01", PileType.Hand) : null;
+            var source = EngineSelfTests.AddCard(ordinary, "DY_U06", PileType.Hand, upgraded);
+            await PaidPlay(ordinary, source);
+            if (otherCard != null)
+                EngineSelfTests.Equal(PileType.Exhaust, otherCard.Pile!.Type, "active meditation can exhaust an ordinary card");
+            EngineSelfTests.Equal(upgraded ? 3 : 2, PileType.Hand.GetPile(ordinary.Player).Cards.Count, "active meditation draws its base amount without status fuel");
+            EngineSelfTests.Equal(0, DuanYuState.Get(ordinary.Player).Qi, "active meditation grants no Qi without status fuel");
+        }
     }
 
     private static async Task SelectiveExhaust(bool upgraded)
@@ -536,6 +557,7 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.AddCard(fixture, "DY_B01", PileType.Hand);
         await PowerCmd.Apply<WeakPower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 2, fixture.Enemy, null);
         await PowerCmd.Apply<FrailPower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 2, fixture.Enemy, null);
+        await PowerCmd.Apply<VulnerablePower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 3, fixture.Enemy, null);
         await PowerCmd.Apply<PoisonPower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 2, fixture.Enemy, null);
         var card = EngineSelfTests.AddCard(fixture, "DY_R16", PileType.Hand, upgraded);
         await PaidPlay(fixture, card);
@@ -543,7 +565,10 @@ internal static class SpecialCardSelfTests
         EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).Qi, "cleanse grants one Qi per status plus custom-status exhaust rewards");
         EngineSelfTests.Equal(4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "cleanse draws three and preserves the non-status card");
         EngineSelfTests.Equal(16, fixture.Player.Creature.Block, "cleanse removes Frail before base block and three status exhaust triggers");
-        EngineSelfTests.Equal(0, fixture.Player.Creature.GetPowerAmount<WeakPower>() + fixture.Player.Creature.GetPowerAmount<FrailPower>() + fixture.Player.Creature.GetPowerAmount<PoisonPower>(), "cleanse removes all three native debuffs");
+        EngineSelfTests.Equal(0, fixture.Player.Creature.GetPowerAmount<FrailPower>(), "cleanse removes Frail");
+        EngineSelfTests.Equal(0, fixture.Player.Creature.GetPowerAmount<WeakPower>(), "cleanse removes Weak");
+        EngineSelfTests.Equal(0, fixture.Player.Creature.GetPowerAmount<VulnerablePower>(), "cleanse removes Vulnerable");
+        EngineSelfTests.Equal(2, fixture.Player.Creature.GetPowerAmount<PoisonPower>(), "cleanse preserves unrelated Poison");
         EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "cleanse itself goes to discard");
     }
 

@@ -2,19 +2,19 @@
 
 本文记录段誉模组在本机环境中的实际证据、兼容边界和发布前条件。它不把“能编译”或“能启动”扩大解释为所有第三方模组组合都兼容。
 
-## 当前版本入口
+## 已发布版本
 
-v0.5.14调整六脉齐发的真气X费用，以及北冥神功、守拙、无相之境和临风独立。本轮96张卡牌与图鉴校验、24/24项规则测试、464/464项真实游戏引擎回归、128/128项资源加载检查通过；Debug与Release构建均0警告、0错误。详见[当前验证](runtime-verification.md)。本版未以自动策略采样推断胜率，历史完整通关记录不外推当前胜率。
+v0.5.21 的六脉齐发按所付真气逐段结算伤害。该版通过 96 张牌及图鉴校验、24 项规则测试、464 项游戏引擎回归和 128 项资源检查。[更新记录](releases/v0.5.21.md) · [引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.21/v0521-final-engine-tests.json)
 
 主动消耗、状态牌与外门借招的回归不扩大为远程多人或任意第三方组合兼容。Godot RID/ObjectDB/resources退出回收告警与引擎断言分开记录。
 
-版本源码见 [GitHub 仓库](https://github.com/cqbzly/sts2-duan-yu)；v0.5.14继续使用已有的公开 [Steam工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。订阅回装和任意第三方模组组合仍需单独验证。下文保留旧版本环境和发布时的历史记录，其中旧版测试数量、未完成完整通关的陈述和旧安装包路径只适用于当时版本。
+玩家可通过 [GitHub Release](https://github.com/cqbzly/sts2-duan-yu/releases/latest) 或 [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260) 安装发布版。订阅回装和第三方模组组合需要分别验证。
 
 ## 已验证环境
 
 目标环境为 Windows Steam 版《杀戮尖塔2》`v0.113.1 public-beta`，release commit `d09d48e5`，Steam App ID `2868840`。段誉清单要求 BaseLib `3.4.8`，模组 ID 为 `CQBZLY_DUAN_YU`，程序集文件名必须是 `CQBZLY_DUAN_YU.dll`。
 
-以下列出本轮检查及明确标注的历史结果：
+v0.5.21 发布检查与历史结果如下。
 
 | 检查 | 实际结果 | 范围和限制 |
 | --- | --- | --- |
@@ -23,10 +23,10 @@ v0.5.14调整六脉齐发的真气X费用，以及北冥神功、守拙、无相
 | 规则单元测试 | 24/24通过 | 真气、凌波、状态和关键触发规则；不替代宿主引擎回归。 |
 | Release 构建 | 0警告、0错误 | 生成 `CQBZLY_DUAN_YU.dll`；不等于 Steam 上传成功。 |
 | 隔离游戏启动 | 历史通过 | 只加载 BaseLib、Compatibility Helper 和段誉；模组初始化、角色注册、主菜单加载成功。 |
-| 引擎内 Debug 自测 | 464/464通过，0失败，退出码0 | 96张卡牌基础/升级执行、关键资源机制、图鉴、奖励过滤、事件边界、抽弃牌与剑气回收，新增真气X费用和五张牌调整的边界回归；报告见当前验证。 |
+| 引擎内 Debug 自测 | 464/464 通过，0 失败 | 96 张卡牌基础及升级执行、关键资源机制、图鉴、奖励过滤、事件边界和六脉齐发逐段伤害。 |
 | 人工 UI 冒烟 | 历史通过 | 在隔离副本中成功选择段誉并完成首战，随后获得段誉卡牌；没有覆盖完整通关。 |
 
-本轮报告见[v0.5.14 最终引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.14/v0514-balance-engine-tests.json)。测试副本只加载BaseLib、Compatibility Helper和段誉。引擎退出时仍出现Godot RID/ObjectDB/resources资源回收提示，尚未完成泄漏归因，不能据此判定段誉卡牌断言失败，也不能声称日志无异常。128项资源加载检查通过。
+测试副本加载 BaseLib、Compatibility Helper 和段誉。引擎退出时出现 Godot RID/ObjectDB/resources 回收提示，归因仍待验证。
 
 ## 本机已安装模组
 
@@ -60,7 +60,7 @@ v0.5.14调整六脉齐发的真气X费用，以及北冥神功、守拙、无相
 .\scripts\package.ps1 -Configuration Release -SkipBuild
 ```
 
-`dist/DuanYu-0.5.14.zip` 内含：
+`dist/DuanYu-<版本号>.zip` 包含以下文件。
 
 ```text
 DuanYu/CQBZLY_DUAN_YU.dll
@@ -72,7 +72,7 @@ CHEAT-SHEET.md
 安装包另由`scripts/prepare-workshop.ps1`生成 Steam Workshop 工作区：
 
 ```text
-workshop-workspace/
+dist/workshop/
   content/
     CQBZLY_DUAN_YU.dll
     DuanYu.json
@@ -80,12 +80,10 @@ workshop-workspace/
   image.png
 ```
 
-`workshop/workshop.json`已提供中文说明、public可见性与BaseLib工坊项目数字ID；脚本同步`DuanYu.json`中的版本信息。封面为项目生成的`assets/workshop-preview.png`，小于1MB。上传器来源、执行命令和条目更新方式见[上传说明](workshop-upload.md)，本版内容和验证结果见[版本记录](releases/v0.5.14.md)。
+`workshop/workshop.json` 保存中文简介、可见性和 BaseLib 工坊项目 ID。脚本读取 `DuanYu.json` 的版本信息，默认使用 `assets/workshop-preview.png` 作为封面。上传器和条目更新方式见[上传说明](workshop-upload.md)。
 
-发布流程使用官方 `ModUploader.exe upload -w <workshop-workspace>` 更新现有公开条目 `3841781260`，工作区保留原条目ID。上传后查询远程版本和公开状态；订阅回装、角色选择、首战、继续游戏和卸载提示仍需各自验证。上传器使用当前Steam客户端登录账号，GitHub的`cqbzly`账号不能代替Steam发布权限。
+发布流程使用官方 `ModUploader.exe upload -w dist/workshop` 更新公开条目 `3841781260`。上传后核对远程版本和公开状态，并检查订阅回装、角色选择、首战、继续游戏和卸载提示。上传器使用当前 Steam 客户端的登录账号。
 
 ## 发布判定
-
-`v0.5.14`延续现有公开发布方式，清单和DLL名称沿用既有约定。本轮Debug与Release构建均0警告、0错误，464项独立游戏引擎回归与128项资源加载检查通过。当前证据仍不能证明与本机所有模组无冲突；Steam订阅回装、远程联机和第三方组合测试未完成。
 
 每次发布保存包含游戏版本、BaseLib版本、测试模组列表、发布版本和自测报告的记录；更新游戏或BaseLib后重新执行构建、资源检查、隔离引擎自测和最小联合测试。

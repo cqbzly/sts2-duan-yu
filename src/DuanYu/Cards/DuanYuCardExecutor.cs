@@ -111,7 +111,7 @@ public static class DuanYuCardExecutor
             case "DY_C06": await Attack(Value(11, 15)); if (state.Lingbo > 0) await Block(Value(5, 7)); break;
             case "DY_C07": await Attack(Value(11, 15)); await Block(Value(4, 6)); await Generate(1); break;
             case "DY_C08": await Attack(Value(8, 12)); await Generate(2, card.IsUpgraded); await Draw(1); break;
-            case "DY_C09": await Draw(1); await Qi(Value(1, 2)); break;
+            case "DY_C09": await Draw(Value(1, 2)); await Qi(2); break;
             case "DY_C10": await Qi(Value(2, 3)); break;
             case "DY_C11": await Lingbo(1); await Draw(Value(1, 2)); break;
             case "DY_C12": await Lingbo(Value(1, 2)); break;
@@ -143,7 +143,7 @@ public static class DuanYuCardExecutor
                 await Qi(1);
                 break;
             }
-            case "DY_C23": await Attack(Value(10, 14)); await GenerateStatus("DY_S01", PileType.Hand); break;
+            case "DY_C23": await Attack(Value(10, 14), all: true); await GenerateStatus("DY_S01", PileType.Hand); break;
             case "DY_U01": await Qi(1); await Effect(); break;
             case "DY_U02": await Qi(Value(2, 3)); await Energy(Value(2, 3)); break;
             case "DY_U03": await Block(Value(15, 20)); await Qi(Value(2, 3)); break;
@@ -153,9 +153,12 @@ public static class DuanYuCardExecutor
             {
                 var selected = (await CardSelectCmd.FromHand(context, player, new CardSelectorPrefs(CardSelectorPrefs.ExhaustSelectionPrompt, 1), null, card)).FirstOrDefault();
                 var exhausted = selected != null && await ExhaustHandCard(selected);
-                await Draw(Value(3, 4));
-                if (exhausted && selected!.Type == CardType.Status) await Draw(1);
-                await Qi(Value(1, 2));
+                await Draw(Value(2, 3));
+                if (exhausted && selected!.Type == CardType.Status)
+                {
+                    await Draw(1);
+                    await Qi(1);
+                }
                 break;
             }
             case "DY_U07": await Attack(Value(27, 37)); break;
@@ -201,7 +204,7 @@ public static class DuanYuCardExecutor
             case "DY_U22": await Attack(Value(13, 18)); await Retain(1, selected => selected.Type == CardType.Attack && !DuanYuState.IsSword(selected)); break;
             case "DY_U23": await Effect(Value(5, 7)); break;
             case "DY_U24": await Block(Value(12, 15)); await Draw(2); break;
-            case "DY_U25": await Lingbo(Value(1, 2)); DuanYuState.QueueNextTurn(player, "block", Value(5, 7)); break;
+            case "DY_U25": await Lingbo(Value(2, 3)); DuanYuState.QueueNextTurn(player, "block", Value(5, 7)); break;
             case "DY_U26":
                 await Draw(Value(2, 3));
                 if (state.Qi >= 5) await Draw(1);
@@ -209,7 +212,7 @@ public static class DuanYuCardExecutor
                 await Momentum(1);
                 break;
             case "DY_U27":
-                await DuanYuForeignCards.GenerateAttacks(player, context, 2, card.IsUpgraded);
+                await DuanYuForeignCards.GenerateAttacks(player, context, 2, card.IsUpgraded, addExhaust: false);
                 await GenerateStatus("DY_S02");
                 break;
             case "DY_U28": await Effect(Value(2, 3)); break;
@@ -298,7 +301,7 @@ public static class DuanYuCardExecutor
                 break;
             case "DY_R10": await Attack(Value(15, 20)); await Choose(3); break;
             case "DY_R11": await Block(Value(8, 10)); await Lingbo(Value(2, 3)); break;
-            case "DY_R12": await Block(Value(6, 9)); await Effect(Value(6, 9), 1); break;
+            case "DY_R12": await Effect(Value(6, 8), 1); break;
             case "DY_R13": await Attack(Value(52, 70)); break;
             case "DY_R14":
                 await CreatureCmd.LoseBlock(context, player.Creature, player.Creature.Block, player.Creature);
@@ -310,7 +313,7 @@ public static class DuanYuCardExecutor
             case "DY_R15": await Effect(1, energy: 1); break;
             case "DY_R16":
             {
-                foreach (var power in player.Creature.Powers.Where(power => power is WeakPower or FrailPower or PoisonPower).ToArray()) await PowerCmd.Remove(power);
+                foreach (var power in player.Creature.Powers.Where(power => power is FrailPower or WeakPower or VulnerablePower).ToArray()) await PowerCmd.Remove(power);
                 await Block(7);
                 var statuses = PileType.Hand.GetPile(player).Cards.Where(selected => selected.Type == CardType.Status).ToArray();
                 foreach (var status in statuses)

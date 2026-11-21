@@ -141,7 +141,7 @@ public sealed class VermilionToadEssence : DuanYuRelic
     public override int RelicNumber => 8;
     protected override string LocalizationId => "DY_RELIC08";
     protected override string TitleText => "朱蛤元息";
-    protected override string DescriptionText => "每场战斗第一次将要获得虚弱或中毒时，阻止该次状态施加。";
+    protected override string DescriptionText => "每场战斗中，分别阻止你第一次受到的脆弱、虚弱和易伤。";
     protected override string FlavorText => "一声蛤鸣，毒与气在体内走过另一条路。";
     public override RelicRarity Rarity => RelicRarity.Event;
 }

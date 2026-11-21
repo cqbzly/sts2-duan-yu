@@ -3,11 +3,15 @@ using DuanYu.Events;
 using DuanYu.Character;
 using DuanYu.Relics;
 using DuanYu.Runtime;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.TestSupport;
 using MegaCrit.Sts2.Core.Unlocks;
@@ -192,6 +196,54 @@ internal static class EventsSelfTest
         DuanYuState.RecordRelic(player, "CQBZLY_DY_RELIC08");
         toad = await Begin<GroveToad>(player);
         Check(toad.CurrentOptions[0].IsLocked, "Event: previously acquired toad cannot be claimed again");
+    }
+
+    internal static async Task CheckToadProtection()
+    {
+        var fixture = EngineSelfTests.CreateFixture();
+        await RelicCmd.Obtain<VermilionToadEssence>(fixture.Player);
+        await Hook.BeforeCombatStart(fixture.Run, fixture.Combat);
+        var target = fixture.Player.Creature;
+        var context = new ThrowingPlayerChoiceContext();
+        EngineSelfTests.Equal(3, target.GetPowerAmount<VermilionWardPower>(), "toad starts combat with three protections");
+
+        await PowerCmd.Apply<PoisonPower>(context, target, 2, fixture.Enemy, null);
+        EngineSelfTests.Equal(2, target.GetPowerAmount<PoisonPower>(), "toad allows other debuffs");
+        EngineSelfTests.Equal(3, target.GetPowerAmount<VermilionWardPower>(), "an unrelated debuff spends no protection");
+
+        await PowerCmd.Apply<ArtifactPower>(context, target, 1, target, null);
+        await PowerCmd.Apply<FrailPower>(context, target, 2, fixture.Enemy, null);
+        EngineSelfTests.Equal(0, target.GetPowerAmount<FrailPower>(), "Artifact blocks Frail first");
+        EngineSelfTests.Equal(0, target.GetPowerAmount<ArtifactPower>(), "Artifact supplies its own protection");
+        EngineSelfTests.Equal(3, target.GetPowerAmount<VermilionWardPower>(), "Artifact leaves all toad protections available");
+
+        await PowerCmd.Apply<FrailPower>(context, target, 3, fixture.Enemy, null);
+        EngineSelfTests.Equal(0, target.GetPowerAmount<FrailPower>(), "toad blocks the entire first Frail application");
+        EngineSelfTests.Equal(2, target.GetPowerAmount<VermilionWardPower>(), "blocking Frail spends one protection");
+        await PowerCmd.Apply<FrailPower>(context, target, 2, fixture.Enemy, null);
+        EngineSelfTests.Equal(2, target.GetPowerAmount<FrailPower>(), "later Frail applies normally while other protections remain");
+
+        await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [target]);
+        await PowerCmd.Apply<FrailPower>(context, target, 1, fixture.Enemy, null);
+        EngineSelfTests.Equal(3, target.GetPowerAmount<FrailPower>(), "starting a new turn does not restore Frail protection");
+
+        await PowerCmd.Apply<WeakPower>(context, target, 3, fixture.Enemy, null);
+        EngineSelfTests.Equal(0, target.GetPowerAmount<WeakPower>(), "toad independently blocks the first Weak");
+        EngineSelfTests.Equal(1, target.GetPowerAmount<VermilionWardPower>(), "blocking Weak leaves the Vulnerable protection");
+        await PowerCmd.Apply<WeakPower>(context, target, 2, fixture.Enemy, null);
+        EngineSelfTests.Equal(2, target.GetPowerAmount<WeakPower>(), "later Weak applies normally");
+
+        await PowerCmd.Apply<VulnerablePower>(context, target, 3, fixture.Enemy, null);
+        EngineSelfTests.Equal(0, target.GetPowerAmount<VulnerablePower>(), "toad independently blocks the first Vulnerable");
+        EngineSelfTests.Equal(0, target.GetPowerAmount<VermilionWardPower>(), "toad has no protections after blocking all three kinds");
+        await PowerCmd.Apply<VulnerablePower>(context, target, 2, fixture.Enemy, null);
+        EngineSelfTests.Equal(2, target.GetPowerAmount<VulnerablePower>(), "later Vulnerable applies normally");
+
+        await Hook.BeforeCombatStart(fixture.Run, fixture.Combat);
+        EngineSelfTests.Equal(3, target.GetPowerAmount<VermilionWardPower>(), "combat start restores all three protections");
+        await PowerCmd.Apply<FrailPower>(context, target, 1, fixture.Enemy, null);
+        EngineSelfTests.Equal(3, target.GetPowerAmount<FrailPower>(), "restored protection also blocks a new application on an existing debuff");
+        EngineSelfTests.Equal(2, target.GetPowerAmount<VermilionWardPower>(), "restored Frail protection spends one use");
     }
 
     private static async Task CheckConfirmationRevalidation()

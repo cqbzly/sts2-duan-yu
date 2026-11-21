@@ -12,6 +12,7 @@ using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Cards;
+using MegaCrit.Sts2.Core.Models.Monsters;
 using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Runs;
@@ -95,9 +96,15 @@ internal static class StructureCardSelfTests
             if (fullHand)
                 for (var index = 0; index < 10; index++) EngineSelfTests.AddCard(fixture, "DY_B02", PileType.Hand);
             var source = EngineSelfTests.AddCard(fixture, "DY_C23", PileType.Hand, upgraded);
+            var secondEnemy = fixture.Combat.CreateCreature(ModelDb.Monster<BigDummy>().ToMutable(), CombatSide.Enemy, null);
+            fixture.Combat.AddCreature(secondEnemy);
             var health = fixture.Enemy.CurrentHp;
+            var secondHealth = secondEnemy.CurrentHp;
+            EngineSelfTests.Equal(TargetType.AllEnemies, source.TargetType, "zero-cost attack targets all enemies");
             await PaidPlay(fixture, source);
-            EngineSelfTests.Equal(upgraded ? 14 : 10, health - fixture.Enemy.CurrentHp, "zero-cost attack deals its printed damage");
+            var damage = upgraded ? 14 : 10;
+            EngineSelfTests.Equal(damage, health - fixture.Enemy.CurrentHp, "zero-cost attack deals its printed damage to the first enemy");
+            EngineSelfTests.Equal(damage, secondHealth - secondEnemy.CurrentHp, "zero-cost attack deals its printed damage to the second enemy");
             var pile = fullHand ? PileType.Discard : PileType.Hand;
             EngineSelfTests.Equal(1, pile.GetPile(fixture.Player).Cards.Count(card => card is DY_S01), "attack-generated fuel follows native hand overflow");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SkillsPlayed, "zero-cost attack does not trigger a skill resource rebate");

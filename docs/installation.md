@@ -1,13 +1,12 @@
-# 段誉模组 v0.5.14 安装说明
+# 段誉模组安装说明
 
-这是 v0.5.14 的安装与构建说明。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta、BaseLib 3.4.8；其他游戏版本和全部第三方模组组合尚未验证。
+已发布版本为 v0.5.21。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。发布包与源码分支的进度分别见 [GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) 和[卡牌图鉴](cards.md)。
 
 ## 玩家安装
 
-1. 在 Steam 创意工坊安装并启用 BaseLib 及其随包的 Compatibility Helper。
-2. 关闭游戏，将安装包中的整个 `DuanYu` 文件夹放到游戏的 `mods` 目录。例如 `D:\steam\steamapps\common\Slay the Spire 2\mods\DuanYu`。
-3. 确认目录中直接包含 `CQBZLY_DUAN_YU.dll` 与 `DuanYu.json`，避免多套一层文件夹。
-4. 启动游戏，在模组列表中启用“大理世子·段誉”，按游戏提示重启。新建游戏时选择段誉。
+1. 在 Steam 创意工坊订阅 [BaseLib](https://steamcommunity.com/sharedfiles/filedetails/?id=3737335127)，在游戏中启用 BaseLib 及其随包的 Compatibility Helper。
+2. 订阅[大理世子·段誉](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。手动安装时，关闭游戏，从 [Release](https://github.com/cqbzly/sts2-duan-yu/releases/latest) 下载 ZIP，将其中的 `DuanYu` 文件夹解压到游戏的 `mods` 目录。该文件夹应直接包含 `CQBZLY_DUAN_YU.dll` 和 `DuanYu.json`。
+3. 启动游戏，在模组列表中启用“大理世子·段誉”，按提示重启，再新开一局选择段誉。
 
 玩家不需要单独安装 .NET SDK 或 Godot 编辑器。图片、图标与场景由DLL在本机生成，缓存在游戏用户目录 `cqbzly.duanyu` 下；不会从互联网下载图片。
 
@@ -22,7 +21,7 @@
 .\scripts\package.ps1 -Sts2Path 'D:\steam\steamapps\common\Slay the Spire 2'
 ```
 
-输出：`dist/DuanYu-0.5.14.zip`。构建与打包不会改动游戏目录。
+安装包生成在 `dist/DuanYu-<版本号>.zip`，版本号取自 `DuanYu.json`。构建与打包不会改动游戏目录。
 
 若需要直接安装本地构建：
 
@@ -40,10 +39,8 @@
 - 本机历史记录中 SavesMerger 有独立于本模组的初始化异常。遇到加载错误时，先只启用 BaseLib、Compatibility Helper、段誉进行比较。
 - 日志通常位于 `%APPDATA%\SlayTheSpire2\logs\godot.log`。报告问题时提供游戏版本、段誉版本、模组列表、复现操作和相关错误片段。
 
-## 发布状态
+## v0.5.21 发布记录
 
-当前版本为 v0.5.14 能力与真气X费调整版，下载见[GitHub v0.5.14](https://github.com/cqbzly/sts2-duan-yu/releases/tag/v0.5.14)或公开的[Steam创意工坊条目](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。六脉齐发改为0能量、真气X费的单体攻击；北冥神功、守拙、无相之境和临风独立同步调整。本轮96张卡牌与图鉴校验、24/24项规则测试、464/464项真实游戏引擎回归、128/128项资源加载检查通过；Debug与Release构建均0警告、0错误。详情见[本版更新记录](releases/v0.5.14.md)和[运行时校验说明](runtime-verification.md)。
+六脉齐发每支付 1 点真气，就对同一目标打出一段伤害，各段独立应用增伤和减伤。该版通过 24 项规则测试、464 项游戏引擎回归与 128 项资源检查。[更新记录](releases/v0.5.21.md) · [引擎报告](https://github.com/cqbzly/sts2-duan-yu/releases/download/v0.5.21/v0521-final-engine-tests.json)
 
-本地工坊目录曾安装旧版；安装 v0.5.14 前应关闭游戏并更新同一目录。使用工坊版本时，不要再安装第二份到 `mods`。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。
-
-历史v0.2.1安装DLL的SHA256为 `6C5390A760B4FAB96E1F270C9BB4D89DFA0E7FF4E502DC80F840FCA1D43BF37A`，其替换前备份为 `artifacts/install-backups/20261118-161142-before-v021`。该哈希仅用于旧版追溯，不能用于核验 v0.5.14。
+手动更新前先关闭游戏。Steam 订阅和手动安装任选一种，避免游戏同时加载同 ID 的两份模组。角色为《天龙八部》同人改编，与金庸权利人、Mega Crit 无官方关联。

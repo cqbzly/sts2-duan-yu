@@ -95,12 +95,16 @@ public abstract class DuanYuCard : CustomCardModel
             if (DuanYuState.ReceivesSwordDamageBonus(this) || Definition.Text.Contains("剑势", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<SwordMomentumPower>();
             if (Definition.Text.Contains("剑气", StringComparison.Ordinal))
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".swordTipTitle"), "六种0费衍生攻击牌，每次发动必须支付1点真气，均具有消耗、虚无。每层剑势令剑气伤害增加1点，最多8层，在你的下回合开始时清除。每张剑气结算后获得1层剑势；每回合第3、第6种不同剑式各额外获得1层。升级版本仍算同一种剑式。手牌已满时生成牌进入弃牌堆。");
+            if (Definition.Text.Contains("脆弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<FrailPower>();
             if (Definition.Text.Contains("虚弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<WeakPower>();
             if (Definition.Text.Contains("易伤", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<VulnerablePower>();
             if (Definition.Text.Contains("气滞", StringComparison.Ordinal) || Definition.Text.Contains("异种真气", StringComparison.Ordinal) || Type == CardType.Status)
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".statusTipTitle"), "气滞：不可打出、虚无；回合结束时失去2点真气。失去真气不算支付。异种真气：1费、消耗；运气2，获得1层剑势，抽1张牌。两者均不能升级。");
             if (DesignId is "DY_U27" or "DY_U36")
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "从其他角色的全部非基础攻击牌中等概率借招，同一次不重复。固定能量费用本回合为0，X费用、专属资源费用和打出条件照常。借来的牌具有消耗，升级借招生成升级牌。");
+            {
+                string exhaustRule = DesignId == "DY_U36" ? "借来的牌具有消耗。" : "借来的牌保留原有关键词。";
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "从其他角色的全部非基础攻击牌中等概率借招，同一次不重复。固定能量费用本回合为0，X费用、专属资源费用和打出条件照常。" + exhaustRule + "升级借招生成升级牌。");
+            }
         }
     }
     protected override void OnUpgrade()
@@ -157,7 +161,7 @@ public abstract class DuanYuCard : CustomCardModel
     {
         "DY_S01" or "DY_S02" => TargetType.None,
         "DY_U29" or "DY_U30" or "DY_R17" => TargetType.AnyPlayer,
-        "DY_C04" or "DY_U10" or "DY_U17" or "DY_R09" or "DY_R20" or "DY_T03" => TargetType.AllEnemies,
+        "DY_C04" or "DY_C23" or "DY_U10" or "DY_U17" or "DY_R09" or "DY_R20" or "DY_T03" => TargetType.AllEnemies,
         "DY_U20" => TargetType.AnyEnemy,
         _ => type == "攻击" ? TargetType.AnyEnemy : TargetType.Self
     };

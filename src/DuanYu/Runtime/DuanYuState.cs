@@ -185,6 +185,7 @@ public static class DuanYuState
         var gained = state.GainLingbo(amount);
         if (gained <= 0) return;
         await SyncPower<LingboPower>(player, state.Lingbo, source);
+        DuanYuAttackIntents.Refresh(player);
         foreach (var effect in state.Effects.Where(effect => effect.CardId == "DY_U23").ToArray())
             if (CanAct(player)) await GainBlock(player, gained * effect.Amount);
     }
@@ -254,7 +255,7 @@ public static class DuanYuState
         if (relicNumber == 1 && HasRelic(player, "CQBZLY_DY_RELIC01")) await GainQi(player, 3);
         if (relicNumber == 9 && HasRelic(player, "CQBZLY_DY_RELIC09")) await GainQi(player, 5);
         if (relicNumber == 8)
-            await PowerCmd.Apply<VermilionWardPower>(new ThrowingPlayerChoiceContext(), player.Creature, 1, player.Creature, null);
+            await PowerCmd.Apply<VermilionWardPower>(new ThrowingPlayerChoiceContext(), player.Creature, 3, player.Creature, null);
     }
 
     internal static void EndCombat(ICombatState? combatState)
@@ -274,7 +275,11 @@ public static class DuanYuState
         state.PreviousTurnWasPeaceful = state.BeginTurn();
         state.StatusExhaustTriggers = 0;
         state.PrayerBeadsUsedThisTurn = false;
-        if (player.Creature.GetPower<LingboPower>() is { } lingbo) lingbo.RemoveInternal();
+        if (player.Creature.GetPower<LingboPower>() is { } lingbo)
+        {
+            lingbo.RemoveInternal();
+            DuanYuAttackIntents.Refresh(player);
+        }
         if (player.Creature.GetPower<SwordMomentumPower>() is { } momentum) momentum.RemoveInternal();
     }
 

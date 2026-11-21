@@ -1,11 +1,16 @@
+using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.MonsterMoves.Intents;
+using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.ValueProps;
 
 namespace DuanYu.Runtime;
@@ -88,5 +93,31 @@ internal static class DuanYuDamageHook
         if (reduced == __result) return;
         __result = reduced;
         modifiers = modifiers.Append(lingbo).Distinct().ToArray();
+    }
+}
+
+internal static class DuanYuAttackIntents
+{
+    internal static void Refresh(Player player)
+    {
+        if (!LocalContext.IsMe(player) || player.Creature.CombatState is not { } combat
+            || NCombatRoom.Instance is not { } room) return;
+
+        foreach (var enemy in combat.Enemies)
+        {
+            if (!enemy.IsAlive || enemy.Monster is not { } monster
+                || room.GetCreatureNode(enemy)?.IntentContainer is not { } container) continue;
+            RefreshLabels(container, monster.NextMove.Intents);
+        }
+    }
+
+    internal static void RefreshLabels(Control container, IReadOnlyList<AbstractIntent> intents)
+    {
+        var count = Math.Min(container.GetChildCount(), intents.Count);
+        for (var index = 0; index < count; index++)
+        {
+            if (intents[index] is AttackIntent && container.GetChild(index) is NIntent node)
+                node.Call(NIntent.MethodName.UpdateVisuals);
+        }
     }
 }

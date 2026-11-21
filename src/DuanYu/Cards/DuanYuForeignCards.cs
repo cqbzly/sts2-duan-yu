@@ -25,7 +25,7 @@ public static class DuanYuForeignCards
             .ToArray();
     }
 
-    public static async Task GenerateAttacks(Player player, PlayerChoiceContext context, int count, bool upgraded)
+    public static async Task GenerateAttacks(Player player, PlayerChoiceContext context, int count, bool upgraded, bool addExhaust = true)
     {
         if (count <= 0 || !DuanYuState.CanAct(player)) return;
         var candidates = GetAttackPool().ToList();
@@ -39,7 +39,7 @@ public static class DuanYuForeignCards
             var card = player.Creature.CombatState!.CreateCard(canonical, player);
             if (upgraded) CardCmd.Upgrade(card);
             card.EnergyCost.SetThisTurnOrUntilPlayed(0);
-            card.AddKeyword(CardKeyword.Exhaust);
+            if (addExhaust) card.AddKeyword(CardKeyword.Exhaust);
             await CardPileCmd.AddGeneratedCardToCombat(card, PileType.Hand, player);
         }
     }
