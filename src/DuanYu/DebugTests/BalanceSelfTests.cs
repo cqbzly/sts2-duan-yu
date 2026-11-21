@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Hooks;
+using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Enchantments;
 using MegaCrit.Sts2.Core.Models.Monsters;
@@ -35,6 +36,7 @@ internal static class BalanceSelfTests
                 yield return ("balance:formless-first-three-swords" + suffix, () => FormlessFirstThreeSwords(upgraded));
                 yield return ("balance:simplicity-energy-cost-and-qi" + suffix, () => SimplicityCost(upgraded));
             }
+            yield return ("balance:beginning-beiming-costs-and-stacks", BeginningBeiming);
             yield return ("balance:beiming-stacks-and-turn-limit", BeimingLimit);
             yield return ("balance:spend-callback-idempotence", SpendCallbackIdempotence);
             yield return ("balance:unity-third-and-sixth-kind", UnityThresholds);
@@ -255,6 +257,47 @@ internal static class BalanceSelfTests
             var expected = 7 + ordinal - 1 + (upgraded ? 3 : 2);
             EngineSelfTests.Equal(expected, health - fixture.Enemy.CurrentHp, "proficiency adds damage to every sword");
         }
+    }
+
+    private static async Task BeginningBeiming()
+    {
+        var fixture = await EngineSelfTests.ReadyFixture();
+        var player = fixture.Player;
+        var hand = PileType.Hand.GetPile(player);
+        var state = DuanYuState.Get(player);
+        await SetQi(fixture, 0);
+        player.PlayerCombatState!.Energy = 1;
+
+        var card = EngineSelfTests.AddCard(fixture, "DY_U01", PileType.Hand);
+        const string rule = "运气1。每回合首次支付真气后，抽1张牌。";
+        EngineSelfTests.Equal(rule, card.GetDescriptionForPile(PileType.Hand), "base card shows the payment trigger");
+        EngineSelfTests.Equal(true, card.HoverTips.OfType<HoverTip>().Any(tip => tip.Description.EndsWith("打出本牌无需支付真气。", StringComparison.Ordinal)),
+            "the live Qi tip specifies the resource waived");
+        EngineSelfTests.Equal(1, card.EnergyCost.GetAmountToSpend(), "base card still needs one energy");
+        await PaidPlay(fixture, card);
+        EngineSelfTests.Equal(0, player.PlayerCombatState.Energy, "base card pays one energy");
+        EngineSelfTests.Equal(1, state.Qi, "base card grants one Qi");
+        EngineSelfTests.Equal(0, hand.Cards.Count, "installing the power does not draw");
+        await PaidPlay(fixture, "DY_T01");
+        EngineSelfTests.Equal(1, hand.Cards.Count, "the first payment draws one card");
+
+        var upgraded = EngineSelfTests.AddCard(fixture, "DY_U01", PileType.Hand, true);
+        EngineSelfTests.Equal(rule, upgraded.GetDescriptionForPile(PileType.Hand), "upgraded card keeps the same effect");
+        await PaidPlay(fixture, upgraded);
+        EngineSelfTests.Equal(0, player.PlayerCombatState.Energy, "upgraded card costs zero energy");
+        EngineSelfTests.Equal(1, state.Qi, "upgraded card also grants one Qi");
+        var power = player.Creature.GetPower<BeginningBeimingPower>()!;
+        EngineSelfTests.Equal(2, power.Amount, "both versions stack in the combat power");
+        EngineSelfTests.Equal("每回合首次支付真气后，抽2张牌。", power.GetDumbHoverTip().Description, "stacked power tip previews the combined draw");
+        EngineSelfTests.Equal(1, hand.Cards.Count, "installing a stack late does not draw retroactively");
+        await PaidPlay(fixture, "DY_T01");
+        EngineSelfTests.Equal(1, hand.Cards.Count, "the current turn's second payment does not draw");
+
+        await NextTurn(fixture);
+        await PaidPlay(fixture, "DY_T01");
+        EngineSelfTests.Equal(3, hand.Cards.Count, "the next turn's first payment draws once per stack");
+        await PaidPlay(fixture, "DY_T01");
+        EngineSelfTests.Equal(3, hand.Cards.Count, "the next turn's second payment does not draw");
     }
 
     private static async Task BeimingLimit()

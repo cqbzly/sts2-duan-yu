@@ -112,7 +112,7 @@ public abstract class DuanYuEffectPower : DuanYuPower
 public sealed class BeginningBeimingPower : DuanYuEffectPower
 {
     protected override string Title => "北冥初成";
-    protected override string Rule => "每回合首次成功发动耗气效果后，抽{Amount}张牌。";
+    protected override string Rule => "每回合首次支付真气后，抽{Amount}张牌。";
 }
 [CustomID("CQBZLY_DY_POWER_U05")]
 public sealed class QiGuardPower : DuanYuEffectPower

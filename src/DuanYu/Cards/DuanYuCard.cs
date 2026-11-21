@@ -126,7 +126,7 @@ public abstract class DuanYuCard : CustomCardModel
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
         if (QiCostX) return $"当前真气：{current}。每支付1点真气，攻击1次。";
-        if (RequiredQi == 0) return "本牌可免费打出。";
+        if (RequiredQi == 0) return "打出本牌无需支付真气。";
         return current >= RequiredQi ? $"当前真气：{current}；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
     }
     private string DescriptionText(bool upgraded)
