@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <AssemblyName>CQBZLY_DUAN_YU</AssemblyName>
-    <Version>0.5.24</Version>
+    <Version>0.5.25</Version>
     <RootNamespace>DuanYu</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

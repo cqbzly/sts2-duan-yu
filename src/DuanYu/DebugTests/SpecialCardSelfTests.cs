@@ -193,17 +193,27 @@ internal static class SpecialCardSelfTests
 
     private static async Task DiscardStatusRetrieval()
     {
-        var fixture = await ReadyFixture();
-        await SetQi(fixture, 0);
-        var status = EngineSelfTests.AddCard(fixture, "DY_S01", PileType.Discard);
-        var card = EngineSelfTests.AddCard(fixture, "DY_C21", PileType.Hand);
-        var fuel = EngineSelfTests.AddCard(fixture, "DY_B01", PileType.Hand);
-        using var scope = RunManager.Instance.CardSelectorStack.PushSelector(fixture.Player, new CountSelector(1));
-        await PaidPlay(fixture, card);
-        EngineSelfTests.Equal(PileType.Hand, status.Pile!.Type, "recovery card returns a status from discard");
-        EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "recovery card remains reusable");
-        EngineSelfTests.Equal(PileType.Exhaust, fuel.Pile!.Type, "recovery card exhausts the selected hand fuel only");
-        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).Qi, "recovery card gains only its printed Qi");
+        foreach (bool upgraded in new[] { false, true })
+        {
+            int expected = upgraded ? 2 : 1;
+            var fixture = await ReadyFixture();
+            await SetQi(fixture, 0);
+            var status = EngineSelfTests.AddCard(fixture, "DY_S01", PileType.Discard);
+            var card = EngineSelfTests.AddCard(fixture, "DY_C21", PileType.Hand, upgraded);
+            var fuel = EngineSelfTests.AddCard(fixture, "DY_B01", PileType.Hand);
+            using (RunManager.Instance.CardSelectorStack.PushSelector(fixture.Player, new CountSelector(1)))
+                await PaidPlay(fixture, card);
+            EngineSelfTests.Equal(PileType.Hand, status.Pile!.Type, "recovery card returns a status from discard");
+            EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "recovery card remains reusable");
+            EngineSelfTests.Equal(PileType.Exhaust, fuel.Pile!.Type, "recovery card exhausts the selected hand fuel only");
+            EngineSelfTests.Equal(expected, DuanYuState.Get(fixture.Player).Qi, "recovery card gains its printed Qi after retrieving a status");
+
+            var noStatus = await ReadyFixture();
+            await SetQi(noStatus, 0);
+            await PaidPlay(noStatus, EngineSelfTests.AddCard(noStatus, "DY_C21", PileType.Hand, upgraded));
+            EngineSelfTests.Equal(expected, PileType.Hand.GetPile(noStatus.Player).Cards.Count, "recovery card draws its printed count without a status in discard");
+            EngineSelfTests.Equal(expected, DuanYuState.Get(noStatus.Player).Qi, "recovery card gains its printed Qi after drawing instead");
+        }
     }
 
     private static async Task AttackCreatesStatus(bool upgraded)

@@ -629,7 +629,8 @@ internal static class FullRunPolicy
     {
         "DY_B03" => card.Value(3, 4),
         "DY_C01" or "DY_C09" or "DY_U01" => 2,
-        "DY_C19" or "DY_C21" or "DY_C22" => 1,
+        "DY_C19" or "DY_C22" => 1,
+        "DY_C21" => card.Value(1, 2),
         "DY_C10" => card.IsUpgraded ? 3 : 2,
         "DY_C16" => 0,
         "DY_U02" => card.IsUpgraded ? 6 : 4,

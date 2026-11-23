@@ -128,7 +128,7 @@ public static class DuanYuCardExecutor
                 var selected = (await CardSelectCmd.FromHand(context, player, new CardSelectorPrefs(CardSelectorPrefs.ExhaustSelectionPrompt, 1), null, card)).FirstOrDefault();
                 if (selected != null) await ExhaustHandCard(selected);
                 if (!await RetrieveDiscardStatus()) await Draw(card.IsUpgraded ? 2 : 1);
-                await Qi(1);
+                await Qi(Value(1, 2));
                 break;
             }
             case "DY_C22":
