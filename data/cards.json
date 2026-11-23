@@ -1,5 +1,5 @@
 {
-  "version": "0.5.25",
+  "version": "0.5.26",
   "character": {
     "id": "duan_yu",
     "name": "大理世子·段誉",
@@ -391,10 +391,10 @@
       "name": "记诵剑谱",
       "rarity": "普通",
       "type": "技能",
-      "cost": 1,
+      "cost": 0,
       "text": "随机将1张剑气加入手牌。",
       "upgrade": {
-        "cost": 1,
+        "cost": 0,
         "text": "随机将1张升级剑气加入手牌。"
       },
       "tags": [
