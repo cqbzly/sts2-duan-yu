@@ -82,7 +82,7 @@ public abstract class DuanYuCard : CustomCardModel
     public override IEnumerable<CardKeyword> CanonicalKeywords => DesignId == "DY_S01"
         ? [CardKeyword.Unplayable, CardKeyword.Ethereal]
         : DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? [CardKeyword.Exhaust, CardKeyword.Ethereal]
-        : DesignId is "DY_C22" or "DY_U02" or "DY_U13" or "DY_U15" or "DY_U19" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R11" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
+        : DesignId is "DY_C22" or "DY_U02" or "DY_U13" or "DY_U15" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
     public override List<(string, string)> Localization => new CardLoc(Definition.Name,
         "{IfUpgraded:show:" + DescriptionText(true) + "|" + DescriptionText(false) + "}",
         ("selectionScreenPrompt", "选择卡牌"), ("qiTipTitle", "真气与耗气"), ("lingboTipTitle", "凌波"), ("swordTipTitle", "六脉剑气"), ("statusTipTitle", "专属状态牌"), ("foreignTipTitle", "外门招式"));

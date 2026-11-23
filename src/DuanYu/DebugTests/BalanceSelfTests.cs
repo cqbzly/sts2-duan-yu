@@ -569,7 +569,7 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(upgraded ? 10 : 8, fixture.Player.Creature.Block, "independent wind grants eight/ten block");
         EngineSelfTests.Equal(upgraded ? 3 : 2, DuanYuState.Get(fixture.Player).Lingbo, "independent wind grants two/three Lingbo");
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "independent wind retains its one energy cost");
-        EngineSelfTests.Equal(PileType.Exhaust, card.Pile!.Type, "independent wind still exhausts");
+        EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "independent wind goes to the discard pile after play");
     }
 
     private static async Task SevenStarStep(bool upgraded)

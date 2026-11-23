@@ -4,7 +4,7 @@
 
 《杀戮尖塔2》的段誉同人角色模组。攒真气蓄势，以凌波卸去连击，再用六脉剑气打开局面。包含 **96 种卡牌、9 件遗物和 2 个专属事件**。
 
-**公开发行版 v0.5.23** · 《杀戮尖塔2》v0.113.1 public-beta · BaseLib 3.4.8
+**公开发行版 v0.5.24** · 《杀戮尖塔2》v0.113.1 public-beta · BaseLib 3.4.8
 
 [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260) · [GitHub 下载](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [安装说明](docs/installation.md)
 
@@ -23,7 +23,7 @@
 
 ## 版本
 
-北冥初成的卡面与能力提示统一为每回合首次支付真气后抽牌。真气悬停提示明确区分真气费用和能量费用。 [v0.5.23 更新记录](docs/releases/v0.5.23.md) · [v0.5.22 更新记录](docs/releases/v0.5.22.md)
+不染尘升级后降为 1 费。临风独立和乾坤步移除消耗，普通版和升级版打出后都进入弃牌堆。[v0.5.24 更新记录](docs/releases/v0.5.24.md) · [v0.5.23 更新记录](docs/releases/v0.5.23.md)
 
 ## 从源码构建
 

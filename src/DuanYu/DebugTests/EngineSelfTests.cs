@@ -213,6 +213,8 @@ internal static class EngineSelfTests
         Equal(true, !PileType.Play.GetPile(player).Cards.Contains(card), id + " leaves play pile");
         if (card.Type != CardType.Power && card.Keywords.Contains(CardKeyword.Exhaust))
             Equal(true, PileType.Exhaust.GetPile(player).Cards.Contains(card), id + " exhaust keyword");
+        if (id == "DY_U19")
+            Equal(PileType.Discard, card.Pile!.Type, id + " goes to the discard pile after play");
     }
 
     internal static DuanYuCard AddCard(TestFixture fixture, string id, PileType pile, bool upgraded = false)

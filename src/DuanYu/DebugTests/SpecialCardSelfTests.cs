@@ -560,7 +560,9 @@ internal static class SpecialCardSelfTests
         await PowerCmd.Apply<VulnerablePower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 3, fixture.Enemy, null);
         await PowerCmd.Apply<PoisonPower>(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 2, fixture.Enemy, null);
         var card = EngineSelfTests.AddCard(fixture, "DY_R16", PileType.Hand, upgraded);
+        int energyBefore = fixture.Player.PlayerCombatState!.Energy;
         await PaidPlay(fixture, card);
+        EngineSelfTests.Equal(energyBefore - (upgraded ? 1 : 2), fixture.Player.PlayerCombatState.Energy, "cleanse costs two energy before upgrade and one after");
         EngineSelfTests.Equal(true, statuses.All(status => status.Pile?.Type == PileType.Exhaust && ExhaustCount(status) == 1), "cleanse exhausts custom statuses and upgraded native Wither");
         EngineSelfTests.Equal(5, DuanYuState.Get(fixture.Player).Qi, "cleanse grants one Qi per status plus custom-status exhaust rewards");
         EngineSelfTests.Equal(4, PileType.Hand.GetPile(fixture.Player).Cards.Count, "cleanse draws three and preserves the non-status card");
