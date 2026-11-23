@@ -82,7 +82,7 @@ public abstract class DuanYuCard : CustomCardModel
     public override IEnumerable<CardKeyword> CanonicalKeywords => DesignId == "DY_S01"
         ? [CardKeyword.Unplayable, CardKeyword.Ethereal]
         : DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? [CardKeyword.Exhaust, CardKeyword.Ethereal]
-        : DesignId is "DY_C22" or "DY_U02" or "DY_U13" or "DY_U15" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_S02" ? [CardKeyword.Exhaust] : [];
+        : DesignId is "DY_C22" or "DY_U02" or "DY_U13" or "DY_U15" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_A01" or "DY_S02" ? [CardKeyword.Exhaust] : [];
     public override List<(string, string)> Localization => new CardLoc(Definition.Name,
         "{IfUpgraded:show:" + DescriptionText(true) + "|" + DescriptionText(false) + "}",
         ("selectionScreenPrompt", "选择卡牌"), ("qiTipTitle", "真气与耗气"), ("lingboTipTitle", "凌波"), ("swordTipTitle", "六脉剑气"), ("statusTipTitle", "专属状态牌"), ("foreignTipTitle", "外门招式"));
@@ -99,6 +99,7 @@ public abstract class DuanYuCard : CustomCardModel
             if (Definition.Text.Contains("脆弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<FrailPower>();
             if (Definition.Text.Contains("虚弱", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<WeakPower>();
             if (Definition.Text.Contains("易伤", StringComparison.Ordinal)) yield return HoverTipFactory.FromPower<VulnerablePower>();
+            if (DesignId == "DY_A01") yield return HoverTipFactory.FromPower<StrengthPower>();
             if (Definition.Text.Contains("气滞", StringComparison.Ordinal) || Definition.Text.Contains("异种真气", StringComparison.Ordinal) || Type == CardType.Status)
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".statusTipTitle"), "气滞：不可打出、虚无；回合结束时失去2点真气。失去真气不算支付。异种真气：1费、消耗；运气2，获得1层剑势，抽1张牌。两者均不能升级。");
             if (DesignId is "DY_U27" or "DY_U36")
@@ -125,7 +126,7 @@ public abstract class DuanYuCard : CustomCardModel
     {
         if (IsCanonical || Owner == null) return "";
         int current = DuanYuState.Get(Owner).Qi;
-        if (QiCostX) return $"当前真气：{current}。每支付1点真气，攻击1次。";
+        if (QiCostX) return $"当前真气：{current}。打出时支付全部真气。";
         if (RequiredQi == 0) return "打出本牌无需支付真气。";
         return current >= RequiredQi ? $"当前真气：{current}；出牌前支付{RequiredQi}点。" : $"当前{current}/需要{RequiredQi}：真气不足，不能打出。";
     }
@@ -147,7 +148,9 @@ public abstract class DuanYuCard : CustomCardModel
         if (DesignId == "DY_U08")
             return Live("造成{CalculatedDamage:diff()}点伤害。将1张气滞加入弃牌堆。", result);
         if (DesignId == "DY_R21")
-            result = result.Replace("全部真气（X）", "全部真气").Replace("伤害X次", "伤害" + Live("{QiHits}", "X") + "次");
+            result = result.Replace("全部真气（X）", "全部真气").Replace("伤害X次", "伤害" + Live("{QiX}", "X") + "次");
+        if (DesignId == "DY_A01")
+            return result.Replace("全部真气（X）", "全部真气").Replace("X点力量", Live("{QiX}点力量", "等量力量"));
         if (DesignId == "DY_U05")
             return result.TrimEnd('。') + Live("，当前{TriggerBlock}点", "") + "。";
         if (DesignId == "DY_U26")
@@ -187,13 +190,12 @@ public abstract class DuanYuCard : CustomCardModel
         description.Add("Live", live);
         if (!live) return;
 
+        if (QiCostX)
+            description.Add("QiX", Pile?.Type == PileType.Play ? CapturedQiX : RequiredQi);
         switch (DesignId)
         {
             case "DY_U37":
                 description.Add("EnergyX", DuanYuXBlockVar.PreviewX(this));
-                break;
-            case "DY_R21":
-                description.Add("QiHits", Pile?.Type == PileType.Play ? CapturedQiX : RequiredQi);
                 break;
             case "DY_U26":
                 description.Add("QiDraw", Value(2, 3) + (DuanYuState.Get(Owner!).Qi >= 5 ? 1 : 0));
@@ -218,7 +220,8 @@ public abstract class DuanYuCard : CustomCardModel
     private static CardRarity RarityOf(string rarity) => rarity switch
     {
         "基础" => CardRarity.Basic, "普通" => CardRarity.Common, "罕见" => CardRarity.Uncommon,
-        "稀有" => CardRarity.Rare, "衍生" => CardRarity.Token, "状态" => CardRarity.Status, _ => throw new ArgumentException(rarity)
+        "稀有" => CardRarity.Rare, "先古" => CardRarity.Ancient, "衍生" => CardRarity.Token, "状态" => CardRarity.Status,
+        _ => throw new ArgumentException(rarity)
     };
     private static TargetType TargetOf(string id, string type) => id switch
     {

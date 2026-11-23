@@ -7,6 +7,7 @@ const rarityDefinitions = [
   { rarity: '普通', prefix: 'C', count: 23 },
   { rarity: '罕见', prefix: 'U', count: 38 },
   { rarity: '稀有', prefix: 'R', count: 22 },
+  { rarity: '先古', prefix: 'A', count: 1 },
   { rarity: '衍生', prefix: 'T', count: 6 },
   { rarity: '状态', prefix: 'S', count: 2 },
 ];
@@ -98,7 +99,8 @@ function validateCards(design) {
     const actualCount = design.cards.filter((card) => isObject(card) && card.rarity === definition.rarity).length;
     requireCondition(actualCount === definition.count, `${definition.rarity}牌应有${definition.count}种，实际为${actualCount}种。`);
   }
-  requireCondition(design.cards.length === 96, `卡牌总数应为96种，实际为${design.cards.length}种。`);
+  const expectedCount = expectedRarities.size;
+  requireCondition(design.cards.length === expectedCount, `卡牌总数应为${expectedCount}种，实际为${design.cards.length}种。`);
 
   for (const [index, card] of design.cards.entries()) {
     const label = isObject(card) && isNonemptyText(card.id) ? card.id : `cards[${index}]`;
@@ -116,9 +118,9 @@ function validateCards(design) {
     requireCondition(card.costX === undefined || typeof card.costX === 'boolean', `${label}.costX必须为布尔值。`);
     requireCondition(Boolean(card.costX) === (card.id === 'DY_U37'), `${label}的能量X费用配置不正确。`);
     requireCondition(card.qiCostX === undefined || typeof card.qiCostX === 'boolean', `${label}.qiCostX必须为布尔值。`);
-    requireCondition(Boolean(card.qiCostX) === (card.id === 'DY_R21'), `${label}的真气X费用配置不正确。`);
+    requireCondition(Boolean(card.qiCostX) === ['DY_R21', 'DY_A01'].includes(card.id), `${label}的真气X费用配置不正确。`);
     if (card.qiCostX) {
-      requireCondition(card.cost === 0 && card.upgrade?.cost === 0 && !card.costX, `${label}的真气X费用牌必须为0能量费。`);
+      requireCondition(!card.costX, `${label}不能同时使用真气X和能量X费用。`);
       for (const text of [card.text, card.upgrade?.text]) {
         requireCondition(typeof text === 'string' && text.includes('消耗全部真气（X）'), `${label}必须明确说明真气X消耗。`);
       }
@@ -201,7 +203,8 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log('设计数据校验通过：96种卡牌（基础5、普通23、罕见38、稀有22、衍生6、状态2），10张初始牌组，生成引用及卡牌文档一致。');
+  const raritySummary = rarityDefinitions.map(({ rarity, count }) => `${rarity}${count}`).join('、');
+  console.log(`设计数据校验通过：${design.cards.length}种卡牌（${raritySummary}），10张初始牌组，生成引用及卡牌文档一致。`);
   console.log('本校验仅检查设计数据结构及文档一致性，不代表实战平衡或游戏模组兼容性通过。');
 }
 

@@ -122,6 +122,10 @@ public static class DuanYuCardExecutor
             case "DY_C17": await Attack(Value(6, 9)); await Draw(Value(1, 2)); break;
             case "DY_C18": await Attack(Value(8, 12)); await Block(Value(4, 6)); await Generate(4); break;
             case "DY_C19": await Choose(1); break;
+            case "DY_A01":
+                if (play.PlayIndex == 0 && card.CapturedQiX > 0 && DuanYuState.CanAct(player))
+                    await PowerCmd.Apply<StrengthPower>(context, player.Creature, card.CapturedQiX, player.Creature, card);
+                break;
             case "DY_C20": if (target?.GetPower<WeakPower>() is { Amount: > 0 }) await Draw(1); await Attack(Value(11, 15)); break;
             case "DY_C21":
             {

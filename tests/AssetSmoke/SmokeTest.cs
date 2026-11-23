@@ -9,7 +9,7 @@ public partial class SmokeTest : Node
         {
             DuanYuAssets.Initialize();
             int loaded = 0;
-            foreach ((string prefix, int count) in new[] { ("B", 5), ("C", 23), ("U", 38), ("R", 22), ("T", 6), ("S", 2) })
+            foreach ((string prefix, int count) in new[] { ("B", 5), ("C", 23), ("U", 38), ("R", 22), ("A", 1), ("T", 6), ("S", 2) })
             {
                 for (int number = 1; number <= count; number++)
                 {

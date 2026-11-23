@@ -15,7 +15,7 @@ internal static class ExportGallery
         var outputDirectory = Path.GetFullPath(arguments[flagIndex + 1]);
         Directory.CreateDirectory(outputDirectory);
         var portraits = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (prefix, count) in new[] { ("B", 5), ("C", 23), ("U", 38), ("R", 22), ("T", 6), ("S", 2) })
+        foreach (var (prefix, count) in new[] { ("B", 5), ("C", 23), ("U", 38), ("R", 22), ("A", 1), ("T", 6), ("S", 2) })
         {
             for (var number = 1; number <= count; number++)
             {

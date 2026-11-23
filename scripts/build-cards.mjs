@@ -7,6 +7,7 @@ const rarityGroups = [
   { rarity: '普通', label: '普通牌', anchor: 'common-cards' },
   { rarity: '罕见', label: '罕见牌', anchor: 'uncommon-cards' },
   { rarity: '稀有', label: '稀有牌', anchor: 'rare-cards' },
+  { rarity: '先古', label: '先古牌', anchor: 'ancient-cards' },
   { rarity: '衍生', label: '衍生剑气', anchor: 'generated-cards' },
   { rarity: '状态', label: '专属状态牌', anchor: 'status-cards' },
 ];

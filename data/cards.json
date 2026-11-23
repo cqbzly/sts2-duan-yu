@@ -1,5 +1,5 @@
 {
-  "version": "0.5.26",
+  "version": "0.5.27",
   "character": {
     "id": "duan_yu",
     "name": "大理世子·段誉",
@@ -1456,6 +1456,23 @@
         "DY_T05",
         "DY_T06"
       ],
+      "tags": [
+        "北冥",
+        "六脉"
+      ]
+    },
+    {
+      "id": "DY_A01",
+      "qiCostX": true,
+      "name": "六脉真传",
+      "rarity": "先古",
+      "type": "技能",
+      "cost": 1,
+      "text": "消耗全部真气（X）。获得X点力量。消耗。",
+      "upgrade": {
+        "cost": 0,
+        "text": "消耗全部真气（X）。获得X点力量。消耗。"
+      },
       "tags": [
         "北冥",
         "六脉"

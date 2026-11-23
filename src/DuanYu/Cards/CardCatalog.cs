@@ -530,6 +530,12 @@ public sealed class DY_R22 : DuanYuCard
     public DY_R22() : base("DY_R22") { }
 }
 
+[CustomID("CQBZLY_DY_A01")]
+public sealed class DY_A01 : DuanYuCard
+{
+    public DY_A01() : base("DY_A01") { }
+}
+
 [CustomID("CQBZLY_DY_T01")]
 public sealed class DY_T01 : DuanYuCard
 {
