@@ -44,7 +44,7 @@ public abstract class DuanYuCard : CustomCardModel
         "DY_R13" => 5, _ => 0
     };
     public int Value(int normal, int upgraded) => IsUpgraded ? upgraded : normal;
-    internal decimal SixPulseLegacyStrength(int paidQi) => (decimal)paidQi + Value(0, 2);
+    internal decimal SixPulseLegacyStrength(int paidQi) => (decimal)paidQi * Value(1, 2) + Value(0, 2);
 
     public override CardMultiplayerConstraint MultiplayerConstraint => DesignId is "DY_U29" or "DY_U30" or "DY_R17"
         ? CardMultiplayerConstraint.MultiplayerOnly
@@ -152,7 +152,7 @@ public abstract class DuanYuCard : CustomCardModel
             result = result.Replace("全部真气（X）", "全部真气").Replace("伤害X次", "伤害" + Live("{QiX}", "X") + "次");
         if (DesignId == "DY_A01")
         {
-            string formula = upgraded ? "X＋2点力量" : "X点力量";
+            string formula = upgraded ? "2X＋2点力量" : "X点力量";
             return result.Replace(formula, Live("{LegacyStrength}点力量", formula));
         }
         if (DesignId == "DY_U05")

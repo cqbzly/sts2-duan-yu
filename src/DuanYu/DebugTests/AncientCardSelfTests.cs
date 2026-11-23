@@ -72,7 +72,7 @@ internal static class AncientCardSelfTests
             await DuanYuState.GainQi(fixture.Player, startingQi);
             var card = EngineSelfTests.AddCard(fixture, "DY_A01", PileType.Hand, upgraded);
             fixture.Player.PlayerCombatState!.Energy = 0;
-            int expectedStrength = startingQi + (upgraded ? 2 : 0);
+            int expectedStrength = upgraded ? 2 * startingQi + 2 : startingQi;
             string handText = System.Text.RegularExpressions.Regex.Replace(card.GetDescriptionForPile(PileType.Hand), @"\[[^\]]*\]", "");
             EngineSelfTests.Equal(true, handText.Contains($"获得{expectedStrength}点力量", StringComparison.Ordinal), "the hand preview displays the full Strength gain");
             await EngineSelfTests.PaidPlay(fixture, card);
@@ -100,7 +100,7 @@ internal static class AncientCardSelfTests
         EngineSelfTests.Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, card)), "native replay resolves all three card bodies");
         EngineSelfTests.Equal(1, resources.SpendingCount, "native replay only pays Qi once");
         EngineSelfTests.Equal(0, resources.Qi, "the one payment spends all Qi");
-        EngineSelfTests.Equal(9, fixture.Player.Creature.GetPowerAmount<StrengthPower>(), "native replay grants the conversion and upgrade bonus once");
+        EngineSelfTests.Equal(16, fixture.Player.Creature.GetPowerAmount<StrengthPower>(), "native replay grants the conversion and upgrade bonus once");
     }
 }
 #endif
