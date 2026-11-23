@@ -71,14 +71,17 @@ internal static class AncientCardSelfTests
             await DuanYuState.LoseQi(fixture.Player, resources.Qi);
             await DuanYuState.GainQi(fixture.Player, startingQi);
             var card = EngineSelfTests.AddCard(fixture, "DY_A01", PileType.Hand, upgraded);
-            fixture.Player.PlayerCombatState!.Energy = upgraded ? 0 : 1;
+            fixture.Player.PlayerCombatState!.Energy = 0;
+            int expectedStrength = startingQi + (upgraded ? 2 : 0);
+            string handText = System.Text.RegularExpressions.Regex.Replace(card.GetDescriptionForPile(PileType.Hand), @"\[[^\]]*\]", "");
+            EngineSelfTests.Equal(true, handText.Contains($"获得{expectedStrength}点力量", StringComparison.Ordinal), "the hand preview displays the full Strength gain");
             await EngineSelfTests.PaidPlay(fixture, card);
 
             EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "the Ancient card pays its printed energy cost");
             EngineSelfTests.Equal(0, resources.Qi, "the Ancient card spends all current Qi");
             EngineSelfTests.Equal(startingQi, card.CapturedQiX, "the Ancient card captures the actual payment");
             EngineSelfTests.Equal(startingQi > 0 ? 1 : 0, resources.SpendingCount, "only nonzero Qi counts as a payment");
-            EngineSelfTests.Equal(startingQi, fixture.Player.Creature.GetPowerAmount<StrengthPower>(), "the Ancient card gains one Strength per Qi paid");
+            EngineSelfTests.Equal(expectedStrength, fixture.Player.Creature.GetPowerAmount<StrengthPower>(), "the Ancient card grants its Qi conversion and upgrade bonus");
             EngineSelfTests.Equal(PileType.Exhaust, card.Pile!.Type, "the Ancient card exhausts on play");
         }
     }
@@ -97,7 +100,7 @@ internal static class AncientCardSelfTests
         EngineSelfTests.Equal(3, CombatManager.Instance.History.CardPlaysFinished.Count(entry => ReferenceEquals(entry.CardPlay.Card, card)), "native replay resolves all three card bodies");
         EngineSelfTests.Equal(1, resources.SpendingCount, "native replay only pays Qi once");
         EngineSelfTests.Equal(0, resources.Qi, "the one payment spends all Qi");
-        EngineSelfTests.Equal(7, fixture.Player.Creature.GetPowerAmount<StrengthPower>(), "native replay gains Strength only for the one actual payment");
+        EngineSelfTests.Equal(9, fixture.Player.Creature.GetPowerAmount<StrengthPower>(), "native replay grants the conversion and upgrade bonus once");
     }
 }
 #endif

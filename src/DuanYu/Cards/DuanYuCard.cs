@@ -44,6 +44,7 @@ public abstract class DuanYuCard : CustomCardModel
         "DY_R13" => 5, _ => 0
     };
     public int Value(int normal, int upgraded) => IsUpgraded ? upgraded : normal;
+    internal decimal SixPulseLegacyStrength(int paidQi) => (decimal)paidQi + Value(0, 2);
 
     public override CardMultiplayerConstraint MultiplayerConstraint => DesignId is "DY_U29" or "DY_U30" or "DY_R17"
         ? CardMultiplayerConstraint.MultiplayerOnly
@@ -150,7 +151,10 @@ public abstract class DuanYuCard : CustomCardModel
         if (DesignId == "DY_R21")
             result = result.Replace("全部真气（X）", "全部真气").Replace("伤害X次", "伤害" + Live("{QiX}", "X") + "次");
         if (DesignId == "DY_A01")
-            return result.Replace("全部真气（X）", "全部真气").Replace("X点力量", Live("{QiX}点力量", "等量力量"));
+        {
+            string formula = upgraded ? "X＋2点力量" : "X点力量";
+            return result.Replace(formula, Live("{LegacyStrength}点力量", formula));
+        }
         if (DesignId == "DY_U05")
             return result.TrimEnd('。') + Live("，当前{TriggerBlock}点", "") + "。";
         if (DesignId == "DY_U26")
@@ -194,6 +198,9 @@ public abstract class DuanYuCard : CustomCardModel
             description.Add("QiX", Pile?.Type == PileType.Play ? CapturedQiX : RequiredQi);
         switch (DesignId)
         {
+            case "DY_A01":
+                description.Add("LegacyStrength", SixPulseLegacyStrength(Pile?.Type == PileType.Play ? CapturedQiX : RequiredQi));
+                break;
             case "DY_U37":
                 description.Add("EnergyX", DuanYuXBlockVar.PreviewX(this));
                 break;

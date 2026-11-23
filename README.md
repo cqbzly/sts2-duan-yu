@@ -4,7 +4,7 @@
 
 《杀戮尖塔2》的段誉同人角色模组。攒真气蓄势，以凌波卸去连击，再用六脉剑气打开局面。包含 **97 种卡牌、9 件遗物和 2 个专属事件**。
 
-**公开发行版 v0.5.27** · 《杀戮尖塔2》v0.113.1 public-beta · BaseLib 3.4.8
+**公开发行版 v0.5.28** · 《杀戮尖塔2》v0.113.1 public-beta · BaseLib 3.4.8
 
 [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260) · [GitHub 下载](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [安装说明](docs/installation.md)
 
@@ -23,7 +23,7 @@
 
 ## 版本
 
-达弗的尘封魔典现在授予段誉专属先古牌「六脉真传+」。继续旧局时，已经领取的空魔典会补发一次。[v0.5.27 更新记录](docs/releases/v0.5.27.md) · [v0.5.26 更新记录](docs/releases/v0.5.26.md)
+「六脉真传」两版均为 0 费。支付全部真气，获得等量力量，升级后额外获得 2 点力量。达弗的尘封魔典授予升级版，已经领取空魔典的旧局继续游戏时补发一次。[v0.5.28 更新记录](docs/releases/v0.5.28.md)
 
 ## 从源码构建
 
