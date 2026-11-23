@@ -1,6 +1,6 @@
 # 段誉模组安装说明
 
-当前版本为 v0.5.29。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。[GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [卡牌图鉴](cards.md)
+当前版本为 v0.5.30。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。[GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [卡牌图鉴](cards.md)
 
 ## 玩家安装
 
@@ -39,9 +39,9 @@
 - 本机历史记录中 SavesMerger 有独立于本模组的初始化异常。遇到加载错误时，先只启用 BaseLib、Compatibility Helper、段誉进行比较。
 - 日志通常位于 `%APPDATA%\SlayTheSpire2\logs\godot.log`。报告问题时提供游戏版本、段誉版本、模组列表、复现操作和相关错误片段。
 
-## v0.5.29 发布记录
+## v0.5.30 发布记录
 
-「六脉真传+」支付全部真气，获得 2X + 2 点力量。X 为实际支付的真气。[完整更新记录](releases/v0.5.29.md)
+重画 96 张卡图。订阅玩家退出游戏，等 Steam 完成下载后重新启动即可。[完整更新记录](releases/v0.5.30.md)
 
 尘封魔典授予段誉专属先古牌「六脉真传+」。已领取空魔典的旧局，更新并继续游戏时补发一次。订阅玩家退出游戏，等 Steam 完成下载后重新启动即可。
 

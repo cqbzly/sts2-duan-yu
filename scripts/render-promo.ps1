@@ -82,7 +82,7 @@ try {
         Draw-Text $gallery.Graphics $card.text 25 $ink ($left + 24) ($top + 481) 408 154
     }
     Draw-Line $gallery.Graphics $gold 1 65 1683 1511 1683
-    Draw-Text $gallery.Graphics "原创程序化插画 · 全 $($design.cards.Count) 种卡牌均有独立构图参数" 23 $paper 66 1710 1430 45
+    Draw-Text $gallery.Graphics "原创卡图 · $($design.cards.Count) 种卡牌各有独立构图" 23 $paper 66 1710 1430 45
     Draw-Text $gallery.Graphics '画册排版示意；游戏内费用、名称与说明使用原生卡牌界面。' 20 $muted 66 1753 1430 40
     $gallery.Bitmap.Save((Join-Path $outputDirectory 'card-gallery.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 }
