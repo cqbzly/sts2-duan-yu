@@ -12,13 +12,14 @@ public static class DuanYuAssets
     private static readonly object AssetLock = new();
     private static readonly Dictionary<string, string> Paths = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, string> CardPaths = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> IconPaths = new(StringComparer.Ordinal);
     private static bool _initialized;
 
     public static string CharacterTexture => ImagePath("character", DuanYuArt.Character());
     public static string RestTexture => ImagePath("rest", DuanYuArt.Character(true));
-    public static string CharacterIcon => ImagePath("icon", DuanYuArt.Icon());
-    public static string CharacterIconOutline => ImagePath("icon-outline", DuanYuArt.Icon(outline: true));
-    public static string LockedIcon => ImagePath("icon-locked", DuanYuArt.Icon(locked: true));
+    public static string CharacterIcon => CharacterIconPath("icon");
+    public static string CharacterIconOutline => CharacterIconPath("icon-outline");
+    public static string LockedIcon => CharacterIconPath("icon-locked");
     public static string BigEnergy => ImagePath("energy-big", DuanYuArt.Energy(128));
     public static string TextEnergy => ImagePath("energy-text", DuanYuArt.Energy(64));
     public static string CharacterScene => ScenePath("character", CombatScene());
@@ -64,17 +65,7 @@ public static class DuanYuAssets
 
             string key = "card-" + SafeKey(designId);
             using Stream? portrait = OpenEmbeddedCardPortrait(designId);
-            if (portrait is null)
-            {
-                path = ImagePath(key, DuanYuArt.Card(designId));
-            }
-            else
-            {
-                using var buffer = new MemoryStream();
-                portrait.CopyTo(buffer);
-                byte[] png = buffer.ToArray();
-                path = ImagePath(key, png, image => image.LoadPngFromBuffer(png));
-            }
+            path = portrait is null ? ImagePath(key, DuanYuArt.Card(designId)) : ImagePath(key, portrait);
 
             CardPaths[designId] = path;
             return path;
@@ -83,6 +74,20 @@ public static class DuanYuAssets
 
     internal static Stream? OpenEmbeddedCardPortrait(string designId) =>
         typeof(DuanYuAssets).Assembly.GetManifestResourceStream($"DuanYu.CardPortraits.{designId}.png");
+
+    private static string CharacterIconPath(string key)
+    {
+        lock (AssetLock)
+        {
+            if (IconPaths.TryGetValue(key, out string? path)) return path;
+
+            using Stream icon = typeof(DuanYuAssets).Assembly.GetManifestResourceStream($"DuanYu.CharacterIcons.{key}.png")
+                ?? throw new InvalidOperationException($"Missing embedded Duan Yu character icon: {key}");
+            path = ImagePath(key, icon);
+            IconPaths[key] = path;
+            return path;
+        }
+    }
 
     public static string PowerIcon(string key) => ImagePath("power-" + SafeKey(key), DuanYuArt.Symbol(key, 128));
     public static string RelicIcon(string key) => ImagePath("relic-" + SafeKey(key), DuanYuArt.Symbol(key, 128));
@@ -93,6 +98,14 @@ public static class DuanYuAssets
 
     private static string ImagePath(string key, string svg) =>
         ImagePath(key, Encoding.UTF8.GetBytes(svg), image => image.LoadSvgFromString(svg));
+
+    private static string ImagePath(string key, Stream png)
+    {
+        using var buffer = new MemoryStream();
+        png.CopyTo(buffer);
+        byte[] bytes = buffer.ToArray();
+        return ImagePath(key, bytes, image => image.LoadPngFromBuffer(bytes));
+    }
 
     private static string ImagePath(string key, byte[] content, Func<Image, Error> loadImage)
     {

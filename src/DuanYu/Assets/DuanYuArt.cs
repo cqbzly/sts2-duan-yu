@@ -38,21 +38,6 @@ internal static class DuanYuArt
             """);
     }
 
-    public static string Icon(bool locked = false, bool outline = false)
-    {
-        string color = locked ? "#59696A" : Jade;
-        return Wrap(128, 128, $"""
-            <circle cx="64" cy="64" r="59" fill="{(outline ? "#F2ECD7" : Ink)}" stroke="{Gold}" stroke-width="5"/>
-            <path d="M23 110Q21 80 45 72L81 72Q108 82 105 110Z" fill="{color}"/>
-            <path d="M47 75L64 99L81 75L70 73L64 85L57 73Z" fill="{Paper}"/>
-            <path d="M44 42Q42 22 64 23Q87 24 85 43L82 67Q65 87 47 67Z" fill="{(locked ? "#A8A79D" : "#E9C6A4")}"/>
-            <path d="M44 48Q35 24 52 21L53 12L73 12L78 23Q94 29 84 49L77 34Q61 45 47 35Z" fill="{Ink}"/>
-            <path d="M52 18L76 18" stroke="{Gold}" stroke-width="5"/>
-            <path d="M51 51L58 50M71 50L78 51" stroke="{Ink}" stroke-width="3"/>
-            <path d="M58 66Q65 70 73 65" fill="none" stroke="#A97457" stroke-width="2"/>
-            """);
-    }
-
     public static string Energy(int size)
     {
         return Wrap(size, size, $"""

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <AssemblyName>CQBZLY_DUAN_YU</AssemblyName>
-    <Version>0.5.35</Version>
+    <Version>0.5.36</Version>
     <RootNamespace>DuanYu</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -18,6 +18,7 @@
     <Compile Include="src/DuanYu/**/*.cs" />
     <EmbeddedResource Include="data/cards.json" LogicalName="DuanYu.cards.json" />
     <EmbeddedResource Include="assets/card-portraits/*.png" LogicalName="DuanYu.CardPortraits.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="assets/character-icons/*.png" LogicalName="DuanYu.CharacterIcons.%(Filename)%(Extension)" />
     <Reference Include="sts2">
       <HintPath>$(Sts2DataDir)/sts2.dll</HintPath>
       <Private>false</Private>

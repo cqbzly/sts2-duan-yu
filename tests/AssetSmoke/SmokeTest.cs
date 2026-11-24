@@ -32,6 +32,12 @@ public partial class SmokeTest : Node
                 if (texture.GetWidth() <= 0 || texture.GetHeight() <= 0) throw new InvalidOperationException("Empty themed texture: " + path);
                 loaded++;
             }
+            foreach (string path in new[] { DuanYuAssets.CharacterIcon, DuanYuAssets.CharacterIconOutline, DuanYuAssets.LockedIcon })
+            {
+                using var image = DuanYuAssets.Texture(path).GetImage();
+                if (image.GetSize() != new Vector2I(128, 128) || image.GetPixel(0, 0).A != 0 || image.GetPixel(64, 64).A != 1)
+                    throw new InvalidOperationException("Invalid character icon size or transparency: " + path);
+            }
             foreach (string path in new[] { DuanYuAssets.CharacterScene, DuanYuAssets.RestScene, DuanYuAssets.MerchantScene, DuanYuAssets.IconScene, DuanYuAssets.CharacterSelectScene })
             {
                 var scene = ResourceLoader.Load<PackedScene>(path) ?? throw new InvalidOperationException("Could not load scene: " + path);
@@ -41,6 +47,8 @@ public partial class SmokeTest : Node
                     foreach (string name in new[] { "%Visuals", "%Bounds", "%IntentPos", "%CenterPos", "%OrbPos", "%TalkPos", "%FormVfx" })
                         if (!node.HasNode(name)) throw new InvalidOperationException("Missing node: " + name);
                 }
+                if (path == DuanYuAssets.IconScene && ((TextureRect)node).Texture?.ResourcePath != DuanYuAssets.CharacterIcon)
+                    throw new InvalidOperationException("Character icon scene uses the wrong texture.");
                 node.Free();
                 loaded++;
             }

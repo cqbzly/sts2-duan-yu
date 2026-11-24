@@ -10,6 +10,8 @@
 
 每种卡牌都有独立构图，升级版沿用同一张插画。Z-Image Turbo 根据逐张撰写的构图描述和旧版「凌波初步」卡面的风格参考生成插画。选图和裁切后的 1000 × 760 像素 PNG 保存在 `assets/card-portraits/`，随 DLL 一同加载。缺少对应 PNG 时，游戏读取 `src/DuanYu/Assets/DuanYuCardArt.cs` 中的 SVG。
 
+选人界面、地图标记和角色头像使用同一张青衫肖像。普通、描边和锁定图标都以透明 PNG 内嵌在 DLL 中，源文件位于 `assets/character-icons/`。
+
 ## 导出与验证
 
 ```powershell

@@ -10,5 +10,6 @@
     <Compile Include="ExportGallery.cs" />
     <Compile Include="../../src/DuanYu/Assets/*.cs" Link="Assets/%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../assets/card-portraits/*.png" LogicalName="DuanYu.CardPortraits.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../assets/character-icons/*.png" LogicalName="DuanYu.CharacterIcons.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
