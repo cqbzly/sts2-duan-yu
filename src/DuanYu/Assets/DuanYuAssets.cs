@@ -11,6 +11,7 @@ public static class DuanYuAssets
     private const string CacheRoot = "user://cqbzly.duanyu/assets-v2";
     private static readonly object AssetLock = new();
     private static readonly Dictionary<string, string> Paths = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> CardPaths = new(StringComparer.Ordinal);
     private static bool _initialized;
 
     public static string CharacterTexture => ImagePath("character", DuanYuArt.Character());
@@ -55,7 +56,34 @@ public static class DuanYuAssets
         }
     }
 
-    public static string CardPortrait(string designId) => ImagePath("card-" + SafeKey(designId), DuanYuArt.Card(designId));
+    public static string CardPortrait(string designId)
+    {
+        lock (AssetLock)
+        {
+            if (CardPaths.TryGetValue(designId, out string? path)) return path;
+
+            string key = "card-" + SafeKey(designId);
+            using Stream? portrait = OpenEmbeddedCardPortrait(designId);
+            if (portrait is null)
+            {
+                path = ImagePath(key, DuanYuArt.Card(designId));
+            }
+            else
+            {
+                using var buffer = new MemoryStream();
+                portrait.CopyTo(buffer);
+                byte[] png = buffer.ToArray();
+                path = ImagePath(key, png, image => image.LoadPngFromBuffer(png));
+            }
+
+            CardPaths[designId] = path;
+            return path;
+        }
+    }
+
+    internal static Stream? OpenEmbeddedCardPortrait(string designId) =>
+        typeof(DuanYuAssets).Assembly.GetManifestResourceStream($"DuanYu.CardPortraits.{designId}.png");
+
     public static string PowerIcon(string key) => ImagePath("power-" + SafeKey(key), DuanYuArt.Symbol(key, 128));
     public static string RelicIcon(string key) => ImagePath("relic-" + SafeKey(key), DuanYuArt.Symbol(key, 128));
     public static string EventPortrait(string key) => ImagePath("event-" + SafeKey(key), DuanYuArt.Event(key));
@@ -63,9 +91,12 @@ public static class DuanYuAssets
     public static Texture2D Texture(string path) => ResourceLoader.Load<CompressedTexture2D>(path)
         ?? throw new InvalidOperationException($"Duan Yu texture did not load: {path}");
 
-    private static string ImagePath(string key, string svg)
+    private static string ImagePath(string key, string svg) =>
+        ImagePath(key, Encoding.UTF8.GetBytes(svg), image => image.LoadSvgFromString(svg));
+
+    private static string ImagePath(string key, byte[] content, Func<Image, Error> loadImage)
     {
-        string digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(svg)))[..12].ToLowerInvariant();
+        string digest = Convert.ToHexString(SHA256.HashData(content))[..12].ToLowerInvariant();
         string filename = key + "-" + digest + ".ctex";
         lock (AssetLock)
         {
@@ -76,7 +107,7 @@ public static class DuanYuAssets
             if (!File.Exists(absolutePath))
             {
                 using var image = new Image();
-                Error result = image.LoadSvgFromString(svg);
+                Error result = loadImage(image);
                 if (result != Error.Ok) throw new InvalidOperationException($"Unable to render {key}: {result}");
                 image.Convert(Image.Format.Rgba8);
                 WriteCompressedTexture(absolutePath, image);

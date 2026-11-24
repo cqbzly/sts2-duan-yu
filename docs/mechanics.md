@@ -1,6 +1,6 @@
 # 段誉：核心机制与结算规范
 
-本文对应 v0.5.31。[卡牌图鉴](cards.md) · [实战小抄](cheat-sheet.md) · [GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest)
+本文对应 v0.5.32。[卡牌图鉴](cards.md) · [实战小抄](cheat-sheet.md) · [GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest)
 
 卡面正文省略“需N点真气”前缀，由专属费用标记与真气悬浮说明显示费用；data与文档图鉴保留完整规则。显示精简不改变整张牌出牌前足额支付的要求。
 

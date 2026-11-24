@@ -1,6 +1,6 @@
 # 段誉模组安装说明
 
-当前版本为 v0.5.31。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。[GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [卡牌图鉴](cards.md)
+当前版本为 v0.5.32。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。[GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [卡牌图鉴](cards.md)
 
 ## 玩家安装
 
@@ -8,7 +8,7 @@
 2. 订阅[大理世子·段誉](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260)。手动安装时，关闭游戏，从 [Release](https://github.com/cqbzly/sts2-duan-yu/releases/latest) 下载 ZIP，将其中的 `DuanYu` 文件夹解压到游戏的 `mods` 目录。该文件夹应直接包含 `CQBZLY_DUAN_YU.dll` 和 `DuanYu.json`。
 3. 启动游戏，在模组列表中启用“大理世子·段誉”，按提示重启，再新开一局选择段誉。
 
-玩家不需要单独安装 .NET SDK 或 Godot 编辑器。图片、图标与场景由DLL在本机生成，缓存在游戏用户目录 `cqbzly.duanyu` 下；不会从互联网下载图片。
+玩家可直接使用打包好的模组。卡图随 DLL 提供，游戏在本机加载卡图、图标和场景，并将资源缓存在游戏用户目录 `cqbzly.duanyu` 下。
 
 多人游戏的所有参加者需要相同游戏分支、相同版本的段誉与依赖，以及一致的影响玩法的模组列表。玩家状态隔离已实现，但完整远程多人会话尚需验证。
 
@@ -39,9 +39,9 @@
 - 本机历史记录中 SavesMerger 有独立于本模组的初始化异常。遇到加载错误时，先只启用 BaseLib、Compatibility Helper、段誉进行比较。
 - 日志通常位于 `%APPDATA%\SlayTheSpire2\logs\godot.log`。报告问题时提供游戏版本、段誉版本、模组列表、复现操作和相关错误片段。
 
-## v0.5.31 发布记录
+## v0.5.32 发布记录
 
-本版调整步法、状态联动、回合开始收益和多人支援牌。[完整更新记录](releases/v0.5.31.md)
+本版重绘 97 张卡牌插画，封面换为段誉的青衫背影。[完整更新记录](releases/v0.5.32.md)
 
 尘封魔典授予段誉专属先古牌「六脉真传+」。已领取空魔典的旧局，更新并继续游戏时补发一次。订阅玩家退出游戏，等 Steam 完成下载后重新启动即可。
 
