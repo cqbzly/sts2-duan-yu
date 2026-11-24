@@ -39,8 +39,9 @@ public abstract class DuanYuCard : CustomCardModel
     {
         "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06" => 1,
         "DY_C17" => 1,
-        "DY_B05" or "DY_C15" or "DY_U32" or "DY_R06" => 2,
-        "DY_U07" or "DY_U17" or "DY_U33" or "DY_R05" or "DY_R20" => 3,
+        "DY_U32" => 1,
+        "DY_B05" or "DY_C15" or "DY_U17" or "DY_R06" => 2,
+        "DY_U07" or "DY_U33" or "DY_R05" or "DY_R20" => 3,
         "DY_R13" => 5, _ => 0
     };
     public int Value(int normal, int upgraded) => IsUpgraded ? upgraded : normal;
@@ -101,8 +102,8 @@ public abstract class DuanYuCard : CustomCardModel
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".statusTipTitle"), "气滞：不可打出、虚无；回合结束时失去2点真气。失去真气不算支付。异种真气：1费、消耗；运气2，获得1层剑势，抽1张牌。两者均不能升级。");
             if (DesignId is "DY_U27" or "DY_U36")
             {
-                string borrowRule = DesignId == "DY_U36" ? "随机3张供选1张，选中的牌具有消耗。" : "随机获得2张，保留原有关键词。";
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "候选来自其他角色的全部非基础攻击牌，等概率且不重复。" + borrowRule + "本回合固定能量费为0，X费、专属资源费用和打出条件照常。升级后借来的牌也会升级。");
+                string borrowRule = DesignId == "DY_U36" ? "随机3张供选1张。" : "随机获得2张。";
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "候选来自其他角色的全部非基础攻击牌，等概率且不重复。" + borrowRule + "保留原有关键词。本回合固定能量费为0，X费、专属资源费用和打出条件照常。升级后借来的牌也会升级。");
             }
         }
     }
@@ -172,7 +173,8 @@ public abstract class DuanYuCard : CustomCardModel
     }
     private int? TriggerBlockAmount(bool upgraded) => DesignId switch
     {
-        "DY_U23" or "DY_U25" or "DY_R22" => upgraded ? 7 : 5,
+        "DY_U23" => upgraded ? 5 : 3,
+        "DY_U25" or "DY_R22" => upgraded ? 7 : 5,
         "DY_U28" => upgraded ? 3 : 2,
         "DY_R12" => upgraded ? 8 : 6,
         "DY_R18" => upgraded ? 6 : 4,

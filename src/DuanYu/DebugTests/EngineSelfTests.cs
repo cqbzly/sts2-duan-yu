@@ -664,18 +664,26 @@ internal static class EngineSelfTests
     private static async Task WindBlockOnGain()
     {
         var fixture = await ReadyFixture();
+        foreach (var upgraded in new[] { false, true })
+        {
+            var wind = AddCard(fixture, "DY_U23", PileType.Hand, upgraded);
+            int amount = upgraded ? 5 : 3;
+            Equal(true, wind.GetDescriptionForPile(PileType.Hand).Contains($"获得{amount}点格挡（当前{amount}点）", StringComparison.Ordinal),
+                "wind shows the correct per-layer amount and live preview");
+            await CardPileCmd.Add(wind, PileType.Discard);
+        }
         await Play(fixture, "DY_U23");
         await DuanYuState.GainLingbo(fixture.Player, 1);
-        Equal(5, fixture.Player.Creature.Block, "wind grants immediate block on each actual layer gained");
+        Equal(3, fixture.Player.Creature.Block, "wind grants immediate block on each actual layer gained");
         var initialHp = fixture.Player.Creature.CurrentHp;
-        await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 5, ValueProp.Move, fixture.Enemy);
+        await CreatureCmd.Damage(new ThrowingPlayerChoiceContext(), fixture.Player.Creature, 4, ValueProp.Move, fixture.Enemy);
         Equal(0, initialHp - fixture.Player.Creature.CurrentHp, "wind block protects against the next reduced hit");
-        Equal(1, fixture.Player.Creature.Block, "taking damage grants no further wind block");
+        Equal(0, fixture.Player.Creature.Block, "taking damage grants no further wind block");
         await Play(fixture, "DY_U23", true);
         await DuanYuState.GainLingbo(fixture.Player, 5);
-        Equal(61, fixture.Player.Creature.Block, "stacked wind grants twelve block for each of five new layers");
+        Equal(40, fixture.Player.Creature.Block, "stacked wind grants eight block for each of five new layers");
         await DuanYuState.GainLingbo(fixture.Player, 1);
-        Equal(73, fixture.Player.Creature.Block, "gaining another layer above three still grants wind block");
+        Equal(48, fixture.Player.Creature.Block, "gaining another layer above three still grants wind block");
         Equal(7, fixture.Player.Creature.GetPowerAmount<LingboPower>(), "Lingbo power displays all seven layers");
         var companion = Player.CreateForNewRun(ModelDb.Character<DuanYuCharacter>(), UnlockState.all, 2);
         fixture.Run.AddPlayerDebug(companion, -1);
@@ -683,7 +691,7 @@ internal static class EngineSelfTests
         fixture.Combat.AddPlayer(companion);
         await DuanYuState.GainLingbo(companion, 1);
         Equal(0, companion.Creature.Block, "another player's Lingbo does not borrow wind powers");
-        Equal(73, fixture.Player.Creature.Block, "another player's Lingbo does not reward the wind owner");
+        Equal(48, fixture.Player.Creature.Block, "another player's Lingbo does not reward the wind owner");
     }
 
     private static async Task LingboCapOnlyHit()

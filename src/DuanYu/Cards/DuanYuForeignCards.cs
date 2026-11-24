@@ -40,7 +40,7 @@ public static class DuanYuForeignCards
         if (combat == null) return;
 
         var options = SampleAttacks(player, 3)
-            .Select(canonical => CreateBorrowedAttack(player, canonical, upgraded, addExhaust: true))
+            .Select(canonical => CreateBorrowedAttack(player, canonical, upgraded, addExhaust: false))
             .ToArray();
         if (options.Length == 0) return;
 

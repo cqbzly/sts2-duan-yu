@@ -183,7 +183,7 @@ public sealed class YijingPower : DuanYuEffectPower
 public sealed class GuardSimplicityPower : DuanYuEffectPower
 {
     protected override string Title => "守拙";
-    protected override string Rule => "回合开始时，运气{Amount}。";
+    protected override string Rule => "回合开始时，运气{Amount}。每回合首张剑气结算后，每份守拙获得1点能量。";
 }
 [CustomID("CQBZLY_DY_POWER_R18")]
 public sealed class FormlessPower : DuanYuEffectPower

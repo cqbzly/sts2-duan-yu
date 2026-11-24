@@ -33,6 +33,7 @@ internal static class BalanceSelfTests
                 yield return ("balance:expanded-attacks-and-original-effects" + suffix, () => ExpandedAttacks(upgraded));
                 yield return ("balance:seven-star-step" + suffix, () => SevenStarStep(upgraded));
                 yield return ("balance:rebalanced-rare-defense" + suffix, () => RareDefense(upgraded));
+                yield return ("balance:footwork-roles" + suffix, () => FootworkRoles(upgraded));
                 yield return ("balance:formless-first-three-swords" + suffix, () => FormlessFirstThreeSwords(upgraded));
                 yield return ("balance:simplicity-energy-cost-and-qi" + suffix, () => SimplicityCost(upgraded));
             }
@@ -44,7 +45,7 @@ internal static class BalanceSelfTests
             yield return ("balance:native-replay-spending", NativeReplaySpending);
             yield return ("balance:native-replay-unity-thresholds", NativeReplayUnityThresholds);
             yield return ("balance:unity-no-retroactive-trigger", UnityLateApplication);
-            yield return ("balance:simplicity-turn-start-stacks", SimplicityTurnStartStacks);
+            yield return ("balance:simplicity-start-and-first-sword-stacks", SimplicityTurnStartStacks);
             yield return ("balance:sword-array-mixed-upgrades", SwordArrayMixedUpgrades);
             yield return ("balance:six-sword-resource-cycle", SixSwordCycle);
             yield return ("balance:self-damage-stops-after-death", SelfDamageStopsAfterDeath);
@@ -427,14 +428,14 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordMomentum, "each replay adds momentum after its combined damage");
         EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "native replay pays Qi once per activation");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "first replay activation receives no Beiming refund");
-        EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "sword replay does not grant turn-start energy");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "sword replay gets exactly one first-sword energy from simplicity");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "beginning Beiming draws only on the first replay spend");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordPlays, "each native replay advances the sword play ordinal");
         EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "native replay cannot introduce a new sword identity");
         await SetQi(fixture, 0);
         await PaidPlay(fixture, "DY_T01");
         EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).SpendingCount, "a separately funded follow-up records a new payment");
-        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "follow-up sword triggers only Beiming's second payment");
+        EngineSelfTests.Equal(3, fixture.Player.PlayerCombatState.Energy, "follow-up sword triggers only Beiming's second payment");
     }
 
     private static async Task NativeReplayUnityThresholds()
@@ -521,20 +522,30 @@ internal static class BalanceSelfTests
         await PaidPlay(fixture, "DY_R15");
         await PaidPlay(fixture, "DY_R15", true);
         await PaidPlay(fixture, "DY_R15", true);
-        await SetQi(fixture, 1);
+        await SetQi(fixture, 3);
+        await DuanYuState.LoseQi(fixture.Player, 1);
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "losing Qi grants no simplicity energy");
+        await PaidPlay(fixture, "DY_B05");
+        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "the ordinary attack pays Qi");
+        EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "a non-sword Qi payment grants no simplicity energy");
+        await DuanYuCardExecutor.GenerateSword(fixture.Player, 1, false, freeQi: true);
+        var freeSword = PileType.Hand.GetPile(fixture.Player).Cards.OfType<DY_T01>().Single();
+        await PaidPlay(fixture, freeSword);
+        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "the first sword does not spend Qi");
+        EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Energy, "the free first sword grants one energy per copy");
         await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "a sword on the setup turn does not grant simplicity energy");
+        EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Energy, "the second sword grants no simplicity energy even when paid");
         await DuanYuState.EndTurn(fixture.Player);
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "simplicity does not grant Qi at turn end");
-        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy at turn end");
+        EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy at turn end");
         await NextTurn(fixture);
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).Qi, "simplicity grants two Qi per copy at turn start");
-        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy");
+        EngineSelfTests.Equal(4, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy at turn start");
         await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "playing a sword does not grant extra energy");
+        EngineSelfTests.Equal(7, fixture.Player.PlayerCombatState.Energy, "the first sword on the next turn grants energy again");
         await NextTurn(fixture);
         EngineSelfTests.Equal(11, DuanYuState.Get(fixture.Player).Qi, "simplicity grants Qi again on subsequent turns");
-        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy on subsequent turns");
+        EngineSelfTests.Equal(7, fixture.Player.PlayerCombatState.Energy, "turn-start Qi remains separate from first-sword energy");
     }
 
     private static async Task SimplicityCost(bool upgraded)
@@ -563,6 +574,45 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(upgraded ? 3 : 2, DuanYuState.Get(fixture.Player).Lingbo, "independent wind grants two/three Lingbo");
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "independent wind retains its one energy cost");
         EngineSelfTests.Equal(PileType.Discard, card.Pile!.Type, "independent wind goes to the discard pile after play");
+    }
+
+    private static async Task FootworkRoles(bool upgraded)
+    {
+        var attack = await EngineSelfTests.ReadyFixture();
+        attack.Player.PlayerCombatState!.Energy = 2;
+        var initialHp = attack.Enemy.CurrentHp;
+        await PaidPlay(attack, "DY_C06", upgraded);
+        EngineSelfTests.Equal(0, attack.Player.Creature.Block, "returning finger checks Lingbo before adding its own layer");
+        EngineSelfTests.Equal(1, DuanYuState.Get(attack.Player).Lingbo, "returning finger starts Lingbo by itself");
+        await PaidPlay(attack, "DY_C06", upgraded);
+        EngineSelfTests.Equal(upgraded ? 7 : 5, attack.Player.Creature.Block, "returning finger grants block with existing Lingbo");
+        EngineSelfTests.Equal(2, DuanYuState.Get(attack.Player).Lingbo, "returning finger adds Lingbo on both plays");
+        EngineSelfTests.Equal(upgraded ? 30 : 22, initialHp - attack.Enemy.CurrentHp, "returning finger keeps its damage");
+
+        var sidestep = await EngineSelfTests.ReadyFixture();
+        sidestep.Player.PlayerCombatState!.Energy = 0;
+        await PaidPlay(sidestep, "DY_C12", upgraded);
+        EngineSelfTests.Equal(upgraded ? 3 : 2, sidestep.Player.Creature.Block, "sidestep adds immediate block at zero energy");
+        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(sidestep.Player).Lingbo, "sidestep retains its Lingbo");
+
+        var defense = await EngineSelfTests.ReadyFixture();
+        defense.Player.PlayerCombatState!.Energy = 3;
+        await PaidPlay(defense, "DY_U18", upgraded);
+        var shadowBlock = upgraded ? 10 : 7;
+        EngineSelfTests.Equal(shadowBlock, defense.Player.Creature.Block, "shadow step retains immediate block");
+        EngineSelfTests.Equal(1, DuanYuState.Get(defense.Player).Lingbo, "shadow step grants one Lingbo immediately");
+        var hand = PileType.Hand.GetPile(defense.Player).Cards;
+        var beforeDraw = hand.Count;
+        EngineSelfTests.AddCard(defense, "DY_B01", PileType.Draw);
+        EngineSelfTests.AddCard(defense, "DY_B01", PileType.Draw);
+        await PaidPlay(defense, "DY_U24", upgraded);
+        EngineSelfTests.Equal(0, defense.Player.PlayerCombatState.Energy, "shadow step and roaming step cost one and two energy");
+        EngineSelfTests.Equal(shadowBlock + (upgraded ? 19 : 15), defense.Player.Creature.Block, "roaming step grants its increased block");
+        EngineSelfTests.Equal(beforeDraw + 2, hand.Count, "roaming step retains two draws");
+        await NextTurn(defense);
+        EngineSelfTests.Equal(1, DuanYuState.Get(defense.Player).Lingbo, "shadow step grants a new Lingbo layer next turn");
+        await NextTurn(defense);
+        EngineSelfTests.Equal(0, DuanYuState.Get(defense.Player).Lingbo, "shadow step grants its delayed layer once");
     }
 
     private static async Task SevenStarStep(bool upgraded)

@@ -233,7 +233,7 @@ internal static class FullRunPolicy
         if (duanYuCard.DesignId == "DY_R17") score -= duanYuCard.Value(2, 1) * 1.8;
         if (duanYuCard.DesignId == "DY_U04" && player.Creature.CurrentHp <= duanYuCard.Value(3, 2) || duanYuCard.DesignId == "DY_R17" && player.Creature.CurrentHp <= duanYuCard.Value(2, 1)) return -1000;
         if (duanYuCard.DesignId == "DY_U25") score += 4;
-        if (duanYuCard.DesignId == "DY_U34") score += 3;
+        if (duanYuCard.DesignId is "DY_U18" or "DY_U34") score += 3;
         if (duanYuCard.DesignId is "DY_C11" or "DY_C16") score += 4;
         if (duanYuCard.DesignId == "DY_R16") score += player.Creature.GetPowerAmount<VulnerablePower>() * 2;
         if (duanYuCard.DesignId == "DY_U08" && qi < 5) score += 3;
@@ -586,7 +586,6 @@ internal static class FullRunPolicy
             generated.Owner = player;
             if (source.IsUpgraded) generated.UpgradeInternal();
             generated.EnergyCost.SetThisTurnOrUntilPlayed(0);
-            if (source.DesignId == "DY_U36") generated.AddKeyword(CardKeyword.Exhaust);
             return Targets(generated, player, combat).Where(generated.IsValidTarget)
                 .Select(target => Math.Max(0, GenericCombatValue(generated, target, player, combat))).DefaultIfEmpty(0).Max();
         });
@@ -606,11 +605,13 @@ internal static class FullRunPolicy
             "DY_U02" => 2,
             "DY_R04" => card.Value(2, 3),
             "DY_U04" => 1,
-            "DY_R14" => 1,
+            "DY_R14" => card.Value(2, 3),
             _ => 0
         };
         if ((card.QiCostX ? qi > 0 : card.QiCost > 0 && qi >= card.QiCost) && state.SpendingCount == 1)
             energy += state.Effects.Where(effect => effect.CardId == "DY_R01").Sum(effect => effect.EnergyAmount);
+        if (DuanYuState.IsSword(card) && state.SwordPlays == 0)
+            energy += state.Effects.Where(effect => effect.CardId == "DY_R15").Sum(effect => effect.EnergyAmount);
         if (TriggersSwordCombination(card, state))
             energy += state.Effects.Where(effect => effect.CardId == "DY_R08").Sum(effect => effect.EnergyAmount);
         if (HasPendant(card.Owner))
@@ -633,8 +634,8 @@ internal static class FullRunPolicy
         "DY_U04" => card.IsUpgraded ? 4 : 3,
         "DY_U09" => card.IsUpgraded ? 2 : 1,
         "DY_U22" => 1,
-        "DY_U26" or "DY_U38" => card.Value(2, 3),
-        "DY_R14" => card.Value(3, 4),
+        "DY_U26" => 1,
+        "DY_U38" or "DY_R14" => card.Value(2, 3),
         "DY_S02" => 3,
         "DY_U10" => 1,
         "DY_U29" => 1,
@@ -644,8 +645,8 @@ internal static class FullRunPolicy
 
     private static int LingboGain(DuanYuCard card) => card.DesignId switch
     {
-        "DY_C13" or "DY_U34" => 1,
-        "DY_B04" or "DY_C11" or "DY_C12" or "DY_U18" or "DY_U19" => card.IsUpgraded ? 2 : 1,
+        "DY_C06" or "DY_C13" or "DY_U18" or "DY_U34" => 1,
+        "DY_B04" or "DY_C11" or "DY_C12" or "DY_U19" => card.IsUpgraded ? 2 : 1,
         "DY_U21" => 2,
         "DY_U25" or "DY_R11" => card.Value(2, 3),
         _ => 0
@@ -656,8 +657,8 @@ internal static class FullRunPolicy
         "DY_C08" or "DY_C13" or "DY_U16" or "DY_U30" or "DY_T05" or "DY_S02" => 1,
         "DY_C17" or "DY_U21" => card.IsUpgraded ? 2 : 1,
         "DY_U24" => 2,
-        "DY_U06" or "DY_U26" or "DY_R04" => card.IsUpgraded ? 3 : 2,
-        "DY_C14" or "DY_R14" => card.IsUpgraded ? 4 : 3,
+        "DY_U06" or "DY_U26" or "DY_R04" or "DY_R14" => card.IsUpgraded ? 3 : 2,
+        "DY_C14" => card.Value(3, 4),
         _ => 0
     };
 

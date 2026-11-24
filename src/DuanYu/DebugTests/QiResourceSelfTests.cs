@@ -58,6 +58,8 @@ internal static class QiResourceSelfTests
         var card = EngineSelfTests.AddCard(fixture, id, PileType.Hand, upgraded);
         var qiCost = CustomResources<QiResource>.Cost(card)
             ?? throw new InvalidOperationException(id + " must retain its resource cost display registration");
+        if (id is "DY_U17" or "DY_U32")
+            EngineSelfTests.Equal(id == "DY_U17" ? 2 : 1, card.RequiredQi, id + " uses its new Qi fee");
         EngineSelfTests.Equal(true, card.RequiredQi > 0, id + " retains a mandatory Qi fee after shortening its body text");
         EngineSelfTests.Equal(card.QiCost, qiCost.Base, id + " resource icon retains its printed base fee");
         EngineSelfTests.Equal(card.QiCost, qiCost.GetWithModifiers(CostModifiers.All), id + " resource icon displays the full Qi fee");

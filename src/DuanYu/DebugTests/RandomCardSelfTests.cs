@@ -22,6 +22,7 @@ internal static class RandomCardSelfTests
             {
                 var suffix = upgraded ? "+" : "";
                 yield return ("random:swords-distinct-and-full-hand" + suffix, () => RandomSwords(upgraded));
+                yield return ("random:swords-prefer-unplayed-kinds" + suffix, () => PreferUnplayedSwords(upgraded));
                 yield return ("fixed:scholar-resources-and-qi-timing" + suffix, () => ScholarBenefits(upgraded));
                 yield return ("fixed:dream-resources-and-no-roll" + suffix, () => DreamBenefits(upgraded));
             }
@@ -71,7 +72,7 @@ internal static class RandomCardSelfTests
             await BalanceSelfTests.PaidPlay(fixture, card);
             var qiAmount = 1;
             EngineSelfTests.Equal(startingQi + qiAmount, DuanYuState.Get(fixture.Player).Qi, "scholar grants its full printed Qi above nine");
-            EngineSelfTests.Equal(upgraded ? 1 : 0, fixture.Player.PlayerCombatState.Energy, "scholar pays its printed energy without a starter relic refund");
+            EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "either scholar version costs one energy");
             EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SwordMomentum, "scholar always grants one printed momentum");
             EngineSelfTests.Equal((upgraded ? 3 : 2) + (startingQi >= 5 ? 1 : 0), PileType.Hand.GetPile(fixture.Player).Cards.Count, "scholar tests bonus draw before fixed Qi gains");
             EngineSelfTests.Equal(rngBefore, fixture.Run.Rng.Niche.ToSerializable(), "scholar never advances benefit RNG");
@@ -93,7 +94,7 @@ internal static class RandomCardSelfTests
         EngineSelfTests.Equal(amount, fixture.Player.PlayerCombatState.Energy, "dream grants its printed energy without requiring energy to start");
         EngineSelfTests.Equal(upgraded ? 3 : 2, DuanYuState.Get(fixture.Player).SwordMomentum, "dream always grants printed momentum");
         EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "dream loses all block before rewards");
-        EngineSelfTests.Equal(upgraded ? 4 : 3, PileType.Hand.GetPile(fixture.Player).Cards.Count, "dream draws its printed amount");
+        EngineSelfTests.Equal(upgraded ? 3 : 2, PileType.Hand.GetPile(fixture.Player).Cards.Count, "dream draws its reduced printed amount");
         EngineSelfTests.Equal(rngBefore, fixture.Run.Rng.Niche.ToSerializable(), "dream never advances benefit RNG");
         EngineSelfTests.Equal(PileType.Exhaust, card.Pile!.Type, "dream exhausts");
     }
@@ -168,7 +169,7 @@ internal static class RandomCardSelfTests
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).Qi, "replayed fixed Qi grants two Qi per body without a starter relic trigger");
         EngineSelfTests.Equal(6, fixture.Player.PlayerCombatState.Energy, "replayed dream grants two energy per body");
         EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).SwordMomentum, "replayed fixed momentum follows the reduced printed gain");
-        EngineSelfTests.Equal(9, PileType.Hand.GetPile(fixture.Player).Cards.Count, "three dream bodies perform three native draws each");
+        EngineSelfTests.Equal(6, PileType.Hand.GetPile(fixture.Player).Cards.Count, "three dream bodies draw twice each");
         EngineSelfTests.Equal(rngBefore, fixture.Run.Rng.Niche.ToSerializable(), "replayed fixed dream never advances benefit RNG");
         AssertReplay(fixture, card);
     }
@@ -214,6 +215,31 @@ internal static class RandomCardSelfTests
 
     private static DuanYuCard[] GeneratedSwords()
         => CombatManager.Instance.History.Entries.OfType<CardGeneratedEntry>().Select(entry => entry.Card).OfType<DuanYuCard>().Where(DuanYuState.IsSword).ToArray();
+
+    private static async Task PreferUnplayedSwords(bool upgraded)
+    {
+        foreach (var playedCount in new[] { 4, 5, 6 })
+        {
+            var fixture = await ReadyFixture("DUANYUUNPLAYEDSWORDS" + playedCount);
+            await SetQi(fixture, playedCount);
+            for (var sword = 1; sword <= playedCount; sword++)
+                await BalanceSelfTests.PaidPlay(fixture, EngineSelfTests.AddCard(fixture, $"DY_T{sword:00}", PileType.Hand));
+
+            var state = DuanYuState.Get(fixture.Player);
+            EngineSelfTests.Equal(playedCount, state.DistinctSwords.Count, "the fixture marks sword kinds through real plays");
+            var rngBefore = fixture.Run.Rng.CombatCardGeneration.ToSerializable();
+            var card = EngineSelfTests.AddCard(fixture, "DY_U15", PileType.Hand, upgraded);
+            await BalanceSelfTests.PaidPlay(fixture, card);
+
+            var generated = GeneratedSwords();
+            var distinctIds = generated.Select(DuanYuState.CardId).ToHashSet();
+            EngineSelfTests.Equal(2, distinctIds.Count, "the pair stays distinct even when fewer than two unplayed kinds remain");
+            EngineSelfTests.Equal(6 - playedCount, distinctIds.Count(id => !state.DistinctSwords.Contains(id)),
+                "the pair always includes the remaining unplayed kinds before filling from played kinds");
+            EngineSelfTests.Equal(true, generated.All(sword => sword.IsUpgraded == upgraded), "prioritized swords preserve the upgrade tier");
+            EngineSelfTests.Equal(2, fixture.Run.Rng.CombatCardGeneration.ToSerializable().counter - rngBefore.counter, "prioritization still takes two random draws");
+        }
+    }
 
     private static string[] SwordPair(Rng rng)
     {

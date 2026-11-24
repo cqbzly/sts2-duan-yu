@@ -319,6 +319,8 @@ internal static class SpecialCardSelfTests
         var borrowing = EngineSelfTests.AddCard(fixture, "DY_U36", PileType.Hand, upgraded);
         var initialHp = fixture.Enemy.CurrentHp;
         var damage = upgraded ? 17 : 12;
+        EngineSelfTests.Equal(false, borrowing.GetDescriptionForPile(PileType.Hand).Contains("具有消耗", StringComparison.Ordinal),
+            "counterstroke no longer advertises added Exhaust");
         var selector = new BorrowedAttackSelector(() =>
             EngineSelfTests.Equal(damage, initialHp - fixture.Enemy.CurrentHp, "counterstroke deals damage before offering attacks"));
         using (RunManager.Instance.CardSelectorStack.PushSelector(fixture.Player, selector))
@@ -328,8 +330,15 @@ internal static class SpecialCardSelfTests
         var pool = DuanYuForeignCards.GetAttackPool().Select(card => card.Id).ToHashSet();
         EngineSelfTests.Equal(3, selector.Options.Select(card => card.Id).Distinct().Count(), "counterstroke offers three distinct attacks");
         EngineSelfTests.Equal(true, selector.Options.All(card => pool.Contains(card.Id) && card.IsUpgraded == upgraded
-            && card.Keywords.Contains(CardKeyword.Exhaust) && (card.EnergyCost.CostsX || card.EnergyCost.GetWithModifiers(CostModifiers.All) == 0)),
-            "every preview comes from the foreign pool and shows the correct upgrade, cost and Exhaust");
+            && (card.EnergyCost.CostsX || card.EnergyCost.GetWithModifiers(CostModifiers.All) == 0)),
+            "every preview comes from the foreign pool and shows the correct upgrade and cost");
+        foreach (var option in selector.Options)
+        {
+            var nativeCopy = fixture.Combat.CreateCard(option.CanonicalInstance, fixture.Player);
+            if (upgraded) CardCmd.Upgrade(nativeCopy);
+            EngineSelfTests.Equal(true, nativeCopy.Keywords.ToHashSet().SetEquals(option.Keywords),
+                "counterstroke preserves each attack's native keywords without adding Exhaust");
+        }
         EngineSelfTests.Equal(selector.Options[1], attack, "only the selected attack is generated");
         EngineSelfTests.Equal(PileType.Hand, attack.Pile!.Type, "the chosen attack enters the hand");
         EngineSelfTests.Equal(false, selector.Options.Where(card => card != attack).Any(fixture.Combat.ContainsCard),

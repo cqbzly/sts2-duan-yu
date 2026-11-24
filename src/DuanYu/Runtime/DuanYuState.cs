@@ -409,6 +409,9 @@ public static class DuanYuState
                     await GainQi(player, effect.SecondaryAmount);
                     if (effect.EnergyAmount > 0 && CanAct(player)) await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
                     break;
+                case "DY_R15" when record.SwordOrdinal == 1 && effect.EnergyAmount > 0:
+                    await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
+                    break;
                 case "DY_R18" when record.SwordOrdinal is > 0 and <= 3:
                     await GainBlock(player, effect.Amount); break;
             }
