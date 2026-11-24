@@ -85,6 +85,9 @@ internal static class BalanceSelfTests
             fixture.Combat.AddCreature(secondEnemy);
             var firstHp = fixture.Enemy.CurrentHp;
             var secondHp = secondEnemy.CurrentHp;
+            var existingSword = specification.Id == "DY_R09"
+                ? EngineSelfTests.AddCard(fixture, "DY_T01", PileType.Hand)
+                : null;
             var card = EngineSelfTests.AddCard(fixture, specification.Id, PileType.Hand, upgraded);
             var energyBefore = fixture.Player.PlayerCombatState!.Energy;
             var cost = card.EnergyCost.GetAmountToSpend();
@@ -96,7 +99,14 @@ internal static class BalanceSelfTests
             EngineSelfTests.Equal(specification.All ? damage : 0, secondHp - secondEnemy.CurrentHp, specification.Id + " actual second target damage");
             var expectedBlock = upgraded ? specification.BlockUp : specification.Block;
             EngineSelfTests.Equal(expectedBlock, fixture.Player.Creature.Block, specification.Id + " retains block effect");
-            EngineSelfTests.Equal(specification.Swords, PileType.Hand.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), specification.Id + " retains sword generation");
+            var generatedSwords = PileType.Hand.GetPile(fixture.Player).Cards
+                .Where(candidate => DuanYuState.IsSword(candidate) && candidate != existingSword).ToArray();
+            EngineSelfTests.Equal(specification.Swords, generatedSwords.Length, specification.Id + " retains sword generation");
+            if (existingSword != null)
+            {
+                EngineSelfTests.Equal(upgraded, existingSword.IsUpgraded, "only upgraded Sword Return upgrades existing swords");
+                EngineSelfTests.Equal(upgraded, generatedSwords.Single().IsUpgraded, "Sword Return generates a sword of the matching upgrade level");
+            }
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SkillsPlayed, specification.Id + " does not consume first skill trigger");
             EngineSelfTests.Equal(energyBefore - cost, fixture.Player.PlayerCombatState.Energy, specification.Id + " does not receive first skill energy");
             if (specification.Id == "DY_U20")

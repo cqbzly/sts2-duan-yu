@@ -327,7 +327,7 @@ public static class DuanYuCardExecutor
             case "DY_R09":
                 await Attack(Value(15, 20), true);
                 await Choose(1);
-                if (!DuanYuState.CanAct(player)) break;
+                if (!card.IsUpgraded || !DuanYuState.CanAct(player)) break;
                 foreach (var sword in PileType.Hand.GetPile(player).Cards.Where(DuanYuState.IsSword).ToArray())
                     if (sword.IsUpgradable) CardCmd.Upgrade(sword);
                 break;

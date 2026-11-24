@@ -556,7 +556,7 @@ internal static class FullRunPolicy
             "DY_U12" => [6],
             _ => [1, 2, 3, 4, 5, 6]
         };
-        var upgraded = card.DesignId == "DY_R09" || card.IsUpgraded && card.DesignId is "DY_C08" or "DY_C19" or "DY_U10" or "DY_U12" or "DY_U13" or "DY_U15" or "DY_R03" or "DY_R07" or "DY_R10" or "DY_R19";
+        var upgraded = card.IsUpgraded && card.DesignId is "DY_C08" or "DY_C19" or "DY_U10" or "DY_U12" or "DY_U13" or "DY_U15" or "DY_R03" or "DY_R07" or "DY_R09" or "DY_R10" or "DY_R19";
         var options = numbers.Select(number =>
         {
             var sword = (DuanYuCard)DuanYuCard.Canonical($"DY_T{number:00}").ToMutable();
