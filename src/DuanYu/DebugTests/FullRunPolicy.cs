@@ -162,7 +162,8 @@ internal static class FullRunPolicy
         if (card.Type == CardType.Skill && state.SkillsPlayed == 0 && HasPendant(player))
             qiAfter += 2;
         block += EndTurnBlock(player, combat, qiAfter) - passiveBlock;
-        if (duanYuCard.DesignId == "DY_U05") block += ModifiedPassiveBlock(player, combat, qiAfter + duanYuCard.Value(0, 2));
+        if (duanYuCard.DesignId == "DY_U05")
+            block += ModifiedPassiveBlock(player, combat, DuanYuState.QiGuardBlock(qiAfter, 1, duanYuCard.Value(0, 2)));
         var score = TargetValue(card, target, player, combat, qi);
         var futureSwords = PileType.Hand.GetPile(player).Cards.Count(other => other != card && DuanYuState.IsSword(other));
         if (DuanYuState.IsSword(card) && state.SwordMomentum < DuanYuState.SwordMomentumCap)
@@ -473,12 +474,12 @@ internal static class FullRunPolicy
     {
         return DuanYuState.Get(player).Effects.Sum(effect => effect.CardId switch
         {
-            "DY_U05" => ModifiedPassiveBlock(player, combat, qi * effect.Amount + effect.SecondaryAmount),
+            "DY_U05" => ModifiedPassiveBlock(player, combat, DuanYuState.QiGuardBlock(qi, effect.Amount, effect.SecondaryAmount)),
             _ => 0d
         });
     }
 
-    private static double ModifiedPassiveBlock(Player player, CombatState combat, int amount)
+    private static double ModifiedPassiveBlock(Player player, CombatState combat, decimal amount)
         => amount <= 0 ? 0 : (double)decimal.Floor(Hook.ModifyBlock(combat, player.Creature, amount, ValueProp.Move, null, null, out _));
 
     private static double GenericCombatValue(CardModel card, Creature? target, Player player, CombatState state)

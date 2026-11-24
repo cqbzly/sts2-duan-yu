@@ -834,7 +834,7 @@ internal static class EngineSelfTests
         {
             var fixture = await ReadyFixture();
             var creature = fixture.Player.Creature;
-            var block = upgraded ? 8 : 6;
+            var block = upgraded ? 7 : 5;
             await SetQi(fixture, 5);
             var card = await Play(fixture, "DY_R12", upgraded);
             Equal(false, card.GainsBlock, "Yijing does not count as a card that grants block on play");

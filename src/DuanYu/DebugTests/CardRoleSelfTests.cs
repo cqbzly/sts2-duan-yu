@@ -144,7 +144,7 @@ internal static class CardRoleSelfTests
         var combat = fixture.Player.PlayerCombatState!;
         await EngineSelfTests.PaidPlay(fixture, "DY_C16", upgraded);
         EngineSelfTests.Equal(2, combat.Energy, "retreat and advance only spends its cost on this turn");
-        EngineSelfTests.Equal(upgraded ? 10 : 7, fixture.Player.Creature.Block, "retreat and advance grants its printed block");
+        EngineSelfTests.Equal(upgraded ? 9 : 6, fixture.Player.Creature.Block, "retreat and advance grants its printed block");
         EngineSelfTests.Equal(1, fixture.Player.Creature.GetPowerAmount<EnergyNextTurnPower>(), "retreat and advance schedules one energy");
         combat.Energy = 3;
         await Hook.AfterEnergyReset(fixture.Combat, fixture.Player);

@@ -4,7 +4,7 @@
 
 《杀戮尖塔2》的段誉同人角色模组。攒真气蓄势，以凌波卸去连击，再用六脉剑气打开局面。包含 **97 种卡牌、9 件遗物和 2 个专属事件**。
 
-**公开发行版 v0.5.36** · 《杀戮尖塔2》v0.113.1 public-beta · BaseLib 3.4.8
+**公开发行版 v0.5.37** · 《杀戮尖塔2》v0.113.1 public-beta · BaseLib 3.4.8
 
 [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3841781260) · [GitHub 下载](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [安装说明](docs/installation.md)
 
@@ -23,7 +23,7 @@
 
 ## 版本
 
-修整 7 张卡面中突兀的深色脸部，并更新选人界面、地图标记和角色头像。[v0.5.36 更新记录](docs/releases/v0.5.36.md) · [卡牌平衡审查](docs/balance-audit-v0.5.33.md)
+真气护体每回合结束获得当前真气一半的格挡，向下取整，升级额外加 2 点。另下调六张防御牌的格挡。[v0.5.37 更新记录](docs/releases/v0.5.37.md) · [卡牌平衡审查](docs/balance-audit-v0.5.33.md)
 
 ## 从源码构建
 

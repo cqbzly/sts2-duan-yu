@@ -118,7 +118,7 @@ public sealed class BeginningBeimingPower : DuanYuEffectPower
 public sealed class QiGuardPower : DuanYuEffectPower
 {
     protected override string Title => "真气护体";
-    protected override string Rule => "回合结束时，每层获得等同于当前真气的格挡。每份升级版额外获得2点。当前{Amount}层。";
+    protected override string Rule => "回合结束时，每层获得当前真气一半的格挡（向下取整）。每份升级版额外获得2点。当前{Amount}层。";
 }
 [CustomID("CQBZLY_DY_POWER_U14")]
 public sealed class SwordProficiencyPower : DuanYuEffectPower

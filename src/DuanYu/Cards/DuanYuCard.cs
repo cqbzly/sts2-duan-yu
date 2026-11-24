@@ -176,7 +176,7 @@ public abstract class DuanYuCard : CustomCardModel
         "DY_U23" => upgraded ? 5 : 3,
         "DY_U25" or "DY_R22" => upgraded ? 7 : 5,
         "DY_U28" => upgraded ? 3 : 2,
-        "DY_R12" => upgraded ? 8 : 6,
+        "DY_R12" => upgraded ? 7 : 5,
         "DY_R18" => upgraded ? 6 : 4,
         _ => null
     };
@@ -210,7 +210,7 @@ public abstract class DuanYuCard : CustomCardModel
                 break;
         }
         decimal? rawBlock = DesignId == "DY_U05"
-            ? (decimal)DuanYuState.Get(Owner!).Qi + Value(0, 2)
+            ? DuanYuState.QiGuardBlock(DuanYuState.Get(Owner!).Qi, 1, Value(0, 2))
             : TriggerBlockAmount(IsUpgraded);
         if (rawBlock.HasValue)
         {

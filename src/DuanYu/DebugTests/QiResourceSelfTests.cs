@@ -286,7 +286,7 @@ internal static class QiResourceSelfTests
     private static async Task UncappedScalingPower()
     {
         foreach (bool upgraded in new[] { false, true })
-        foreach (int qi in new[] { 100, 1001 })
+        foreach (int qi in new[] { 0, 1, 100, 1001 })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             await SetQi(fixture.Player, qi);
@@ -294,9 +294,22 @@ internal static class QiResourceSelfTests
             await EngineSelfTests.PaidPlay(fixture, card);
             EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "Qi Guard waits for turn end");
             await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
-            EngineSelfTests.Equal(qi + (upgraded ? 2 : 0), fixture.Player.Creature.Block, "Qi Guard uses the full stored amount and its upgrade bonus");
-            AssertQi(fixture.Player, qi, "high-Qi guard does not spend the stored resource");
+            EngineSelfTests.Equal(qi / 2 + (upgraded ? 2 : 0), fixture.Player.Creature.Block, "Qi Guard rounds down half the stored Qi before its upgrade bonus");
+            AssertQi(fixture.Player, qi, "Qi Guard does not spend the stored resource");
         }
+
+        var stackingFixture = await EngineSelfTests.ReadyFixture();
+        await SetQi(stackingFixture.Player, 1);
+        foreach (bool upgraded in new[] { false, true })
+        {
+            var card = EngineSelfTests.AddCard(stackingFixture, "DY_U05", PileType.Hand, upgraded);
+            await EngineSelfTests.PaidPlay(stackingFixture, card);
+        }
+
+        await SetQi(stackingFixture.Player, 5);
+        await Hook.BeforeSideTurnEnd(stackingFixture.Combat, CombatSide.Player, [stackingFixture.Player.Creature]);
+        EngineSelfTests.Equal(6, stackingFixture.Player.Creature.Block, "each Qi Guard copy rounds down half the current Qi and only the upgraded copy adds two");
+        AssertQi(stackingFixture.Player, 5, "stacked Qi Guard does not spend Qi");
     }
 
     private static async Task FreeEnergy()

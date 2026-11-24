@@ -337,6 +337,8 @@ public static class DuanYuState
         await CardPileCmd.AddGeneratedCardToCombat(status, pile, player);
     }
 
+    internal static decimal QiGuardBlock(int qi, int copies, int bonus) => (decimal)(qi / 2) * copies + bonus;
+
     internal static async Task EndTurn(Player player)
     {
         if (!CanAct(player)) return;
@@ -347,7 +349,7 @@ public static class DuanYuState
             switch (effect.CardId)
             {
                 case "DY_U05":
-                    await GainBlock(player, (decimal)state.Qi * effect.Amount + effect.SecondaryAmount);
+                    await GainBlock(player, QiGuardBlock(state.Qi, effect.Amount, effect.SecondaryAmount));
                     break;
             }
         }

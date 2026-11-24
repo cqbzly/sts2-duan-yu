@@ -138,7 +138,7 @@ internal static class BalanceSelfTests
             fixture.Player.PlayerCombatState!.Energy = card.EnergyCost.GetAmountToSpend();
             await PaidPlay(fixture, card);
             var qi = id == "DY_B03" ? upgraded ? 2 : 1 : upgraded ? 3 : 2;
-            var block = id switch { "DY_B03" => upgraded ? 7 : 5, "DY_U03" => upgraded ? 20 : 15, _ => 0 };
+            var block = id switch { "DY_B03" => upgraded ? 7 : 5, "DY_U03" => upgraded ? 17 : 13, _ => 0 };
             EngineSelfTests.Equal(qi, DuanYuState.Get(fixture.Player).Qi, id + " grants its exact rebalanced Qi");
             EngineSelfTests.Equal(block, fixture.Player.Creature.Block, id + " retains its printed block");
             EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, id + " pays its actual energy cost");
@@ -608,8 +608,8 @@ internal static class BalanceSelfTests
         var defense = await EngineSelfTests.ReadyFixture();
         defense.Player.PlayerCombatState!.Energy = 3;
         await PaidPlay(defense, "DY_U18", upgraded);
-        var shadowBlock = upgraded ? 10 : 7;
-        EngineSelfTests.Equal(shadowBlock, defense.Player.Creature.Block, "shadow step retains immediate block");
+        var shadowBlock = upgraded ? 8 : 6;
+        EngineSelfTests.Equal(shadowBlock, defense.Player.Creature.Block, "shadow step grants its printed block");
         EngineSelfTests.Equal(1, DuanYuState.Get(defense.Player).Lingbo, "shadow step grants one Lingbo immediately");
         var hand = PileType.Hand.GetPile(defense.Player).Cards;
         var beforeDraw = hand.Count;
@@ -617,7 +617,7 @@ internal static class BalanceSelfTests
         EngineSelfTests.AddCard(defense, "DY_B01", PileType.Draw);
         await PaidPlay(defense, "DY_U24", upgraded);
         EngineSelfTests.Equal(0, defense.Player.PlayerCombatState.Energy, "shadow step and roaming step cost one and two energy");
-        EngineSelfTests.Equal(shadowBlock + (upgraded ? 19 : 15), defense.Player.Creature.Block, "roaming step grants its increased block");
+        EngineSelfTests.Equal(shadowBlock + (upgraded ? 17 : 13), defense.Player.Creature.Block, "roaming step grants its printed block");
         EngineSelfTests.Equal(beforeDraw + 2, hand.Count, "roaming step retains two draws");
         await NextTurn(defense);
         EngineSelfTests.Equal(1, DuanYuState.Get(defense.Player).Lingbo, "shadow step grants a new Lingbo layer next turn");

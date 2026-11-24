@@ -149,7 +149,7 @@ internal static class QiRetentionSelfTests
             CardCmd.ApplySingleTurnRetain(status);
             await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
             AssertQi(player, startingQi, "guard hook preserves stored Qi");
-            EngineSelfTests.Equal(startingQi, player.Creature.Block, "Qi Guard uses the stored Qi before explicit status loss");
+            EngineSelfTests.Equal(startingQi / 2, player.Creature.Block, "Qi Guard uses half the stored Qi before explicit status loss");
             var turnState = AccessTools.Field(typeof(CombatManager), "_turnState").GetValue(CombatManager.Instance)!;
             await (Task)AccessTools.Method(typeof(CombatManager), "DoTurnEnd")
                 .Invoke(CombatManager.Instance, [turnState, player, new ThrowingPlayerChoiceContext()])!;
@@ -157,7 +157,7 @@ internal static class QiRetentionSelfTests
             AssertQi(player, afterStatus, "status loses two Qi before ethereal exhaust restores one");
             EngineSelfTests.Equal(PileType.Exhaust, status.Pile!.Type, "ethereal status exhausts despite single-turn retain");
             EngineSelfTests.Equal(1, CombatManager.Instance.History.Entries.OfType<CardExhaustedEntry>().Count(entry => ReferenceEquals(entry.Card, status)), "native status exhaust occurs once");
-            EngineSelfTests.Equal(startingQi + 2, player.Creature.Block, "native status exhaustion grants one exhaust-power block trigger");
+            EngineSelfTests.Equal(startingQi / 2 + 2, player.Creature.Block, "native status exhaustion grants one exhaust-power block trigger");
             await Hook.AfterSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
             AssertQi(player, afterStatus, "side end preserves Qi after explicit status loss and exhaust refund");
             EngineSelfTests.Equal(0, DuanYuState.Get(player).SpendingCount, "the complete turn-end sequence records no genuine Qi payment");

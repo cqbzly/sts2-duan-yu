@@ -1,6 +1,6 @@
 # 段誉模组安装说明
 
-当前版本为 v0.5.36。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。[GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [卡牌图鉴](cards.md)
+当前版本为 v0.5.37。目标环境为 Windows《杀戮尖塔2》v0.113.1 public-beta，依赖 BaseLib 3.4.8。[GitHub Releases](https://github.com/cqbzly/sts2-duan-yu/releases/latest) · [卡牌图鉴](cards.md)
 
 ## 玩家安装
 
@@ -41,6 +41,7 @@
 
 ## 更新记录
 
+- v0.5.37 真气护体按当前真气的一半向下取整，同时下调六张防御牌的格挡。[更新记录](releases/v0.5.37.md)
 - v0.5.36 修整 7 张卡面，更新段誉头像。[更新记录](releases/v0.5.36.md)
 - v0.5.35 调整剑气归宗的普通版结算。[更新记录](releases/v0.5.35.md)
 - v0.5.34 调整凌波、剑气和借招等 12 张卡牌。[更新记录](releases/v0.5.34.md)
