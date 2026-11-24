@@ -224,11 +224,11 @@ internal static class SpecialCardSelfTests
         attack.BaseReplayCount = 2;
         var initialHp = fixture.Enemy.CurrentHp;
         await PaidPlay(fixture, attack);
-        var statuses = GeneratedCards().OfType<DY_S01>().ToArray();
-        EngineSelfTests.Equal(3 * 16, initialHp - fixture.Enemy.CurrentHp, "replayed attack at zero Qi deals 16 damage for every body");
-        EngineSelfTests.Equal(3, statuses.Length, "every completed attack body creates one stagnation");
-        EngineSelfTests.Equal(true, statuses.All(status => status.Pile?.Type == PileType.Discard), "attack statuses enter discard");
-        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "creating stagnation does not immediately lose Qi");
+        var statuses = GeneratedCards().OfType<DY_S02>().ToArray();
+        EngineSelfTests.Equal(3 * (upgraded ? 19 : 14), initialHp - fixture.Enemy.CurrentHp, "replayed attack at zero Qi deals its printed damage for every body");
+        EngineSelfTests.Equal(3, statuses.Length, "every completed attack body creates one foreign Qi status");
+        EngineSelfTests.Equal(true, statuses.All(status => status.Pile?.Type == PileType.Hand), "attack statuses enter the hand");
+        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "creating a foreign Qi status does not grant Qi");
     }
 
     private static async Task ForeignGeneration(bool upgraded)
@@ -305,7 +305,7 @@ internal static class SpecialCardSelfTests
                 "Beiming Borrow preserves the native Exhaust keyword without adding it");
         }
         EngineSelfTests.Equal(1, generated.OfType<DY_S02>().Count(status => status.Pile?.Type == PileType.Discard), "borrowing adds one foreign-Qi status to discard");
-        EngineSelfTests.Equal(PileType.Exhaust, borrowing.Pile!.Type, "borrowing source exhausts");
+        EngineSelfTests.Equal(PileType.Discard, borrowing.Pile!.Type, "borrowing source remains reusable");
         EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "borrowing pays its energy without a starter relic refund");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "borrowing receives no starter relic Qi");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SwordMomentum, "generating foreign attacks grants no sword momentum");

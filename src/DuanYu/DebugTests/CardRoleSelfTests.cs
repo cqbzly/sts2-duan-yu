@@ -8,8 +8,11 @@ using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Factories;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Monsters;
+using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.TestSupport;
 
@@ -26,7 +29,11 @@ internal static class CardRoleSelfTests
                 string suffix = upgraded ? "+" : "";
                 yield return ("roles:borrow-draw-then-discard" + suffix, () => BorrowCycle(upgraded));
                 yield return ("roles:breath-draw-and-fixed-qi" + suffix, () => BreathCycle(upgraded));
-                yield return ("roles:step-draw-and-fixed-lingbo" + suffix, () => StepCycle(upgraded));
+                yield return ("roles:first-step-lingbo-upgrade" + suffix, () => FirstStep(upgraded));
+                yield return ("roles:step-lingbo-and-next-turn-draw" + suffix, () => StepCycle(upgraded));
+                yield return ("roles:weave-conditional-draw" + suffix, () => Weave(upgraded));
+                yield return ("roles:retreat-and-advance-next-turn-energy" + suffix, () => RetreatAndAdvance(upgraded));
+                yield return ("roles:turn-in-the-gap-creates-stagnation" + suffix, () => TurnInTheGap(upgraded));
                 yield return ("roles:dual-swords-exhaust-retrieval" + suffix, () => ExhaustRetrieval(upgraded));
                 yield return ("roles:continuous-strike-native-replay-draw" + suffix, () => ContinuousStrike(upgraded));
                 yield return ("roles:reserve-strength-fatal-qi" + suffix, () => ReserveStrength(upgraded));
@@ -105,11 +112,67 @@ internal static class CardRoleSelfTests
         var fixture = await Ready();
         var source = EngineSelfTests.AddCard(fixture, "DY_C11", PileType.Hand, upgraded);
         await BalanceSelfTests.PaidPlay(fixture, source);
-        EngineSelfTests.Equal(upgraded ? 2 : 1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "step upgrades its fixed draw count");
-        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).Lingbo, "step grants exactly one Lingbo at either upgrade level");
-        EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "step no longer repeats the basic block-and-Lingbo effect");
-        EngineSelfTests.Equal(false, source.GainsBlock, "step no longer advertises block");
-        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "step supplies no new Qi");
+        var hand = PileType.Hand.GetPile(fixture.Player);
+        EngineSelfTests.Equal(0, hand.Cards.Count, "step defers its draw to the next turn");
+        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(fixture.Player).Lingbo, "step upgrades its immediate Lingbo");
+        await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
+        await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, new ThrowingPlayerChoiceContext());
+        EngineSelfTests.Equal(2, hand.Cards.Count, "step draws two on the next turn");
+        await Hook.BeforeSideTurnStart(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
+        await Hook.BeforeHandDraw(fixture.Combat, fixture.Player, new ThrowingPlayerChoiceContext());
+        EngineSelfTests.Equal(2, hand.Cards.Count, "step's additional draw resolves only once");
+    }
+
+    private static async Task Weave(bool upgraded)
+    {
+        foreach (int initialLingbo in new[] { 0, 1 })
+        {
+            var fixture = await Ready();
+            await DuanYuState.GainLingbo(fixture.Player, initialLingbo);
+            int health = fixture.Enemy.CurrentHp;
+            var source = await EngineSelfTests.PaidPlay(fixture, "DY_C13", upgraded);
+            EngineSelfTests.Equal(upgraded ? 10 : 7, health - fixture.Enemy.CurrentHp, "weave's printed damage resolves");
+            EngineSelfTests.Equal(initialLingbo + 1, DuanYuState.Get(fixture.Player).Lingbo, "weave always grants one Lingbo");
+            EngineSelfTests.Equal(initialLingbo, PileType.Hand.GetPile(fixture.Player).Cards.Count, "weave draws once only when Lingbo was already present");
+            EngineSelfTests.Equal(false, source.GainsBlock, "weave does not advertise a block effect");
+        }
+    }
+
+    private static async Task RetreatAndAdvance(bool upgraded)
+    {
+        var fixture = await Ready();
+        var combat = fixture.Player.PlayerCombatState!;
+        await EngineSelfTests.PaidPlay(fixture, "DY_C16", upgraded);
+        EngineSelfTests.Equal(2, combat.Energy, "retreat and advance only spends its cost on this turn");
+        EngineSelfTests.Equal(upgraded ? 10 : 7, fixture.Player.Creature.Block, "retreat and advance grants its printed block");
+        EngineSelfTests.Equal(1, fixture.Player.Creature.GetPowerAmount<EnergyNextTurnPower>(), "retreat and advance schedules one energy");
+        combat.Energy = 3;
+        await Hook.AfterEnergyReset(fixture.Combat, fixture.Player);
+        EngineSelfTests.Equal(4, combat.Energy, "scheduled energy is granted after the next reset");
+        EngineSelfTests.Equal(0, fixture.Player.Creature.GetPowerAmount<EnergyNextTurnPower>(), "next-turn energy resolves only once");
+    }
+
+    private static async Task FirstStep(bool upgraded)
+    {
+        var fixture = await Ready();
+        await EngineSelfTests.PaidPlay(fixture, "DY_B04", upgraded);
+        EngineSelfTests.Equal(upgraded ? 2 : 1, DuanYuState.Get(fixture.Player).Lingbo, "first step gains the upgraded or base Lingbo amount");
+        EngineSelfTests.Equal(upgraded ? 6 : 4, fixture.Player.Creature.Block, "first step retains its block");
+    }
+
+    private static async Task TurnInTheGap(bool upgraded)
+    {
+        var fixture = await Ready();
+        await DuanYuState.GainQi(fixture.Player, 3);
+        int health = fixture.Enemy.CurrentHp;
+        await EngineSelfTests.PaidPlay(fixture, "DY_U21", upgraded);
+
+        var hand = PileType.Hand.GetPile(fixture.Player).Cards;
+        EngineSelfTests.Equal(1, hand.OfType<DY_S01>().Count(), "turn in the gap adds one stagnation to the hand");
+        EngineSelfTests.Equal(upgraded ? 3 : 2, hand.Count, "turn in the gap draws before adding stagnation");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Lingbo, "turn in the gap retains its Lingbo gain");
+        EngineSelfTests.Equal(upgraded ? 14 : 10, health - fixture.Enemy.CurrentHp, "turn in the gap retains its damage");
+        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "generating stagnation does not immediately consume Qi");
     }
 
     private static async Task ExhaustRetrieval(bool upgraded)
@@ -142,8 +205,9 @@ internal static class CardRoleSelfTests
         EngineSelfTests.Equal(PileType.Exhaust, status.Pile!.Type, "foreign-Qi status cannot be retrieved as a sword");
         EngineSelfTests.Equal(PileType.Exhaust, attack.Pile!.Type, "ordinary attack cannot be retrieved as a sword");
         EngineSelfTests.Equal(0, CombatManager.Instance.History.Entries.OfType<CardGeneratedEntry>().Count(), "retrieval generates no card copies");
-        EngineSelfTests.Equal(1, ExhaustCount(source), "retrieval source exhausts once");
-        EngineSelfTests.Equal(2, fixture.Player.Creature.Block, "only exhausting the source triggers exhaust block, moving swords does not");
+        EngineSelfTests.Equal(0, ExhaustCount(source), "retrieval source remains reusable");
+        EngineSelfTests.Equal(PileType.Discard, source.Pile!.Type, "retrieval source goes to discard");
+        EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "moving swords does not trigger exhaust block");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "retrieval grants no Qi");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SwordPlays, "retrieval does not count as playing recovered swords");
 
@@ -179,8 +243,8 @@ internal static class CardRoleSelfTests
         EngineSelfTests.Equal(1, fullSelector.Calls, "second replay body skips selection once the hand fills");
         EngineSelfTests.Equal(PileType.Hand, recovered.Pile!.Type, "first retrieval fills the single free slot");
         EngineSelfTests.Equal(PileType.Exhaust, leftBehind.Pile!.Type, "swords without hand space remain exhausted");
-        EngineSelfTests.Equal(1, ExhaustCount(replayed), "native replay exhausts the physical retrieval card only once");
-        EngineSelfTests.Equal(0, PileType.Discard.GetPile(full.Player).Cards.Count, "full hand does not push unretrieved swords into discard");
+        EngineSelfTests.Equal(0, ExhaustCount(replayed), "native replay does not exhaust the retrieval card");
+        EngineSelfTests.Equal(replayed, PileType.Discard.GetPile(full.Player).Cards.Single(), "only the played retrieval card goes to discard");
     }
 
     private static async Task ContinuousStrike(bool upgraded)

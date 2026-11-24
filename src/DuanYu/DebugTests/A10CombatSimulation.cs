@@ -222,7 +222,6 @@ internal static class A10CombatSimulation
         var neededBlock = Math.Max(0, incoming - player.Creature.Block);
         double damage = card.Value(card.Numbers.Damage, card.Numbers.DamageUp);
         if (resources.Qi >= card.QiCost) damage += card.Value(card.Numbers.ExtraDamage, card.Numbers.ExtraDamageUp);
-        if (card.DesignId == "DY_U08") damage += (double)card.DynamicVars["ExtraDamage"].BaseValue * resources.Qi;
         if (card.TargetType == TargetType.AllEnemies) damage *= state.Enemies.Count(enemy => enemy.IsAlive);
         double block = card.Value(card.Numbers.Block, card.Numbers.BlockUp);
         if (card.DesignId == "DY_C15" && resources.Qi >= 2) block *= 2;

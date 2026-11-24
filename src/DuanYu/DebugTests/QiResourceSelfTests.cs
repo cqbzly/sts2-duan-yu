@@ -21,7 +21,7 @@ internal static class QiResourceSelfTests
 {
     private static readonly string[] FeeCards =
     [
-        "DY_B05", "DY_C14", "DY_C15", "DY_C17", "DY_U07", "DY_U17", "DY_U32", "DY_U33",
+        "DY_B05", "DY_C15", "DY_C17", "DY_U07", "DY_U17", "DY_U32", "DY_U33",
         "DY_R05", "DY_R06", "DY_R13", "DY_R20",
         "DY_T01", "DY_T02", "DY_T03", "DY_T04", "DY_T05", "DY_T06"
     ];
@@ -40,7 +40,7 @@ internal static class QiResourceSelfTests
             yield return ("qi:x-canonical-preview-has-no-owner", QiXCanonicalPreview);
             yield return ("qi:independent-display-and-native-stars", IndependentResource);
             yield return ("qi:uncapped-card-payment-and-refund", UncappedPayment);
-            yield return ("qi:uncapped-qi-scaling-attack", UncappedScalingAttack);
+            yield return ("qi:stored-strike-damage-independent-of-qi", StoredStrikeFixedDamage);
             yield return ("qi:uncapped-qi-scaling-turn-end-power", UncappedScalingPower);
             yield return ("qi:free-energy-retains-mandatory-cost", FreeEnergy);
             yield return ("qi:native-replay-pays-once-and-refunds-once", ReplayPayment);
@@ -265,19 +265,19 @@ internal static class QiResourceSelfTests
         EngineSelfTests.Equal(4, player.Creature.Block, "high-Qi payment grants prayer block once");
     }
 
-    private static async Task UncappedScalingAttack()
+    private static async Task StoredStrikeFixedDamage()
     {
         foreach (bool upgraded in new[] { false, true })
-        foreach (int qi in new[] { 0, 5, 100, 101 })
+        foreach (int qi in new[] { 0, 101 })
         {
             var fixture = await EngineSelfTests.ReadyFixture();
             await SetQi(fixture.Player, qi);
             var card = EngineSelfTests.AddCard(fixture, "DY_U08", PileType.Hand, upgraded);
             int health = fixture.Enemy.CurrentHp;
             await EngineSelfTests.PaidPlay(fixture, card);
-            EngineSelfTests.Equal(16 + qi * (upgraded ? 3 : 2), health - fixture.Enemy.CurrentHp, "Qi-scaling attack uses the fixed base and the full Qi multiplier");
-            AssertQi(fixture.Player, qi, "Qi-scaling attack reads the resource without spending it");
-            EngineSelfTests.Equal(1, PileType.Discard.GetPile(fixture.Player).Cards.OfType<DuanYuCard>().Count(candidate => candidate.DesignId == "DY_S01"), "high-Qi attack retains its printed status drawback");
+            EngineSelfTests.Equal(upgraded ? 19 : 14, health - fixture.Enemy.CurrentHp, "stored strike deals the printed damage at any Qi balance");
+            AssertQi(fixture.Player, qi, "stored strike changes no Qi when played");
+            EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.OfType<DY_S02>().Count(), "stored strike creates one foreign Qi in hand");
         }
     }
 
@@ -292,7 +292,7 @@ internal static class QiResourceSelfTests
             await EngineSelfTests.PaidPlay(fixture, card);
             EngineSelfTests.Equal(0, fixture.Player.Creature.Block, "Qi Guard waits for turn end");
             await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [fixture.Player.Creature]);
-            EngineSelfTests.Equal(qi / 2 + (upgraded ? 2 : 0), fixture.Player.Creature.Block, "Qi Guard scales from the full stored amount and rounds down");
+            EngineSelfTests.Equal(qi + (upgraded ? 2 : 0), fixture.Player.Creature.Block, "Qi Guard uses the full stored amount and its upgrade bonus");
             AssertQi(fixture.Player, qi, "high-Qi guard does not spend the stored resource");
         }
     }

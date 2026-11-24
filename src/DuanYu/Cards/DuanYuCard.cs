@@ -40,7 +40,7 @@ public abstract class DuanYuCard : CustomCardModel
         "DY_T01" or "DY_T02" or "DY_T03" or "DY_T04" or "DY_T05" or "DY_T06" => 1,
         "DY_C17" => 1,
         "DY_B05" or "DY_C15" or "DY_U32" or "DY_R06" => 2,
-        "DY_C14" or "DY_U07" or "DY_U17" or "DY_U33" or "DY_R05" or "DY_R20" => 3,
+        "DY_U07" or "DY_U17" or "DY_U33" or "DY_R05" or "DY_R20" => 3,
         "DY_R13" => 5, _ => 0
     };
     public int Value(int normal, int upgraded) => IsUpgraded ? upgraded : normal;
@@ -66,11 +66,7 @@ public abstract class DuanYuCard : CustomCardModel
     {
         get
         {
-            if (DesignId == "DY_U08")
-            {
-                foreach (var variable in MakeCalculatedDamage(Numbers.Damage, (source, _) => source.IsCanonical || source.Owner == null ? 0 : DuanYuState.Get(source.Owner).Qi, 2)) yield return variable;
-            }
-            else if (Numbers.Damage > 0) yield return new DamageVar(Numbers.Damage, ValueProp.Move);
+            if (Numbers.Damage > 0) yield return new DamageVar(Numbers.Damage, ValueProp.Move);
             if (Numbers.ExtraDamage > 0) yield return new DamageVar("ExtraDamage", Numbers.ExtraDamage, ValueProp.Move);
             if (Numbers.Block > 0) yield return new DuanYuBlockVar(Numbers.Block);
             if (DesignId == "DY_U37") yield return new DuanYuXBlockVar(Numbers.Block);
@@ -83,7 +79,7 @@ public abstract class DuanYuCard : CustomCardModel
     public override IEnumerable<CardKeyword> CanonicalKeywords => DesignId == "DY_S01"
         ? [CardKeyword.Unplayable, CardKeyword.Ethereal]
         : DesignId.StartsWith("DY_T", StringComparison.Ordinal) ? [CardKeyword.Exhaust, CardKeyword.Ethereal]
-        : DesignId is "DY_C22" or "DY_U02" or "DY_U13" or "DY_U15" or "DY_U27" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R14" or "DY_R17" or "DY_R21" or "DY_A01" or "DY_S02" ? [CardKeyword.Exhaust] : [];
+        : DesignId is "DY_C22" or "DY_U02" or "DY_U15" or "DY_U35" or "DY_U38" or "DY_R04" or "DY_R14" or "DY_R21" or "DY_A01" or "DY_S02" ? [CardKeyword.Exhaust] : [];
     public override List<(string, string)> Localization => new CardLoc(Definition.Name,
         "{IfUpgraded:show:" + DescriptionText(true) + "|" + DescriptionText(false) + "}",
         ("selectionScreenPrompt", "选择卡牌"), ("qiTipTitle", "真气与耗气"), ("lingboTipTitle", "凌波"), ("swordTipTitle", "六脉剑气"), ("statusTipTitle", "专属状态牌"), ("foreignTipTitle", "外门招式"));
@@ -113,8 +109,7 @@ public abstract class DuanYuCard : CustomCardModel
     protected override void OnUpgrade()
     {
         EnergyCost.UpgradeBy(Definition.Upgrade.Cost - Definition.Cost);
-        if (DesignId == "DY_U08") DynamicVars["ExtraDamage"].UpgradeValueBy(1);
-        else if (Numbers.Damage > 0) DynamicVars.Damage.UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
+        if (Numbers.Damage > 0) DynamicVars.Damage.UpgradeValueBy(Numbers.DamageUp - Numbers.Damage);
         if (Numbers.ExtraDamage > 0) DynamicVars["ExtraDamage"].UpgradeValueBy(Numbers.ExtraDamageUp - Numbers.ExtraDamage);
         if (Numbers.Block > 0) DynamicVars.Block.UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
         if (DesignId == "DY_U37") DynamicVars["XBlock"].UpgradeValueBy(Numbers.BlockUp - Numbers.Block);
@@ -146,8 +141,6 @@ public abstract class DuanYuCard : CustomCardModel
             return result.Replace(formula, Live("{XBlock:diff()}", formula))
                 .Replace("至多X张", "至多" + Live("{EnergyX}", "X") + "张");
         }
-        if (DesignId == "DY_U08")
-            return Live("造成{CalculatedDamage:diff()}点伤害。将1张气滞加入弃牌堆。", result);
         if (DesignId == "DY_R21")
             result = result.Replace("全部真气（X）", "全部真气").Replace("伤害X次", "伤害" + Live("{QiX}", "X") + "次");
         if (DesignId == "DY_A01")
@@ -214,8 +207,8 @@ public abstract class DuanYuCard : CustomCardModel
                 description.Add("OtherCards", PileType.Hand.GetPile(Owner!).Cards.Count(card => !ReferenceEquals(card, this)));
                 break;
         }
-        int? rawBlock = DesignId == "DY_U05"
-            ? DuanYuState.Get(Owner!).Qi / 2 + Value(0, 2)
+        decimal? rawBlock = DesignId == "DY_U05"
+            ? (decimal)DuanYuState.Get(Owner!).Qi + Value(0, 2)
             : TriggerBlockAmount(IsUpgraded);
         if (rawBlock.HasValue)
         {

@@ -210,7 +210,7 @@ internal static class CircletSelfTests
             CardCmd.ApplySingleTurnRetain(status);
             await Hook.BeforeSideTurnEnd(fixture.Combat, CombatSide.Player, [player.Creature]);
             AssertQi(player, startingQi, "guard uses Qi before the circlet turn-end grant");
-            EngineSelfTests.Equal(startingQi / 2, player.Creature.Block, "circlet does not advance Qi Guard's turn-end block");
+            EngineSelfTests.Equal(startingQi, player.Creature.Block, "circlet does not advance Qi Guard's turn-end block");
             var turnState = AccessTools.Field(typeof(CombatManager), "_turnState").GetValue(CombatManager.Instance)!;
             await (Task)AccessTools.Method(typeof(CombatManager), "DoTurnEnd")
                 .Invoke(CombatManager.Instance, [turnState, player, new ThrowingPlayerChoiceContext()])!;

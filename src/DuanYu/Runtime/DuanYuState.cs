@@ -347,7 +347,7 @@ public static class DuanYuState
             switch (effect.CardId)
             {
                 case "DY_U05":
-                    await GainBlock(player, (decimal)(state.Qi / 2) * effect.Amount + effect.SecondaryAmount);
+                    await GainBlock(player, (decimal)state.Qi * effect.Amount + effect.SecondaryAmount);
                     break;
             }
         }
@@ -408,9 +408,6 @@ public static class DuanYuState
                     await CardPileCmd.Draw(context, effect.Amount, player);
                     await GainQi(player, effect.SecondaryAmount);
                     if (effect.EnergyAmount > 0 && CanAct(player)) await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
-                    break;
-                case "DY_R15" when record.SwordOrdinal == 1:
-                    if (effect.EnergyAmount > 0) await PlayerCmd.GainEnergy(effect.EnergyAmount, player);
                     break;
                 case "DY_R18" when record.SwordOrdinal is > 0 and <= 3:
                     await GainBlock(player, effect.Amount); break;

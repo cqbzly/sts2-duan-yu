@@ -26,7 +26,7 @@ internal static class BalanceSelfTests
                 var suffix = upgraded ? "+" : "";
                 yield return ("balance:energy-cards-paid" + suffix, () => EnergyCards(upgraded));
                 yield return ("balance:rebalanced-qi-sources-paid" + suffix, () => QiSources(upgraded));
-                yield return ("balance:qi-before-pendant" + suffix, () => QiBeforePendant(upgraded));
+                yield return ("balance:read-book-free-draw-with-stagnation" + suffix, () => ReadBook(upgraded));
                 yield return ("balance:six-swords-paid" + suffix, () => SixSwordPayment(upgraded));
                 yield return ("balance:sword-resource-boundaries" + suffix, () => SwordResourceBoundaries(upgraded));
                 yield return ("balance:proficiency-all-swords" + suffix, () => ProficiencyAllSwords(upgraded));
@@ -41,10 +41,10 @@ internal static class BalanceSelfTests
             yield return ("balance:spend-callback-idempotence", SpendCallbackIdempotence);
             yield return ("balance:unity-third-and-sixth-kind", UnityThresholds);
             yield return ("balance:upgraded-swords-share-kind", UpgradedSwordIdentity);
-            yield return ("balance:native-replay-spending-and-first-sword", NativeReplaySpending);
+            yield return ("balance:native-replay-spending", NativeReplaySpending);
             yield return ("balance:native-replay-unity-thresholds", NativeReplayUnityThresholds);
             yield return ("balance:unity-no-retroactive-trigger", UnityLateApplication);
-            yield return ("balance:simplicity-first-sword-limit", SimplicityLimit);
+            yield return ("balance:simplicity-turn-start-stacks", SimplicityTurnStartStacks);
             yield return ("balance:sword-array-mixed-upgrades", SwordArrayMixedUpgrades);
             yield return ("balance:six-sword-resource-cycle", SixSwordCycle);
             yield return ("balance:self-damage-stops-after-death", SelfDamageStopsAfterDeath);
@@ -65,11 +65,11 @@ internal static class BalanceSelfTests
         var regular = new[] { ("C", 23), ("U", 38), ("R", 22) }
             .SelectMany(group => Enumerable.Range(1, group.Item2).Select(number => DuanYuCard.Canonical($"DY_{group.Item1}{number:00}"))).ToArray();
         EngineSelfTests.Equal(83, regular.Length, "regular reward catalog size");
-        EngineSelfTests.Equal(34, regular.Count(card => card.Type == CardType.Attack), "regular reward catalog includes 34 attacks after borrow becomes a cycle skill");
+        EngineSelfTests.Equal(33, regular.Count(card => card.Type == CardType.Attack), "regular reward catalog includes 33 attacks");
         var specifications = new (string Id, int Damage, int DamageUp, int Block, int BlockUp, int Swords, bool All)[]
         {
             ("DY_C07", 11, 15, 4, 6, 1, false), ("DY_C08", 8, 12, 0, 0, 1, false),
-            ("DY_C13", 7, 10, 2, 4, 0, false), ("DY_C16", 10, 14, 5, 7, 0, false),
+            ("DY_C13", 7, 10, 0, 0, 0, false),
             ("DY_C18", 8, 12, 4, 6, 1, false), ("DY_U10", 10, 14, 0, 0, 1, true),
             ("DY_U11", 8, 12, 2, 3, 1, false), ("DY_U12", 10, 14, 2, 2, 1, false),
             ("DY_U20", 11, 15, 4, 6, 0, false), ("DY_U21", 10, 14, 0, 0, 0, false),
@@ -98,6 +98,11 @@ internal static class BalanceSelfTests
             EngineSelfTests.Equal(specification.Swords, PileType.Hand.GetPile(fixture.Player).Cards.Count(DuanYuState.IsSword), specification.Id + " retains sword generation");
             EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SkillsPlayed, specification.Id + " does not consume first skill trigger");
             EngineSelfTests.Equal(energyBefore - cost, fixture.Player.PlayerCombatState.Energy, specification.Id + " does not receive first skill energy");
+            if (specification.Id == "DY_U20")
+            {
+                EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.OfType<DY_S01>().Count(), "evasive strike creates stagnation in hand");
+                EngineSelfTests.Equal(2, fixture.Enemy.GetPowerAmount<WeakPower>(), "evasive strike retains two Weak alongside stagnation");
+            }
             if (specification.Id is "DY_R09" or "DY_R10")
             {
                 EngineSelfTests.Equal(false, card.Keywords.Contains(CardKeyword.Exhaust), specification.Id + " no longer carries Exhaust");
@@ -154,30 +159,19 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(false, requiresPayment.CanPlay(), "Qi Sea cannot borrow its future energy");
     }
 
-    private static async Task QiBeforePendant(bool upgraded)
+    private static async Task ReadBook(bool upgraded)
     {
-        foreach (var qi in new[] { 2, 3 })
-        {
-            var fixture = await EngineSelfTests.ReadyFixture();
-            await SetQi(fixture, qi);
-            fixture.Player.PlayerCombatState!.Energy = 1;
-            var card = EngineSelfTests.AddCard(fixture, "DY_C14", PileType.Hand, upgraded);
-            if (qi < card.QiCost)
-            {
-                EngineSelfTests.Equal(false, card.CanPlay(), "read book rejects an incomplete Qi payment");
-                EngineSelfTests.Equal((0, 0), await card.SpendResources(), "read book preserves energy when Qi is insufficient");
-                await EngineSelfTests.PlayCard(fixture, card);
-                EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "read book rejected play preserves energy");
-                EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "read book rejected play preserves Qi");
-            }
-            else
-            {
-                await PaidPlay(fixture, card);
-                EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "read book energy requires the printed Qi spend");
-                EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "read book pays its full Qi cost");
-                EngineSelfTests.Equal(upgraded ? 3 : 2, PileType.Hand.GetPile(fixture.Player).Cards.Count, "read book native draw");
-            }
-        }
+        var fixture = await EngineSelfTests.ReadyFixture();
+        await SetQi(fixture, 0);
+        fixture.Player.PlayerCombatState!.Energy = 0;
+        var card = EngineSelfTests.AddCard(fixture, "DY_C14", PileType.Hand, upgraded);
+        EngineSelfTests.Equal(false, card.HasQiCost, "read book has no Qi cost");
+        await PaidPlay(fixture, card);
+        var hand = PileType.Hand.GetPile(fixture.Player).Cards;
+        EngineSelfTests.Equal(upgraded ? 4 : 3, hand.OfType<DY_B01>().Count(), "read book draws its printed number of cards");
+        EngineSelfTests.Equal(1, hand.OfType<DY_S01>().Count(), "read book creates one stagnation in hand");
+        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "read book costs and grants zero energy");
+        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).SpendingCount, "read book does not trigger Qi spend effects");
     }
 
     private static async Task SixSwordPayment(bool upgraded)
@@ -433,14 +427,14 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordMomentum, "each replay adds momentum after its combined damage");
         EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).SpendingCount, "native replay pays Qi once per activation");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "first replay activation receives no Beiming refund");
-        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "only simplicity refunds energy on the first replay series");
+        EngineSelfTests.Equal(1, fixture.Player.PlayerCombatState.Energy, "sword replay does not grant turn-start energy");
         EngineSelfTests.Equal(1, PileType.Hand.GetPile(fixture.Player).Cards.Count, "beginning Beiming draws only on the first replay spend");
         EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).SwordPlays, "each native replay advances the sword play ordinal");
         EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).DistinctSwords.Count, "native replay cannot introduce a new sword identity");
         await SetQi(fixture, 0);
         await PaidPlay(fixture, "DY_T01");
         EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).SpendingCount, "a separately funded follow-up records a new payment");
-        EngineSelfTests.Equal(3, fixture.Player.PlayerCombatState.Energy, "follow-up sword triggers Beiming's second payment without repeating simplicity");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "follow-up sword triggers only Beiming's second payment");
     }
 
     private static async Task NativeReplayUnityThresholds()
@@ -520,27 +514,27 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "unity threshold refreshes next turn");
     }
 
-    private static async Task SimplicityLimit()
+    private static async Task SimplicityTurnStartStacks()
     {
         var fixture = await EngineSelfTests.ReadyFixture();
         fixture.Player.PlayerCombatState!.Energy = 6;
+        await PaidPlay(fixture, "DY_R15");
         await PaidPlay(fixture, "DY_R15", true);
         await PaidPlay(fixture, "DY_R15", true);
-        await SetQi(fixture, 0);
+        await SetQi(fixture, 1);
         await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(6, fixture.Player.PlayerCombatState.Energy, "two simplicity stacks refund first sword after paying both upgraded powers");
-        await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(6, fixture.Player.PlayerCombatState.Energy, "second sword gives no simplicity energy");
-        await PaidPlay(fixture, "DY_R15", true);
-        await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(5, fixture.Player.PlayerCombatState.Energy, "late simplicity pays its energy and does not reset first-sword ordinal");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "a sword on the setup turn does not grant simplicity energy");
         await DuanYuState.EndTurn(fixture.Player);
-        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "simplicity no longer returns Qi at turn end");
+        EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "simplicity does not grant Qi at turn end");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy at turn end");
         await NextTurn(fixture);
-        EngineSelfTests.Equal(3, DuanYuState.Get(fixture.Player).Qi, "simplicity grants one Qi per stack at turn start");
-        await SetQi(fixture, 0);
+        EngineSelfTests.Equal(6, DuanYuState.Get(fixture.Player).Qi, "simplicity grants two Qi per copy at turn start");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy");
         await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(8, fixture.Player.PlayerCombatState.Energy, "simplicity first-sword trigger refreshes next turn");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "playing a sword does not grant extra energy");
+        await NextTurn(fixture);
+        EngineSelfTests.Equal(11, DuanYuState.Get(fixture.Player).Qi, "simplicity grants Qi again on subsequent turns");
+        EngineSelfTests.Equal(2, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy on subsequent turns");
     }
 
     private static async Task SimplicityCost(bool upgraded)
@@ -554,9 +548,8 @@ internal static class BalanceSelfTests
         EngineSelfTests.Equal(upgraded ? 1 : 0, fixture.Player.PlayerCombatState.Energy, "simplicity pays its actual upgraded or normal cost");
         EngineSelfTests.Equal(0, DuanYuState.Get(fixture.Player).Qi, "simplicity does not grant Qi immediately");
         await NextTurn(fixture);
-        EngineSelfTests.Equal(1, DuanYuState.Get(fixture.Player).Qi, "simplicity grants one Qi on the next turn for either upgrade");
-        await PaidPlay(fixture, "DY_T01");
-        EngineSelfTests.Equal(upgraded ? 2 : 1, fixture.Player.PlayerCombatState.Energy, "simplicity retains one energy on the first sword");
+        EngineSelfTests.Equal(2, DuanYuState.Get(fixture.Player).Qi, "simplicity grants two Qi on the next turn for either upgrade");
+        EngineSelfTests.Equal(upgraded ? 1 : 0, fixture.Player.PlayerCombatState.Energy, "simplicity does not grant energy at turn start");
     }
 
     private static async Task RareDefense(bool upgraded)

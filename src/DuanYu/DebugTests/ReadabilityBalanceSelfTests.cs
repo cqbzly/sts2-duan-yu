@@ -230,7 +230,7 @@ internal static class ReadabilityBalanceSelfTests
             await DuanYuState.LoseQi(fixture.Player, int.MaxValue);
             await DuanYuState.GainQi(fixture.Player, qi);
             EngineSelfTests.Equal(true, Render(volley, PileType.Hand, fixture.Enemy).Contains($"剑气伤害{qi}次"), "volley shows its current number of hits");
-            EngineSelfTests.Equal(true, Render(breathing, PileType.Hand).Contains($"当前{qi / 2 + (upgraded ? 2 : 0)}点"), "end-turn block indicates the current prediction");
+            EngineSelfTests.Equal(true, Render(breathing, PileType.Hand).Contains($"当前{qi + (upgraded ? 2 : 0)}点"), "end-turn block indicates the current prediction");
             EngineSelfTests.Equal(true, Render(draw, PileType.Hand).StartsWith($"抽{(upgraded ? 3 : 2) + (qi >= 5 ? 1 : 0)}张牌"), "conditional draw shows the current draw count");
         }
         var context = new ThrowingPlayerChoiceContext();
