@@ -64,7 +64,7 @@ internal static class SpecialCardSelfTests
                 yield return ("special:attack-replay-creates-one-status-per-body" + suffix, () => AttackCreatesStatus(upgraded));
                 yield return ("special:foreign-complete-pool-cost-and-overflow" + suffix, () => ForeignGeneration(upgraded));
                 yield return ("special:borrowed-attacks-paid-and-status-cost" + suffix, () => BorrowedAttacks(upgraded));
-                yield return ("special:secondary-borrow-card" + suffix, () => SecondaryBorrowedAttack(upgraded));
+                yield return ("special:counterstroke-chooses-one-of-three" + suffix, () => SecondaryBorrowedAttack(upgraded));
                 yield return ("special:x-resource-cards" + suffix, () => XResourceCards(upgraded));
                 yield return ("special:active-exhaust-fixed-draw" + suffix, () => ActiveExhaust(upgraded));
                 yield return ("special:selective-exhaust-actual-count" + suffix, () => SelectiveExhaust(upgraded));
@@ -315,14 +315,27 @@ internal static class SpecialCardSelfTests
     {
         var fixture = await ReadyFixture("DUANYUSECONDBORROW");
         await SetQi(fixture, 0);
-        fixture.Player.PlayerCombatState!.Energy = upgraded ? 2 : 2;
+        fixture.Player.PlayerCombatState!.Energy = 2;
         var borrowing = EngineSelfTests.AddCard(fixture, "DY_U36", PileType.Hand, upgraded);
-        await PaidPlay(fixture, borrowing);
+        var initialHp = fixture.Enemy.CurrentHp;
+        var damage = upgraded ? 17 : 12;
+        var selector = new BorrowedAttackSelector(() =>
+            EngineSelfTests.Equal(damage, initialHp - fixture.Enemy.CurrentHp, "counterstroke deals damage before offering attacks"));
+        using (RunManager.Instance.CardSelectorStack.PushSelector(fixture.Player, selector))
+            await PaidPlay(fixture, borrowing);
         var generated = GeneratedCards();
         var attack = generated.Single(card => card.Type == CardType.Attack);
-        EngineSelfTests.Equal(true, attack.Keywords.Contains(CardKeyword.Exhaust), "secondary borrow still adds Exhaust to the generated attack");
+        var pool = DuanYuForeignCards.GetAttackPool().Select(card => card.Id).ToHashSet();
+        EngineSelfTests.Equal(3, selector.Options.Select(card => card.Id).Distinct().Count(), "counterstroke offers three distinct attacks");
+        EngineSelfTests.Equal(true, selector.Options.All(card => pool.Contains(card.Id) && card.IsUpgraded == upgraded
+            && card.Keywords.Contains(CardKeyword.Exhaust) && (card.EnergyCost.CostsX || card.EnergyCost.GetWithModifiers(CostModifiers.All) == 0)),
+            "every preview comes from the foreign pool and shows the correct upgrade, cost and Exhaust");
+        EngineSelfTests.Equal(selector.Options[1], attack, "only the selected attack is generated");
+        EngineSelfTests.Equal(PileType.Hand, attack.Pile!.Type, "the chosen attack enters the hand");
+        EngineSelfTests.Equal(false, selector.Options.Where(card => card != attack).Any(fixture.Combat.ContainsCard),
+            "unchosen previews are removed from combat");
         EngineSelfTests.Equal(1, generated.OfType<DY_S02>().Count(card => card.Pile?.Type == PileType.Hand), "secondary borrow leaves one foreign-Qi status in hand");
-        EngineSelfTests.Equal(upgraded ? 17 : 12, fixture.Enemy.MaxHp - fixture.Enemy.CurrentHp, "secondary borrow deals its printed attack damage");
+        EngineSelfTests.Equal(0, fixture.Player.PlayerCombatState.Energy, "counterstroke costs two energy");
         EngineSelfTests.Equal(PileType.Discard, borrowing.Pile!.Type, "secondary borrow card goes to discard");
     }
 
@@ -641,6 +654,22 @@ internal static class SpecialCardSelfTests
 
     private static int ExhaustCount(CardModel card)
         => CombatManager.Instance.History.Entries.OfType<CardExhaustedEntry>().Count(entry => ReferenceEquals(entry.Card, card));
+
+    private sealed class BorrowedAttackSelector(Action onSelection) : ICardSelector
+    {
+        public CardModel[] Options { get; private set; } = [];
+
+        public Task<IEnumerable<CardModel>> GetSelectedCards(IEnumerable<CardModel> options, int minSelect, int maxSelect)
+        {
+            onSelection();
+            Options = options.ToArray();
+            EngineSelfTests.Equal(3, Options.Length, "counterstroke opens a three-card choice");
+            return Task.FromResult<IEnumerable<CardModel>>([Options[1]]);
+        }
+
+        public CardRewardSelection GetSelectedCardReward(IReadOnlyList<CardCreationResult> options, IReadOnlyList<CardRewardAlternative> alternatives)
+            => throw new InvalidOperationException("Counterstroke must use combat card selection.");
+    }
 
     private sealed class CountSelector(int count) : ICardSelector
     {

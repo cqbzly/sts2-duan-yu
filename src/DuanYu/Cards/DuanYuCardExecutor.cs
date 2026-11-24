@@ -264,7 +264,7 @@ public static class DuanYuCardExecutor
             }
             case "DY_U36":
                 await Attack(Value(12, 17));
-                await DuanYuForeignCards.GenerateAttacks(player, context, 1, card.IsUpgraded);
+                await DuanYuForeignCards.ChooseAttack(player, context, card.IsUpgraded);
                 await GenerateStatus("DY_S02", PileType.Hand);
                 break;
             case "DY_U37":

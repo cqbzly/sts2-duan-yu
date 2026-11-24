@@ -27,20 +27,64 @@ public static class DuanYuForeignCards
 
     public static async Task GenerateAttacks(Player player, PlayerChoiceContext context, int count, bool upgraded, bool addExhaust = true)
     {
-        if (count <= 0 || !DuanYuState.CanAct(player)) return;
+        foreach (var canonical in SampleAttacks(player, count))
+        {
+            var card = CreateBorrowedAttack(player, canonical, upgraded, addExhaust);
+            await CardPileCmd.AddGeneratedCardToCombat(card, PileType.Hand, player);
+        }
+    }
+
+    public static async Task ChooseAttack(Player player, PlayerChoiceContext context, bool upgraded)
+    {
+        var combat = player.Creature.CombatState;
+        if (combat == null) return;
+
+        var options = SampleAttacks(player, 3)
+            .Select(canonical => CreateBorrowedAttack(player, canonical, upgraded, addExhaust: true))
+            .ToArray();
+        if (options.Length == 0) return;
+
+        CardModel? addedCard = null;
+        try
+        {
+            var selected = await CardSelectCmd.FromChooseACardScreen(context, options, player);
+            if (selected != null && DuanYuState.CanAct(player))
+            {
+                await CardPileCmd.AddGeneratedCardToCombat(selected, PileType.Hand, player);
+                addedCard = selected;
+            }
+        }
+        finally
+        {
+            foreach (var option in options)
+            {
+                if (option != addedCard && option.Pile == null && combat.ContainsCard(option))
+                    combat.RemoveCard(option);
+            }
+        }
+    }
+
+    private static IEnumerable<CardModel> SampleAttacks(Player player, int count)
+    {
+        if (count <= 0 || !DuanYuState.CanAct(player)) yield break;
         var candidates = GetAttackPool().ToList();
         var generationCount = Math.Min(count, candidates.Count);
         for (var index = 0; index < generationCount; index++)
         {
-            if (!DuanYuState.CanAct(player)) return;
+            if (!DuanYuState.CanAct(player)) yield break;
             var choice = player.RunState.Rng.CombatCardGeneration.NextInt(candidates.Count);
             var canonical = candidates[choice];
             candidates.RemoveAt(choice);
-            var card = player.Creature.CombatState!.CreateCard(canonical, player);
-            if (upgraded) CardCmd.Upgrade(card);
-            card.EnergyCost.SetThisTurnOrUntilPlayed(0);
-            if (addExhaust) card.AddKeyword(CardKeyword.Exhaust);
-            await CardPileCmd.AddGeneratedCardToCombat(card, PileType.Hand, player);
+            yield return canonical;
         }
+    }
+
+    private static CardModel CreateBorrowedAttack(Player player, CardModel canonical, bool upgraded, bool addExhaust)
+    {
+        var card = player.Creature.CombatState!.CreateCard(canonical, player);
+        if (upgraded) CardCmd.Upgrade(card);
+        card.EnergyCost.SetThisTurnOrUntilPlayed(0);
+        if (addExhaust) card.AddKeyword(CardKeyword.Exhaust);
+        return card;
     }
 }

@@ -101,8 +101,8 @@ public abstract class DuanYuCard : CustomCardModel
                 yield return new HoverTip(new LocString("cards", Id.Entry + ".statusTipTitle"), "气滞：不可打出、虚无；回合结束时失去2点真气。失去真气不算支付。异种真气：1费、消耗；运气2，获得1层剑势，抽1张牌。两者均不能升级。");
             if (DesignId is "DY_U27" or "DY_U36")
             {
-                string exhaustRule = DesignId == "DY_U36" ? "借来的牌具有消耗。" : "借来的牌保留原有关键词。";
-                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "从其他角色的全部非基础攻击牌中等概率借招，同一次不重复。固定能量费用本回合为0，X费用、专属资源费用和打出条件照常。" + exhaustRule + "升级借招生成升级牌。");
+                string borrowRule = DesignId == "DY_U36" ? "随机3张供选1张，选中的牌具有消耗。" : "随机获得2张，保留原有关键词。";
+                yield return new HoverTip(new LocString("cards", Id.Entry + ".foreignTipTitle"), "候选来自其他角色的全部非基础攻击牌，等概率且不重复。" + borrowRule + "本回合固定能量费为0，X费、专属资源费用和打出条件照常。升级后借来的牌也会升级。");
             }
         }
     }
